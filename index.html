@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-b="Raw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e11d2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Universe Desk">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Universe Manager · WWE 2K26</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root {
+  --ac: #e11d2e;
+  --on: #fff;
+  --bg: #0a0a0e;
+  --card: #14141a;
+  --bd: #2a2a33;
+  --tx: #f0f0f5;
+  --mu: #8b8b9a;
+  --in: #0d0d12;
+  --glow: color-mix(in srgb, var(--ac) 35%, transparent);
+  color-scheme: dark;
+  box-sizing: border-box;
+}
+:root[data-b="Raw"] {
+  --ac: #e11d2e;
+  --on: #fff;
+  --bg: #0c0809;
+  --card: #161012;
+  --bd: #3a1a1f;
+}
+:root[data-b="SmackDown"] {
+  --ac: #2a7bf0;
+  --on: #fff;
+  --bg: #070b12;
+  --card: #0e141f;
+  --bd: #1a2a45;
+}
+:root[data-b="NXT"] {
+  --ac: #a0a6b4;
+  --on: #111;
+  --bg: #0b0b0e;
+  --card: #141418;
+  --bd: #2c2c35;
+}
+:root[data-b="Free Agency"] {
+  --ac: #9b5de5;
+  --on: #fff;
+  --bg: #100b17;
+  --card: #1b1325;
+  --bd: #49305f;
+}
+:root[data-b="Global"] {
+  --ac: #20c9b0;
+  --on: #04221c;
+  --bg: #061412;
+  --card: #0d1f1c;
+  --bd: #1a4a42;
+}
+
+* { box-sizing: border-box; }
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  transition: background .35s ease;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--tx);
+  font: 15px/1.45 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  background:
+    radial-gradient(1100px 500px at 50% -120px, var(--glow), transparent 70%),
+    var(--bg);
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  z-index: 20;
+}
+
+/* Header */
+header {
+  padding: 18px 16px 6px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+h1 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 3px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+h1 span { color: var(--ac); }
+.sub {
+  color: var(--mu);
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* Sticky top bar */
+.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bd) 60%, transparent);
+}
+
+/* Brands */
+.brands {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.brands button {
+  border: 1px solid var(--bd);
+  background: var(--card);
+  color: var(--tx);
+  border-radius: 11px;
+  padding: 10px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  cursor: pointer;
+  transition: all .2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.brands button::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+  flex-shrink: 0;
+}
+.brands button.on {
+  background: var(--c);
+  border-color: var(--c);
+  color: #fff;
+  box-shadow: 0 0 18px -4px var(--c);
+}
+.brands button.on[style*="9aa0ad"],
+.brands button.on[style*="a0a6b4"],
+.brands button.on[style*="d4a017"] {
+  color: #111;
+}
+.brands button.on::before { background: currentColor; }
+
+/* Nav tabs */
+nav {
+  display: flex;
+  gap: 6px;
+  padding: 10px 0 6px;
+  overflow-x: auto;
+  max-width: 760px;
+  margin: 0 auto;
+  scrollbar-width: none;
+}
+nav::-webkit-scrollbar { display: none; }
+nav button, .chip {
+  flex: none;
+  border: 1px solid var(--bd);
+  background: var(--card);
+  color: var(--tx);
+  padding: 8px 14px;
+  border-radius: 22px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .18s ease;
+  white-space: nowrap;
+}
+nav button.on, .chip.on {
+  background: var(--ac);
+  border-color: var(--ac);
+  color: var(--on);
+  font-weight: 700;
+  box-shadow: 0 0 14px -5px var(--ac);
+}
+
+/* Main content */
+main {
+  padding: 12px 14px 60px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* Cards & sections */
+.card, .sec {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.sec {
+  border-left: 4px solid var(--c);
+  margin-bottom: 16px;
+}
+.sh {
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: var(--c);
+  margin-bottom: 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+.hero {
+  border-color: var(--ac);
+  box-shadow: 0 0 28px -12px var(--ac);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ac) 8%, var(--card)), var(--card));
+}
+.champ {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--ac);
+  letter-spacing: .5px;
+  margin: 4px 0 10px;
+}
+
+/* Details / accordion */
+summary {
+  cursor: pointer;
+  list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+details.card {
+  padding: 0;
+  overflow: hidden;
+}
+details.card > summary {
+  padding: 14px;
+}
+details.card[open] > summary {
+  border-bottom: 1px solid var(--bd);
+  background: color-mix(in srgb, var(--ac) 5%, transparent);
+}
+details.card > :not(summary) {
+  padding: 14px;
+}
+
+/* Layout helpers */
+.row, .rw {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.rw {
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--bd) 70%, transparent);
+  gap: 6px;
+}
+.rw:last-child { border: 0; }
+.g {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.fl {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Form elements */
+input, select, textarea {
+  background: var(--in);
+  color: var(--tx);
+  border: 1px solid var(--bd);
+  border-radius: 9px;
+  padding: 10px 11px;
+  font: inherit;
+  min-width: 0;
+  width: 100%;
+  transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--ac);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ac) 25%, transparent);
+}
+.row input, .row select { width: auto; }
+input.f { flex: 1 1 140px; }
+textarea {
+  margin-top: 4px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Buttons */
+button.add {
+  background: var(--ac);
+  color: var(--on);
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .15s;
+}
+button.add:active { transform: scale(.97); }
+button.add:hover { box-shadow: 0 0 16px -4px var(--ac); }
+button.x {
+  background: none;
+  border: 0;
+  color: var(--mu);
+  font-size: 14px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color .15s, background .15s;
+}
+button.x:hover {
+  color: #ff6b6b;
+  background: color-mix(in srgb, #ff6b6b 12%, transparent);
+}
+
+/* Text & tags */
+.t { font-weight: 650; }
+.m { color: var(--mu); font-size: 13px; }
+.n {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ac);
+  color: var(--on);
+  font-size: 12px;
+  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tag {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  border: 1px solid var(--bd);
+  color: var(--mu);
+  white-space: nowrap;
+  font-weight: 500;
+}
+.face {
+  color: var(--ac);
+  border-color: color-mix(in srgb, var(--ac) 50%, transparent);
+  background: color-mix(in srgb, var(--ac) 10%, transparent);
+}
+.heel {
+  color: #ff6b6b;
+  border-color: color-mix(in srgb, #ff6b6b 50%, transparent);
+  background: color-mix(in srgb, #ff6b6b 10%, transparent);
+}
+.sp { flex: 1; }
+.empty {
+  text-align: center;
+  color: var(--mu);
+  padding: 32px 12px;
+  font-size: 14px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 12px 0;
+}
+
+h2 {
+  font-size: 12px;
+  letter-spacing: 1.8px;
+  color: var(--ac);
+  margin: 20px 2px 10px;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+/* Small polish */
+.rw .t { font-size: 15px; }
+.sec .rw:last-child { padding-bottom: 0; }
+
+@media (max-width: 420px) {
+  .brands button { font-size: 11px; padding: 9px 2px; }
+  h1 { font-size: 20px; letter-spacing: 2px; }
+}
+
+/* PREMIUM UNIVERSE DESK — presentation layer; data and workflows remain intact */
+:root { --bg:#08090d; --card:#11131a; --bd:#292d38; --tx:#f4f5f8; --mu:#8e95a5; --in:#0b0d12; --glow:color-mix(in srgb,var(--ac) 18%,transparent); }
+html { background:#08090d; }
+body { max-width:none; padding:0 0 40px; font-family:Inter, ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; background:radial-gradient(ellipse at 50% -18%,color-mix(in srgb,var(--ac) 17%,transparent),transparent 55%),linear-gradient(180deg,#0b0c11 0%,#08090d 420px); letter-spacing:.01em; }
+body::after { content:""; position:fixed; inset:0; pointer-events:none; opacity:.12; z-index:-1; background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size:36px 36px; mask-image:linear-gradient(to bottom,black,transparent 78%); }
+header.masthead { max-width:1320px; padding:28px 28px 22px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.brand-lockup { display:flex; align-items:center; gap:15px; }
+.brand-mark { width:52px;height:52px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,var(--ac),color-mix(in srgb,var(--ac) 55%,#111));box-shadow:0 8px 30px color-mix(in srgb,var(--ac) 25%,transparent);font-weight:1000;font-size:22px;letter-spacing:-3px;color:#fff;transform:skew(-5deg); }
+.brand-mark span { color:#fff;opacity:.72; }
+.eyebrow { color:var(--mu);font-size:10px;letter-spacing:2.5px;font-weight:800;margin-bottom:3px; }
+h1 { font-size:clamp(22px,3vw,31px);letter-spacing:2.7px;line-height:1.1;font-weight:950; }
+h1 span { color:var(--ac); }
+.sub { margin-top:6px;font-size:11px;letter-spacing:.7px;text-transform:none;font-weight:500; }
+.edition { display:flex;align-items:center;gap:9px;border:1px solid var(--bd);border-radius:7px;padding:10px 13px;color:#aeb4c2;font-size:9px;letter-spacing:1.7px;font-weight:900;background:rgba(255,255,255,.025); }
+.edition b { color:var(--tx);font-size:13px;border-left:1px solid var(--bd);padding-left:10px; }
+.live-dot { width:6px;height:6px;border-radius:50%;background:#5ee0a0;box-shadow:0 0 10px #5ee0a0; }
+.top { position:sticky;top:0;z-index:10;background:rgba(8,9,13,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:12px max(20px,calc((100vw - 1264px)/2)) 0;border-top:1px solid rgba(255,255,255,.045);border-bottom:1px solid var(--bd); }
+.brands { max-width:1280px;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px; }
+.brands button { position:relative;overflow:hidden;border-radius:7px;background:#101219;border-color:#262a34;padding:13px 12px;font-size:11px;letter-spacing:1.25px;text-transform:uppercase;justify-content:flex-start; }
+.brands button::before { width:7px;height:22px;border-radius:2px;background:var(--c); }
+.brands button.on { border-color:color-mix(in srgb,var(--c) 70%,#242832);background:linear-gradient(100deg,color-mix(in srgb,var(--c) 16%,#101219),#101219 75%);box-shadow:inset 0 -2px 0 var(--c); }
+.brands button.on::after { content:"ACTIVE BRAND";margin-left:auto;font-size:8px;letter-spacing:1px;color:var(--c); }
+nav { max-width:1280px;margin:10px auto 0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin; }
+nav button { border:0;border-bottom:2px solid transparent;background:transparent;color:#8990a0;border-radius:0;padding:13px 14px 12px;font-size:11px;font-weight:800;letter-spacing:.4px;white-space:nowrap;cursor:pointer; }
+nav button:hover { color:var(--tx);background:rgba(255,255,255,.035); }
+nav button.on { color:var(--tx);border-bottom-color:var(--ac);background:linear-gradient(0deg,color-mix(in srgb,var(--ac) 10%,transparent),transparent); }
+main#app { max-width:1280px;margin:0 auto;padding:25px 28px 50px; }
+.card,.sec { background:linear-gradient(145deg,rgba(21,24,33,.97),rgba(14,16,23,.97));border:1px solid #292d38;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.14);padding:17px;margin-bottom:13px; }
+.card:focus-within { border-color:color-mix(in srgb,var(--ac) 55%,#292d38); }
+details.card { padding:0;overflow:hidden; }
+details.card summary { padding:17px;cursor:pointer;list-style:none; }
+details.card summary::-webkit-details-marker { display:none; }
+details.card summary::after { content:"＋";float:right;color:var(--ac);font-weight:900; }
+details.card[open] summary::after { content:"−"; }
+details.card > :not(summary) { margin-left:17px;margin-right:17px; }
+details.card > :last-child { margin-bottom:17px; }
+.row { gap:9px; }
+input,select,textarea { background:#0b0d12!important;border:1px solid #303541!important;border-radius:6px!important;color:#f2f4f8!important;padding:11px 12px!important;min-height:40px; }
+input:focus,select:focus,textarea:focus { outline:1px solid color-mix(in srgb,var(--ac) 75%,white)!important;border-color:var(--ac)!important; }
+input::placeholder,textarea::placeholder { color:#656d7d!important; }
+button.add,button:not(.brands button):not(nav button) { transition:transform .15s ease,border-color .15s ease,filter .15s ease; }
+button.add { background:var(--ac);border:1px solid var(--ac);color:#fff;border-radius:6px;padding:10px 15px;font-size:11px;font-weight:900;letter-spacing:.45px;text-transform:uppercase;box-shadow:0 5px 16px color-mix(in srgb,var(--ac) 17%,transparent); }
+button.add:hover { filter:brightness(1.12);transform:translateY(-1px); }
+button.del,button.danger { border-radius:6px; }
+.sh { font-size:12px;letter-spacing:1.8px;font-weight:950;padding-bottom:13px;border-bottom:1px solid var(--bd);margin-bottom:10px; }
+.sec { border-top:2px solid var(--c,var(--ac)); }
+.rw { padding:11px 0;border-bottom:1px solid rgba(255,255,255,.055);gap:9px; }
+.rw:last-child { border-bottom:0; }
+.t { font-weight:800;letter-spacing:.1px; }
+.tag { border-radius:4px;padding:4px 7px;font-size:9px;letter-spacing:.35px;font-weight:800;text-transform:uppercase;background:#1a1e28;border:1px solid #303543;color:#b6bdca; }
+.face { color:#80e5b1;border-color:rgba(80,220,155,.25);background:rgba(80,220,155,.08); }
+.heel { color:#ff888e;border-color:rgba(255,100,110,.25);background:rgba(255,100,110,.08); }
+h2 { font-size:11px;letter-spacing:2px;color:var(--ac);margin:25px 2px 12px; }
+.empty { padding:36px 14px;border:1px dashed #303541;border-radius:8px;color:#7d8595; }
+.m { color:var(--mu); }
+.chips { gap:7px; }
+.fl { gap:5px; }
+.fl .m { font-size:10px;letter-spacing:.65px;text-transform:uppercase;font-weight:800; }
+hr { border:0;border-top:1px solid var(--bd); }
+.home-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.home-nav>button,.subnav button{background:var(--panel);border:1px solid var(--bd);color:var(--txt);padding:11px 14px;border-radius:7px;font-weight:800;cursor:pointer}.home-nav>button.on,.subnav button.on{border-color:var(--accent);color:var(--accent)}.home-nav .brands{display:flex;gap:6px;flex-wrap:wrap}.subnav{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.home-nav .m{margin-left:auto}@media(min-width:900px) { .brands button { min-height:47px; } main#app { min-height:65vh; } }
+@media(max-width:700px) { header.masthead { padding:21px 16px 18px; } .brand-mark { width:43px;height:43px;font-size:19px; } .eyebrow { font-size:8px;letter-spacing:1.6px; } h1 { font-size:22px;letter-spacing:1.7px; } .sub { font-size:10px; } .edition { padding:8px;font-size:8px;gap:6px; } .edition b { padding-left:6px; } .top { padding:9px 12px 0; } .brands { gap:5px; } .brands button { padding:11px 8px;font-size:9px;letter-spacing:.6px; } .brands button.on::after { display:none; } nav { margin-top:8px; } nav button { padding:12px 11px;font-size:10px; } main#app { padding:18px 13px 36px; } .card,.sec { padding:13px;border-radius:8px; } details.card summary { padding:14px; } details.card > :not(summary) { margin-left:14px;margin-right:14px; } }
+@media(max-width:420px) { .edition { display:none; } .brands button { justify-content:center; } .brands button::before { width:5px;height:16px; } }
+
+
+.landing-hero{text-align:center;padding:38px 16px 24px}.landing-hero .eyebrow{letter-spacing:.24em;font-size:11px;color:var(--muted);font-weight:900}.landing-hero h1{font-size:clamp(34px,6vw,62px);letter-spacing:.06em;margin:12px 0}.landing-hero h1 span{color:var(--ac)}.landing-hero p{color:var(--muted);margin:0}
+.brand-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:1000px;margin:10px auto 34px}.brand-tile{min-height:155px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--c) 18%,var(--card)),var(--card) 70%);border:1px solid color-mix(in srgb,var(--c) 65%,var(--bd));border-radius:12px;color:var(--txt);cursor:pointer;transition:transform .15s,border-color .15s}.brand-tile:hover{transform:translateY(-2px);border-color:var(--c)}.brand-mark{font-size:clamp(20px,3vw,30px);font-weight:1000;letter-spacing:.02em;color:var(--c)}.brand-tile small{color:var(--muted);font-weight:800}.brand-tile b{font-size:13px}.free-tile{grid-column:1}.roster-tile{grid-column:2}
+.brand-home-label{text-align:center;color:var(--c);font-size:12px;font-weight:1000;letter-spacing:.18em;margin:20px 0 8px}.brand-menu{display:flex;justify-content:center;align-items:stretch;flex-wrap:wrap;gap:10px;margin:0 auto 22px;max-width:1100px}.brand-menu-btn{display:flex;flex-direction:column;gap:12px;align-items:flex-start;justify-content:space-between;min-width:145px;min-height:72px;padding:14px 16px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--txt);font-weight:900;cursor:pointer}.brand-menu-btn span{font-size:10px;letter-spacing:.12em;color:var(--muted)}.brand-menu-btn:hover,.brand-menu-btn.on{border-color:var(--ac);color:var(--ac)}
+.champions-corner{position:fixed;right:18px;bottom:14px;z-index:15;width:min(330px,calc(100vw - 28px));max-height:34vh;overflow:auto;background:rgba(15,15,20,.96);backdrop-filter:blur(10px);border:1px solid var(--bd);border-left:3px solid var(--ac);border-radius:10px;padding:12px 14px;box-shadow:0 12px 40px #0008}.champions-corner .sh{margin-bottom:8px}.champion-mini{display:flex;flex-direction:column;gap:2px;padding:7px 0;border-top:1px solid var(--bd);font-size:12px}.champion-mini span{color:var(--muted)}.champion-mini b{font-size:13px}
+@media(max-width:700px){.brand-picker{grid-template-columns:1fr}.free-tile,.roster-tile{grid-column:auto}.champions-corner{right:8px;bottom:8px;max-height:26vh}.home-nav{justify-content:center}.home-nav .nav-label{width:100%;text-align:center;margin:0}.brand-menu-btn{min-width:calc(50% - 10px)}}
+
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="brand-lockup"><div class="brand-mark">U<span>W</span></div><div><div class="eyebrow">WWE 2K26 · UNIVERSE MODE</div><h1>UNIVERSE <span>DESK</span></h1><div class="sub">Seu universo. Seu booking. Sua história.</div></div></div>
+  <div class="edition"><span class="live-dot"></span><span>BOOKING HQ</span><b>26</b></div>
+</header>
+<div class="top" id="top"></div>
+<main id="app"></main>
+
+<script>
+const KEY = 'wwe-universe-v3', OLD = 'wwe-universe-v2';
+const BRS = ['Raw','SmackDown','NXT','Free Agency'], BR3 = BRS.slice(0,3);
+const COL = {Raw:'#e11d2e', SmackDown:'#2a7bf0', NXT:'#a0a6b4', 'Free Agency':'#9b5de5'};
+const DIV = ['Masculino','Feminino'], CARD = ['Main Eventer','Midcard','Lowcard'];
+const ST = ['Ativo','Lesionado','Ausente','Em Desenvolvimento'];
+const LVS = ['Main Event','Midcard','Lowcard','Tag Team'];
+const MS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const N = {
+  Raw: 'World Heavyweight Championship,Intercontinental Championship,Hardcore Championship,World Tag Team Championship,Women’s World Championship,Women’s Intercontinental Championship,Women’s Hardcore Championship',
+  SmackDown: 'WWE Championship,United States Championship,Speed Championship,WWE Tag Team Championship,WWE Women’s Championship,Women’s United States Championship,Women’s Speed Championship',
+  NXT: 'NXT Championship,NXT North American Championship,NXT Heritage Championship,NXT Tag Team Championship,NXT Women’s Championship,NXT Women’s North American Championship,NXT Women’s Heritage Championship'
+};
+const LV = ['Main Event','Midcard','Lowcard','Tag Team','Main Event','Midcard','Lowcard'];
+const uid = () => Math.random().toString(36).slice(2,9);
+const mkT = (n,b,lv) => ({id:uid(), name:n, brand:b, lv, champ:'', since:'', reigns:0, defs:0, rank:[], obs:''});
+const seed = () => ({roster:[], teams:[], titles: BR3.flatMap(b => N[b].split(',').map((n,j) => mkT(n,b,LV[j]))), factions:[], feuds:[], shows:[], year:{}, matchTypes:['Single','Tag Team','Triple Threat','Fatal 4-Way','Battle Royal','Royal Rumble','Ladder Match','Tables Match','TLC','Hell in a Cell','Steel Cage','No Holds Barred','Iron Man','Submission','Last Man Standing'], pushBoard:{suggestions:{men:[],women:[],tagMen:[],tagWomen:[]}, selected:{singles:[],tags:[]}, activeBonus:{singles:[],tags:[]}, lastPpvId:'', pending:false}});
+
+function mig(o) {
+  if (!o || !o.titles) return seed();
+  ['roster','teams','factions','feuds','shows'].forEach(k => o[k] = o[k] || []);
+  o.pushBoard = o.pushBoard || {suggestions:{men:[],women:[],tagMen:[],tagWomen:[]}, selected:{singles:[],tags:[]}, activeBonus:{singles:[],tags:[]}, lastPpvId:'', pending:false};
+  o.pushBoard.suggestions = o.pushBoard.suggestions || {men:[],women:[],tagMen:[],tagWomen:[]};
+  o.pushBoard.selected = o.pushBoard.selected || {singles:[],tags:[]};
+  o.pushBoard.activeBonus = o.pushBoard.activeBonus || {singles:[],tags:[]};
+  o.feuds.forEach(f=>{
+    f.kind = f.kind || 'lutador';
+    f.division = f.division || 'Masculino';
+    f.hasTitle = !!f.hasTitle;
+    f.titleId = f.titleId || '';
+    f.sideA = f.sideA || (f.a?[f.a]:[]);
+    f.sideB = f.sideB || (f.b?[f.b]:[]);
+    f.participants = f.participants || [];
+    f.resolved = !!f.resolved;
+  });
+  o.year = o.year || {};
+  o.matchTypes = o.matchTypes || ['Single','Tag Team','Triple Threat','Fatal 4-Way','Battle Royal','Royal Rumble','Ladder Match','Tables Match','TLC','Hell in a Cell','Steel Cage','No Holds Barred','Iron Man','Submission','Last Man Standing'];
+  o.roster.forEach(r => {
+    r.role = r.role || 'Lutador';
+    r.origin = r.origin || 'Não definido';
+    if (!BRS.includes(r.brand)) r.brand = 'Free Agency';
+    if (r.division == 'Tag Team') r.division = 'Masculino';
+    r.manager = r.manager || '';
+    r.faction = r.faction || '';
+    r.alignment = r.alignment || 'Tweener';
+    if(r.popAdj==null)r.popAdj=0;
+    if(r.photo==null)r.photo='';
+    r.stats = r.stats || {wins:0,losses:0,draws:0};
+  });
+  o.titles.forEach(t => { t.rank = t.rank || (t.q || []).filter(Boolean); t.history = t.history || []; if(t.champ && !t.history.some(h=>h.champion===t.champ)) { const tm=(o.teams||[]).find(x=>x.id===t.champ); t.history.push({champion:t.champ,championMembers:tm?(tm.members||[]).slice():[],previous:'',previousMembers:[],started:t.since||'Histórico anterior',ended:'',lostTo:'',legacy:true}); } });
+  o.teams.forEach(t => { t.brand = t.brand || 'Raw'; t.members = t.members || []; });
+  o.factions.forEach(f => { f.brand = f.brand || 'Raw'; });
+  o.shows.forEach(s => { s.brands = s.brands || [s.brand || 'Raw']; s.matches = (s.matches || []).map(m => typeof m == 'string' ? {t:m,title:'',result:'',notes:'',participants:[],outcomes:{},division:'Masculino',matchType:'Single'} : ({...m,result:m.result||'',notes:m.notes||'',participants:m.participants||[],outcomes:m.outcomes||{},division:m.division||'Masculino',matchType:m.matchType||'Single'})); s.notes=s.notes||''; });
+  o.feuds.forEach(f => { f.story = f.story || ''; f.goal = f.goal || ''; });
+  return o;
+}
+
+let S = null;
+try { S = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD)); } catch(e) {}
+S = mig(S);
+
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
+const opt = a => a.map(x => `<option>${x}</option>`).join('');
+const sel = (a,v,at) => `<select ${at}>` + a.map(x => `<option ${x==v?'selected':''}>${x}</option>`).join('') + '</select>';
+const fld = (l,h) => `<label class="fl"><span class="m">${l}</span>${h}</label>`;
+const byN = (a,b) => a.name.localeCompare(b.name);
+const cmp = (a,b) => CARD.indexOf(a.card) - CARD.indexOf(b.card) || b.push - a.push || byN(a,b);
+const person = id => S.roster.find(r => r.id == id) || S.teams.find(t => t.id == id);
+const nm = id => (person(id) || {name:'Vago'}).name;
+function initials(name){return (name||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';}
+function avHtml(r, big, square){
+  const cls = (big ? 'av-lg' : 'av') + (square ? ' av-sq' : '');
+  if(r && r.photo) return `<img class="${cls}" src="${esc(r.photo)}" alt="${esc(r.name||'')}" onerror="this.onerror=null;this.className='${cls} av-ph';this.removeAttribute('src');this.textContent='${esc(initials(r.name))}';">`;
+  return `<div class="${cls} av-ph">${esc(initials(r&&r.name))}</div>`;
+}
+function avChamp(r){
+  if(r && r.photo) return `<img class="champ-photo" src="${esc(r.photo)}" alt="${esc(r.name||'')}" onerror="this.onerror=null;this.className='champ-photo av-ph';this.removeAttribute('src');this.textContent='${esc(initials(r.name))}';">`;
+  return `<div class="champ-photo av-ph">${esc(initials(r&&r.name))}</div>`;
+}
+function avRank(r){
+  if(r && r.photo) return `<img class="rank-av" src="${esc(r.photo)}" alt="">`;
+  return `<div class="rank-av av-ph">${esc(initials(r&&r.name))}</div>`;
+}
+function closeAllWsel(except){
+  document.querySelectorAll('.wsel.open').forEach(el=>{if(el!==except)el.classList.remove('open');});
+}
+function wselRoster(list, value, onpick){
+  /* onpick = JS expression receiving id string, e.g. "setChamp('tid',id)" */
+  const sel = list.find(x=>x.id===value);
+  const items = [`<button type="button" class="wsel-item" data-id="" onclick="(function(btn){const w=btn.closest('.wsel');w.classList.remove('open');(${onpick})('');})(this)"><span class="m">— vago / nenhum —</span></button>`]
+    .concat(list.slice().sort(byN).map(r=>`<button type="button" class="wsel-item ${r.id===value?'on':''}" data-id="${r.id}" onclick="(function(btn){const w=btn.closest('.wsel');w.classList.remove('open');(${onpick})('${r.id}');})(this)">${avHtml(r,false)}<span>${esc(r.name)} <span class="m">· ${esc(r.brand||'')}</span></span></button>`));
+  return `<div class="wsel" onclick="event.stopPropagation()">
+    <button type="button" class="wsel-btn" onclick="event.stopPropagation();const w=this.parentElement;const o=w.classList.contains('open');closeAllWsel();if(!o)w.classList.add('open');">
+      ${sel?avHtml(sel,false)+`<span>${esc(sel.name)}</span>`:'<span class="m">Selecionar wrestler…</span>'}
+    </button>
+    <div class="wsel-menu">${items.join('')}</div>
+  </div>`;
+}
+function wselTeam(list, value, onpick){
+  const sel = list.find(x=>x.id===value);
+  const items = [`<button type="button" class="wsel-item" onclick="(function(btn){btn.closest('.wsel').classList.remove('open');(${onpick})('');})(this)"><span class="m">—</span></button>`]
+    .concat(list.slice().sort(byN).map(t=>{
+      const mem=(t.members||[]).map(nm).join(' · ');
+      return `<button type="button" class="wsel-item ${t.id===value?'on':''}" onclick="(function(btn){btn.closest('.wsel').classList.remove('open');(${onpick})('${t.id}');})(this)"><span>${esc(t.name)}</span><span class="m" style="margin-left:6px">${esc(mem)}</span></button>`;
+    }));
+  return `<div class="wsel" onclick="event.stopPropagation()">
+    <button type="button" class="wsel-btn" onclick="event.stopPropagation();const w=this.parentElement;const o=w.classList.contains('open');closeAllWsel();if(!o)w.classList.add('open');">
+      ${sel?`<span>${esc(sel.name)}</span><span class="m"> · ${esc((sel.members||[]).map(nm).join(' · '))}</span>`:'<span class="m">Selecionar tag…</span>'}
+    </button>
+    <div class="wsel-menu">${items.join('')}</div>
+  </div>`;
+}
+function wselInput(list, name, value, ph, inputId){
+  const sel = list.find(x=>x.id===value);
+  const label = (r)=> r ? avHtml(r,false)+`<span>${esc(r.name)}</span>` : `<span class="m">${esc(ph||'Selecionar wrestler…')}</span>`;
+  const items = [`<button type="button" class="wsel-item" data-clear="1"><span class="m">${esc(ph||'—')}</span></button>`]
+    .concat(list.slice().sort(byN).map(r=>`<button type="button" class="wsel-item ${r.id===value?'on':''}" data-id="${r.id}">${avHtml(r,false)}<span>${esc(r.name)} <span class="m">· ${esc(r.brand||'')}</span></span></button>`));
+  return `<div class="wsel" onclick="event.stopPropagation()" data-wsel-input="1">
+    <button type="button" class="wsel-btn" onclick="event.stopPropagation();const w=this.parentElement;const o=w.classList.contains('open');closeAllWsel();if(!o)w.classList.add('open');">${label(sel)}</button>
+    <div class="wsel-menu">${items.join('')}</div>
+    <input type="hidden" ${inputId?`id="${inputId}"`:''} name="${name}" value="${esc(value||'')}">
+  </div>`;
+}
+function bindWselInputs(root){
+  (root||document).querySelectorAll('.wsel[data-wsel-input] .wsel-item').forEach(btn=>{
+    if(btn._bound)return; btn._bound=true;
+    btn.addEventListener('click',()=>{
+      const w=btn.closest('.wsel'); w.classList.remove('open');
+      const h=w.querySelector('input[type=hidden]');
+      const b=w.querySelector('.wsel-btn');
+      if(btn.dataset.clear){ if(h)h.value=''; if(b)b.innerHTML='<span class="m">Selecionar wrestler…</span>'; return; }
+      const id=btn.dataset.id; if(h)h.value=id;
+      const r=S.roster.find(x=>x.id===id);
+      if(b&&r)b.innerHTML=avHtml(r,false)+'<span>'+esc(r.name)+'</span>';
+    });
+  });
+}
+document.addEventListener('click',()=>closeAllWsel());
+
+
+function setPhotoUrl(id,url){const r=S.roster.find(x=>x.id===id);if(!r)return;r.photo=(url||'').trim();save();draw();}
+function clearPhoto(id){const r=S.roster.find(x=>x.id===id);if(!r)return;r.photo='';save();draw();}
+function setPhotoFile(id,input){
+  const file=input&&input.files&&input.files[0];if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Escolha uma imagem.');return;}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=420; let w=img.width, h=img.height;
+      if(w>max||h>max){const s=Math.min(max/w,max/h);w=Math.round(w*s);h=Math.round(h*s);}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const data=canvas.toDataURL('image/jpeg',0.72);
+      const r=S.roster.find(x=>x.id===id);if(!r)return;r.photo=data;save();draw();
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+const carry = id => S.titles.filter(t => t.champ && (t.champ == id || ((S.teams.find(x => x.id == t.champ) || {}).members || []).includes(id)));
+const lut = b => S.roster.filter(r => r.role == 'Lutador' && (!b || r.brand == b));
+const mgrs = () => S.roster.filter(r => r.role == 'Manager');
+const po = (l,v,ph) => `<option value="">${ph || '—'}</option>` + l.slice().sort(byN).map(x => `<option value="${x.id}" ${x.id==v?'selected':''}>${esc(x.name)}</option>`).join('');
+const pool = t => t.lv == 'Tag Team' ? S.teams.filter(x => x.brand == t.brand) : lut(t.brand).filter(r => /women/i.test(t.name) ? r.division == 'Feminino' : r.division != 'Feminino');
+const em = t => `<div class="empty">${t}</div>`;
+const tag = (t,c) => `<span class="tag ${c||''}">${esc(t)}</span>`;
+const trophies = id => carry(id).map(x => tag('🏆 ' + x.name, 'face')).join('');
+const OP = new Set(), SEL = {};
+let B = 'Raw', tab = 'landing', F = {r:'', d:''}, G = {r:'', d:''};
+const tg = (id,o) => { o ? OP.add(id) : OP.delete(id); };
+const dt = (id,head,body) => `<details class="card" ${OP.has(id)?'open':''} ontoggle="tg('${id}',this.open)"><summary>${head}</summary>${body}</details>`;
+const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['globalRoster','Roster global'],['bk','Backup']];
+
+function sb(b) { B = b; tab = b==='Free Agency'?'freeAgency':'all'; draw(); window.scrollTo(0,0); }
+function go(t) { tab = t; draw(); window.scrollTo(0,0); }
+function setF(scope,k,v){(scope==='g'?G:F)[k]=v;draw();}
+function filterMenu(scope,color){const f=scope==='g'?G:F;const row=(k,label,opts,all)=>`<div class="fm-row"><span class="fm-l">${label}</span>${[['',all]].concat(opts.map(o=>[o,o])).map(([v,l])=>`<button class="fm-chip ${f[k]===v?'on':''}" onclick="setF('${scope}','${k}','${v}')">${l}</button>`).join('')}</div>`;return `<div class="filter-menu" style="--c:${color}">${row('r','PAPEL',['Lutador','Manager'],'Todos')}${row('d','DIVISÃO',DIV,'Todas')}</div>`;}
+function st(k,id,f,v,rd) { const x=S[k].find(x=>x.id==id); if(x)x[f]=v; save(); if(rd)draw(); }
+function statsFor(id){let wins=0,losses=0,draws=0;S.shows.forEach(s=>(s.matches||[]).forEach(m=>{if(!(m.participants||[]).includes(id))return;const o=(m.outcomes||{})[id];if(o==='Vitoria')wins++;else if(o==='Derrota')losses++;else if(o==='Empate')draws++;}));const total=wins+losses+draws;return{wins,losses,draws,total,pct:total?Math.round(wins/total*100):0};}
+function teamFor(id){return S.teams.filter(t=>(t.members||[]).includes(id));}
+function historyHas(h,field,id){return h[field]===id||(h[field+'Members']||[]).includes(id)||teamFor(id).some(tm=>tm.id===h[field]);}
+function titleReigns(id){return S.titles.reduce((n,t)=>n+(t.history||[]).filter(h=>historyHas(h,'champion',id)).length,0);}
+function hasPushBonus(id){
+  const pb=S.pushBoard||{};
+  const ab=pb.activeBonus||{singles:[],tags:[]};
+  if((ab.singles||[]).includes(id)) return true;
+  return (ab.tags||[]).some(tid=>{
+    const t=S.teams.find(x=>x.id===tid);
+    return t&&(t.members||[]).includes(id);
+  });
+}
+function popularity(id){
+  const r=S.roster.find(x=>x.id===id);
+  let score=50+(r&&r.popAdj?+r.popAdj:0);
+  S.shows.forEach(s=>(s.matches||[]).forEach(m=>{
+    const o=(m.outcomes||{})[id];if(!o)return;
+    if(o==='Vitoria'){if(m.matchType==='Royal Rumble')score+=10;else if(s.type==='PPV')score+=2.5;else score+=1;}
+    else if(o==='Derrota')score-=.5;
+  }));
+  S.titles.forEach(t=>(t.history||[]).forEach(h=>{
+    if(historyHas(h,'champion',id))score+=5;
+    if(historyHas(h,'previous',id))score-=5;
+  }));
+  if(hasPushBonus(id)) score = score * 1.5; // +0.5 no multiplicador até o próximo PPV
+  return Math.max(0,Math.min(100,Math.round(score*10)/10));
+}
+function teamDivision(t){
+  const mem=(t.members||[]).map(id=>S.roster.find(r=>r.id===id)).filter(Boolean);
+  if(!mem.length) return 'Masculino';
+  const f=mem.filter(r=>r.division==='Feminino').length;
+  const m=mem.filter(r=>r.division==='Masculino').length;
+  if(f&&!m) return 'Feminino';
+  if(m&&!f) return 'Masculino';
+  return 'Mix';
+}
+function generatePushSuggestions(ppvId){
+  const pb=S.pushBoard||(S.pushBoard={suggestions:{men:[],women:[],tagMen:[],tagWomen:[]},selected:{singles:[],tags:[]},activeBonus:{singles:[],tags:[]},lastPpvId:'',pending:false});
+  // Encerra bônus do ciclo anterior ao gerar novas sugestões pós-PPV
+  pb.activeBonus={singles:[],tags:[]};
+  pb.selected={singles:[],tags:[]};
+  const eligible=r=>r.role==='Lutador'&&r.status==='Ativo'&&r.brand!=='Free Agency';
+  const rankW=(a,b)=>{
+    // prioriza mid pop (espaço para crescer) + vitórias recentes
+    const pa=popularity(a.id), pb2=popularity(b.id);
+    const ideal=x=>Math.abs((x<40?40:x>75?75:x)-55);
+    return ideal(pa)-ideal(pb2) || pb2-pa;
+  };
+  // temporariamente sem bônus já limpo
+  let men=S.roster.filter(r=>eligible(r)&&r.division==='Masculino').sort(rankW);
+  let women=S.roster.filter(r=>eligible(r)&&r.division==='Feminino').sort(rankW);
+  // evita campeões mundiais principais se possível
+  const worldish=t=>/championship/i.test(t.name)&&t.lv==='Main Event';
+  const isWorldChamp=id=>S.titles.some(t=>worldish(t)&&t.champ===id);
+  men=men.filter(r=>!isWorldChamp(r.id)).concat(men.filter(r=>isWorldChamp(r.id)));
+  women=women.filter(r=>!isWorldChamp(r.id)).concat(women.filter(r=>isWorldChamp(r.id)));
+  const pick=arr=>arr.slice(0,2).map(r=>r.id);
+  pb.suggestions.men=pick(men);
+  pb.suggestions.women=pick(women);
+  const tags=S.teams.filter(t=>(t.members||[]).length>=2&&t.status!=='Dissolvido');
+  const tagMen=tags.filter(t=>teamDivision(t)==='Masculino').sort((a,b)=>b.members.length-a.members.length);
+  const tagWomen=tags.filter(t=>teamDivision(t)==='Feminino').sort((a,b)=>b.members.length-a.members.length);
+  pb.suggestions.tagMen=tagMen.slice(0,2).map(t=>t.id);
+  pb.suggestions.tagWomen=tagWomen.slice(0,2).map(t=>t.id);
+  pb.pending=true;
+  pb.lastPpvId=ppvId||'';
+  S.pushBoard=pb;
+}
+function togglePushSelect(kind,id){
+  const pb=S.pushBoard; if(!pb)return;
+  const arr=pb.selected[kind]||(pb.selected[kind]=[]);
+  const i=arr.indexOf(id);
+  if(i>=0)arr.splice(i,1); else arr.push(id);
+  save();draw();
+}
+function confirmPushPicks(){
+  const pb=S.pushBoard; if(!pb)return;
+  pb.activeBonus={
+    singles:(pb.selected.singles||[]).slice(),
+    tags:(pb.selected.tags||[]).slice()
+  };
+  pb.pending=false;
+  save();draw();
+}
+function applyPop(id,delta){const r=S.roster.find(x=>x.id===id);if(!r)return;r.popAdj=(+r.popAdj||0)+delta;}
+function feudSideMembers(f,side){
+  const ids=[];
+  if(f.kind==='lutador'){
+    const arr=side==='a'?(f.sideA||[f.a]).filter(Boolean):(f.sideB||[f.b]).filter(Boolean);
+    arr.forEach(id=>{if(id)ids.push(id);});
+  } else if(f.kind==='tag'){
+    const teams=side==='a'?(f.sideA||[]):(f.sideB||[]);
+    teams.forEach(tid=>{const t=S.teams.find(x=>x.id===tid);if(t)(t.members||[]).forEach(m=>ids.push(m));});
+  } else if(f.kind==='faction'){
+    const facs=side==='a'?(f.sideA||[]):(f.sideB||[]);
+    facs.forEach(fid=>{S.roster.filter(r=>r.faction===fid).forEach(r=>ids.push(r.id));});
+  }
+  return [...new Set(ids)];
+}
+function teamMemberNames(tid){
+  const t=S.teams.find(x=>x.id===tid);
+  if(!t)return '';
+  return (t.members||[]).map(nm).filter(Boolean).join(' · ')||'sem membros';
+}
+function factionMemberNames(fid){
+  return S.roster.filter(r=>r.faction===fid).map(r=>r.name).join(' · ')||'sem membros';
+}
+function resolveFeud(id,winnerKey){
+  const f=S.feuds.find(x=>x.id===id);if(!f||f.resolved)return;
+  let win=[], lose=[];
+  if(f.kind==='multi'){
+    const parts=(f.participants||[]).filter(Boolean);
+    if(!parts.includes(winnerKey))return;
+    win=[winnerKey];
+    lose=parts.filter(x=>x!==winnerKey);
+    win.forEach(i=>applyPop(i,3.5));
+    lose.forEach(i=>applyPop(i,-2));
+  } else if(f.kind==='multi-tag'){
+    const parts=(f.participants||[]).filter(Boolean);
+    if(!parts.includes(winnerKey))return;
+    const tWin=S.teams.find(x=>x.id===winnerKey);
+    win=(tWin&&tWin.members||[]).slice();
+    parts.filter(tid=>tid!==winnerKey).forEach(tid=>{
+      const t=S.teams.find(x=>x.id===tid);
+      if(t)(t.members||[]).forEach(m=>lose.push(m));
+    });
+    win=[...new Set(win)]; lose=[...new Set(lose)].filter(x=>!win.includes(x));
+    win.forEach(i=>applyPop(i,1.5));
+    lose.forEach(i=>applyPop(i,-1));
+  } else {
+    const side = winnerKey;
+    win=feudSideMembers(f,side);
+    lose=feudSideMembers(f,side==='a'?'b':'a');
+    const isGroup = f.kind==='tag'||f.kind==='faction';
+    const wDelta = isGroup ? 1.5 : 3.5;
+    const lDelta = isGroup ? -1 : -2;
+    win.forEach(i=>applyPop(i,wDelta));
+    lose.forEach(i=>applyPop(i,lDelta));
+  }
+  f.resolved=true;f.winnerSide=winnerKey;f.status='Encerrada';
+  save();draw();
+}
+function resolveButtons(f){
+  if(f.resolved){
+    let label=f.winnerSide||'';
+    if(f.kind==='multi') label=nm(f.winnerSide);
+    else if(f.kind==='multi-tag'){const t=S.teams.find(x=>x.id===f.winnerSide);label=t?t.name+' ('+teamMemberNames(f.winnerSide)+')':f.winnerSide;}
+    else if(f.kind==='tag'){
+      const tid=((f.winnerSide==='a'?f.sideA:f.sideB)||[])[0];
+      const t=S.teams.find(x=>x.id===tid);
+      label=t?(t.name+' · '+teamMemberNames(t.id)):'Lado '+(f.winnerSide||'').toUpperCase();
+    } else if(f.kind==='faction'){
+      const fid=((f.winnerSide==='a'?f.sideA:f.sideB)||[])[0];
+      const fac=S.factions.find(x=>x.id===fid);
+      label=fac?(fac.name+' · '+factionMemberNames(fac.id)):'Lado '+(f.winnerSide||'').toUpperCase();
+    } else if(f.kind==='lutador'){
+      const id=(f.winnerSide==='a'?(f.sideA||[f.a]):(f.sideB||[f.b]))[0];
+      label=nm(id);
+    }
+    return `<span class="m">Resolvida · vencedor: ${esc(label)} · pop aplicada</span>`;
+  }
+  if(f.kind==='multi'){
+    return (f.participants||[]).map(id=>`<button class="add" onclick="resolveFeud('${f.id}','${id}')">🏆 ${esc(nm(id))} (+3.5)</button>`).join('');
+  }
+  if(f.kind==='multi-tag'){
+    return (f.participants||[]).map(tid=>{
+      const t=S.teams.find(x=>x.id===tid);
+      const name=t?t.name:tid;
+      const mems=teamMemberNames(tid);
+      return `<button class="add" onclick="resolveFeud('${f.id}','${tid}')">🏆 ${esc(name)} <span class="m">(${esc(mems)})</span></button>`;
+    }).join('');
+  }
+  if(f.kind==='tag'){
+    const a=f.sideA&&f.sideA[0], b=f.sideB&&f.sideB[0];
+    const ta=S.teams.find(x=>x.id===a), tb=S.teams.find(x=>x.id===b);
+    return `<button class="add" onclick="resolveFeud('${f.id}','a')">🏆 ${esc(ta?ta.name:'Lado A')} <span class="m">(${esc(teamMemberNames(a))})</span></button>
+      <button class="add" onclick="resolveFeud('${f.id}','b')">🏆 ${esc(tb?tb.name:'Lado B')} <span class="m">(${esc(teamMemberNames(b))})</span></button>`;
+  }
+  if(f.kind==='faction'){
+    const a=f.sideA&&f.sideA[0], b=f.sideB&&f.sideB[0];
+    const fa=S.factions.find(x=>x.id===a), fb=S.factions.find(x=>x.id===b);
+    return `<button class="add" onclick="resolveFeud('${f.id}','a')">🏆 ${esc(fa?fa.name:'Lado A')} <span class="m">(${esc(factionMemberNames(a))})</span></button>
+      <button class="add" onclick="resolveFeud('${f.id}','b')">🏆 ${esc(fb?fb.name:'Lado B')} <span class="m">(${esc(factionMemberNames(b))})</span></button>`;
+  }
+  const a=(f.sideA||[f.a])[0], b=(f.sideB||[f.b])[0];
+  return `<button class="add" onclick="resolveFeud('${f.id}','a')">🏆 ${esc(nm(a))} (+3.5)</button>
+    <button class="add" onclick="resolveFeud('${f.id}','b')">🏆 ${esc(nm(b))} (+3.5)</button>`;
+}
+function pushLabel(id){if(hasPushBonus(id))return 'Push ativo (×1.5 até próximo PPV)';const p=popularity(id);return p>=80?'Push forte':p>=60?'Candidato a Main Event':p>=40?'Construir momentum':'Reabilitar / reconstruir';}
+function titleHistoryMarkup(id){const ts=S.titles.filter(t=>(t.history||[]).some(h=>historyHas(h,'champion',id)));return ts.length?ts.map(t=>{const hs=(t.history||[]).filter(h=>historyHas(h,'champion',id));return `<div class="rw"><span class="t">${esc(t.name)}</span><span class="sp"></span>${tag(hs.length+' reinado(s)','face')}</div>`}).join(''):em('Ainda não há reinados registrados para este wrestler.');}
+function brandsFor(s){return s.brands&&s.brands.length?s.brands:[s.brand||'Raw'];}
+function monthYear(v=new Date()){const d=v instanceof Date?v:new Date(v+'T12:00:00');return Number.isNaN(d.getTime())?'Data não definida':MS[d.getMonth()]+' '+d.getFullYear();}
+function assignChampion(t,v,date){if(!t||t.champ===v)return;t.history=t.history||[];const previous=t.champ||'';if(previous){const open=[...t.history].reverse().find(h=>h.champion===previous&&!h.ended);if(open){open.ended=monthYear(date);open.lostTo=v||'';open.daysHeld=Math.max(0,Math.round((new Date((date||new Date().toISOString().slice(0,10))+'T12:00:00')-new Date((open.startDate||t.since||date||new Date().toISOString().slice(0,10))+'T12:00:00'))/86400000));}}if(previous||v)t.history.push({champion:v||'',championMembers:(S.teams.find(tm=>tm.id===v)?.members||[]).slice(),previous,previousMembers:(S.teams.find(tm=>tm.id===previous)?.members||[]).slice(),started:monthYear(date),startDate:date||new Date().toISOString().slice(0,10),ended:'',lostTo:'',defenses:0});t.champ=v;t.rank=(t.rank||[]).filter(x=>x!==v);if(v){t.since=monthYear(date);t.reigns=(t.reigns||0)+1;t.defs=0;}else t.since='';}
+const TL=['A','B','C','D','E','F'];
+function matchLine(m){return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
+function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
+function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
+function fillGroup(id,g,tid){const t=S.teams.find(x=>x.id===tid);if(!t)return;(t.members||[]).forEach((m,k)=>{const el=$('tg'+id+'_'+g+'_'+k);if(el&&[...el.options].some(o=>o.value===m))el.value=m;});}
+function setMatchResult(showId,idx,val){const s=S.shows.find(s=>s.id==showId),m=s.matches[idx],title=m.title?S.titles.find(t=>t.name===m.title&&brandsFor(s).includes(t.brand)):null;m.outcomes={};delete m.winGroup;const isG=typeof val==='string'&&val.indexOf('__g')===0;if(val==='__draw'){(m.participants||[]).forEach(id=>m.outcomes[id]='Empate');m.result='Empate';}else if(val){const gi=isG?+val.slice(3):-1,winners=isG?((m.groups||[])[gi]||[]):[val];(m.participants||[]).forEach(id=>m.outcomes[id]=winners.includes(id)?'Vitoria':'Derrota');if(isG){m.winGroup=gi;m.result='Time '+TL[gi]+' ('+winners.map(nm).join(' & ')+')';}else m.result=nm(val);if(!isG&&(s.name==='Royal Rumble'||m.matchType==='Royal Rumble')){s.rumbleWinners=s.rumbleWinners||{};s.rumbleWinners[m.division||'Masculino']=val;const note='Vencedor da Royal Rumble '+(m.division||'Masculino')+': '+nm(val)+' — oportunidade pelo título na WrestleMania.';if(!(s.notes||'').includes(note))s.notes=(s.notes||'')+'\n'+note;}const champ=isG?(teamForGroup(winners)||{}).id:val;if(title&&isG&&!champ){alert('O time vencedor não está cadastrado em Tag Teams. Cadastre o time para atribuir o título.');}else if(title&&champ&&(isG||m.participants.includes(val))){if(title.champ&&champ===title.champ){if(!m._defenseCounted){title.defs=(title.defs||0)+1;const h=[...(title.history||[])].reverse().find(x=>x.champion===champ&&!x.ended);if(h)h.defenses=(h.defenses||0)+1;m._defenseCounted=true;}}else{assignChampion(title,champ,s.date||new Date().toISOString().slice(0,10));m._defenseCounted=false;}}}else{m.result='';}save();draw();}
+function addMatchType(){const n=$('newType').value.trim();if(n&&!S.matchTypes.includes(n)){S.matchTypes.push(n);save();draw();}}
+function delMatchType(n){if(confirm('Remover o tipo de luta '+n+'?')){S.matchTypes=S.matchTypes.filter(x=>x!==n);save();draw();}}
+function refreshMatchForm(id){const el=$('matchForm'+id);if(!el)return;const keep={};el.querySelectorAll('select,input').forEach(x=>{if(x.id)keep[x.id]=x.value;});el.innerHTML=matchForm(id);Object.keys(keep).forEach(k=>{const x=$(k);if(!x)return;if(x.tagName==='SELECT'&&![...x.options].some(o=>o.value===keep[k]))return;x.value=keep[k];if(x.type==='hidden'){const w=x.closest('.wsel');const b=w&&w.querySelector('.wsel-btn');const r=S.roster.find(z=>z.id===keep[k]);if(b)b.innerHTML=r?avHtml(r,false)+'<span>'+esc(r.name)+'</span>':'<span class="m">Selecionar wrestler…</span>';}});bindWselInputs(el);}
+function rumbleForm(id,division){const s=S.shows.find(x=>x.id===id),pool=S.roster.filter(r=>r.role==='Lutador'&&r.division===division&&r.status!=='Lesionado'&&r.status!=='Ausente'&&(brandsFor(s).includes(r.brand)||r.brand==='Free Agency'));return `<div class="card" style="margin-top:12px"><div class="sh">ROYAL RUMBLE ${division.toUpperCase()} · 30 PARTICIPANTES</div><div class="g">${Array.from({length:30},(_,i)=>fld('Entrada '+(i+1),`<select id="rmp${id}${division}_${i}"><option value="">Selecionar wrestler</option>${pool.map(r=>`<option value="${r.id}">${esc(r.name)} · ${esc(r.brand)}</option>`).join('')}</select>`)).join('')}</div><div class="row" style="margin-top:10px"><button class="add" onclick="addRumbleMatch('${id}','${division}')">Adicionar Rumble ${division==='Masculino'?'masculina':'feminina'}</button></div></div>`;}
+function addRumbleMatch(id,division){const s=S.shows.find(x=>x.id===id);if(s.matches.some(m=>m.matchType==='Royal Rumble'&&m.division===division)){alert('A Rumble '+division.toLowerCase()+' já foi adicionada. Remova a luta existente para recriá-la.');return;}const participants=[];for(let i=0;i<30;i++){const v=$('rmp'+id+division+'_'+i)?.value;if(v&&!participants.includes(v))participants.push(v);}if(participants.length!==30){alert('Selecione 30 wrestlers diferentes para a Rumble '+division.toLowerCase()+'.');return;}s.matches.push({t:'Royal Rumble '+division, title:'', result:'', notes:'Vencedor ganha uma oportunidade pelo título na WrestleMania.', participants, outcomes:{}, division, matchType:'Royal Rumble'});save();draw();}
+function matchForm(id){const s=S.shows.find(x=>x.id===id);const div=$('div'+id)?.value||'Masculino';const rumble=s.name==='Royal Rumble';const type=$('type'+id)?.value||(rumble?'Royal Rumble':'Single');const tagm=type==='Tag Team'&&!rumble;const count=rumble?30:Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2)));const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2)));const pool=S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&r.status!=='Ausente'&&(div==='Mix'||r.division===div)&&(brandsFor(s).includes(r.brand)||r.brand==='Free Agency'));const wopts='<option value="">Selecionar wrestler</option>'+pool.map(r=>`<option value="${r.id}">${esc(r.name)} · ${esc(r.brand)}</option>`).join('');const numSel=(key,from,to,cur)=>`<select id="${key}${id}" onchange="refreshMatchForm('${id}')">${Array.from({length:to-from+1},(_,k)=>from+k).map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('')}</select>`;const teams=S.teams.filter(t=>brandsFor(s).includes(t.brand)||t.brand==='Free Agency');const third=rumble?'<span class="m">Royal Rumble: 30 participantes obrigatórios</span>':tagm?fld('Nº de times',numSel('nt',2,6,nT))+fld('Lutadores por time',numSel('per',1,4,per)):fld('Participantes',numSel('cnt',2,10,count));const pick=(iid,ph)=>rumble?`<select id="${iid}">${wopts}</select>`:wselInput(pool,'wrestler','',ph||'Selecionar wrestler',iid);
+const body=tagm?Array.from({length:nT},(_,g)=>`<div class="card" style="margin:8px 0 0"><div class="sh">GRUPO ${TL[g]}</div><div class="g">${fld('Time cadastrado (opcional)',`<select onchange="fillGroup('${id}',${g},this.value)"><option value="">Escolher time</option>${teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>`)}${Array.from({length:per},(_,k)=>fld('Lutador '+(k+1),pick('tg'+id+'_'+g+'_'+k,'Lutador '+(k+1)))).join('')}</div></div>`).join(''):`<div class="g" style="margin-top:8px">${Array.from({length:count},(_,k)=>fld('Participante '+(k+1),pick('mp'+id+'_'+k,'Participante '+(k+1)))).join('')}</div>`;
+const html=`<div class="g" style="margin-top:10px">${fld('Tipo de luta',`<select id="type${id}" onchange="refreshMatchForm('${id}')">${S.matchTypes.map(t=>`<option ${t===type?'selected':''}>${esc(t)}</option>`).join('')}</select>`)}${fld('Divisão',`<select id="div${id}" onchange="refreshMatchForm('${id}')">${['Masculino','Feminino','Mix'].map(x=>`<option ${x===div?'selected':''}>${x}</option>`).join('')}</select>`)}${third}</div>${body}<div class="row" style="margin-top:8px"><select id="mt${id}"><option value="">Sem título</option>${S.titles.filter(t=>brandsFor(s).includes(t.brand)&&(!tagm||t.lv==='Tag Team')).map(t=>`<option>${esc(t.name)}</option>`).join('')}</select><button class="add" onclick="addMatch('${id}')">+ Adicionar luta</button></div>`;
+setTimeout(()=>bindWselInputs(),0);
+return html;}
+
+function sy(k,f,v) { (S.year[k] = S.year[k] || {})[f] = v; save(); }
+function del(k,id) {
+  S[k] = S[k].filter(x => x.id != id);
+  S.titles.forEach(t => { if (t.champ == id) t.champ = ''; t.rank = t.rank.filter(x => x != id); });
+  S.teams.forEach(t => { t.members = t.members.filter(x => x != id); if (t.manager == id) t.manager = ''; });
+  S.factions.forEach(f => { if (f.leader == id) f.leader = ''; });
+  S.roster.forEach(r => { if (r.manager == id) r.manager = ''; if (r.faction == id) r.faction = ''; });
+  S.feuds = S.feuds.filter(f => f.a != id && f.b != id);
+  save(); draw();
+}
+function addR() {
+  const n = $('rn').value.trim(); if (!n) return;
+  S.roster.push({id:uid(), name:n, brand:B, role:$('rr').value, origin:$('ro').value, division:$('rd').value, alignment:$('ra').value||'Tweener', card:$('rc').value, status:'Ativo', push:5, faction:'', manager:'', photo:'', popAdj:0, stats:{wins:0,losses:0,draws:0}, story:'', notes:''});
+  save(); draw();
+}
+function removeTitle(id){const t=S.titles.find(x=>x.id===id);if(t&&confirm('Remover o título '+t.name+'?'))del('titles',id);}
+function addT() {
+  const n = $('tn').value.trim(); if (!n) return;
+  const t = mkT(n, B, $('tl').value);
+  S.titles.push(t); SEL[B] = t.id; save(); draw();
+}
+function setChamp(id,v) {const t=S.titles.find(x=>x.id==id);if(!t||t.champ===v)return;assignChampion(t,v,new Date().toISOString().slice(0,10));save();draw();}
+function defesa(id) { S.titles.find(x => x.id == id).defs++; save(); draw(); }
+function mv(id,i,d) {
+  const r = S.titles.find(t => t.id == id).rank, j = i + d;
+  if (j < 0 || j >= r.length) return;
+  [r[i], r[j]] = [r[j], r[i]]; save(); draw();
+}
+function rkAdd(id,v) { if (v) { S.titles.find(t => t.id == id).rank.push(v); save(); draw(); } }
+function rkDel(id,i) { S.titles.find(t => t.id == id).rank.splice(i,1); save(); draw(); }
+function addTeam() {
+  const n = $('tmn').value.trim(); if (!n) return;
+  S.teams.push({id:uid(), name:n, brand:$('tmBrand')?.value||B, members:[], status:'Ativo', since:'', manager:'', notes:''});
+  save(); draw();
+}
+function tmAdd(id,v) { if (v) { S.teams.find(t => t.id == id).members.push(v); save(); draw(); } }
+function tmDel(id,r) { const t = S.teams.find(x => x.id == id); t.members = t.members.filter(x => x != r); save(); draw(); }
+function addF() {
+  const n = $('fn').value.trim(); if (!n) return;
+  S.factions.push({id:uid(), name:n, brand:B, tipo:$('ft').value, status:'Ativa', since:'', leader:'', goal:'', enemies:'', notes:''});
+  save(); draw();
+}
+function setMem(rid,fid) { S.roster.find(r => r.id == rid).faction = fid; save(); draw(); }
+function addFeud() {
+  const kind = $('fk').value;
+  const division = $('fdiv').value;
+  const hasTitle = $('fht').checked;
+  const titleId = hasTitle ? ($('ftitle')?.value || '') : '';
+  const notes = $('fnt').value.trim();
+  const goal = ($('fgoal')?.value || '').trim();
+  let sideA=[], sideB=[], participants=[];
+  if(kind==='lutador'){
+    const a=document.querySelector('[name="fa"]')?.value||$('fa')?.value;
+    const b=document.querySelector('[name="fb2"]')?.value||$('fb2')?.value;
+    if(!a||!b||a===b){alert('Escolha dois lutadores diferentes.');return;}
+    sideA=[a]; sideB=[b];
+  } else if(kind==='multi'){
+    participants=[...document.querySelectorAll('[name="fpart"]')].map(x=>x.value).filter(Boolean);
+    if(participants.length<3||participants.length>4){alert('Triple/Four Singles precisa de 3 ou 4 lutadores.');return;}
+    if(new Set(participants).size!==participants.length){alert('Lutadores repetidos.');return;}
+  } else if(kind==='tag'){
+    sideA=[...document.querySelectorAll('[name="fta"]')].map(x=>x.value).filter(Boolean);
+    sideB=[...document.querySelectorAll('[name="ftb"]')].map(x=>x.value).filter(Boolean);
+    if(sideA.length!==1||sideB.length!==1){alert('Escolha uma tag de cada lado.');return;}
+    if(sideA[0]===sideB[0]){alert('Tags iguais.');return;}
+  } else if(kind==='multi-tag'){
+    participants=[...document.querySelectorAll('[name="ftpart"]')].map(x=>x.value).filter(Boolean);
+    if(participants.length<3||participants.length>4){alert('Escolha 3 ou 4 tag teams.');return;}
+    if(new Set(participants).size!==participants.length){alert('Tags repetidas.');return;}
+  } else if(kind==='faction'){
+    const a=$('ffa').value, b=$('ffb').value;
+    if(!a||!b||a===b){alert('Escolha duas facções diferentes.');return;}
+    sideA=[a]; sideB=[b];
+  }
+  S.feuds.push({id:uid(), brand:B, kind, division, hasTitle, titleId, sideA, sideB, participants, a:sideA[0]||participants[0]||'', b:sideB[0]||participants[1]||'', status:'Ativa', notes, goal, story:'', resolved:false});
+  save(); draw();
+}
+function feudKindUI(){
+  const kind=$('fk')?.value||'lutador';
+  const box=$('feudSides');
+  if(!box)return;
+  const divFilter = $('fdiv')?.value||'Masculino';
+  const wrestlers = lut().filter(r=>divFilter==='Mix'||r.division===divFilter);
+  const teams = S.teams.filter(t=>t.brand===B||!t.brand);
+  const facs = S.factions.filter(f=>f.brand===B||!f.brand);
+  if(kind==='lutador'){
+    box.innerHTML=`<div class="g" style="grid-template-columns:1fr auto 1fr;align-items:center">
+      <div id="faWrap">${wselInput(wrestlers,'fa','','Lutador A')}</div>
+      <span class="m">vs</span>
+      <div id="fbWrap">${wselInput(wrestlers,'fb2','','Lutador B')}</div>
+    </div>`;
+    bindWselInputs(box);
+  } else if(kind==='multi'){
+    box.innerHTML=`<div class="m" style="margin-bottom:8px">Triple Threat ou Fatal 4-Way — <b>Singles</b> (apenas 1 vencedor)</div>
+      <div class="g">
+        ${wselInput(wrestlers,'fpart','','Lutador 1')}
+        ${wselInput(wrestlers,'fpart','','Lutador 2')}
+        ${wselInput(wrestlers,'fpart','','Lutador 3')}
+        ${wselInput(wrestlers,'fpart','','Lutador 4 (opcional)')}
+      </div>
+      <div class="m" style="margin-top:6px">Escolha 3 ou 4 lutadores. Não é tag team — cada um luta por si.</div>`;
+    bindWselInputs(box);
+  } else if(kind==='tag'){
+    box.innerHTML=`<div class="row"><select name="fta" style="flex:1">${po(teams,'','Tag A')}</select><span class="m">vs</span><select name="ftb" style="flex:1">${po(teams,'','Tag B')}</select></div>`;
+  } else if(kind==='multi-tag'){
+    box.innerHTML=`<div class="m" style="margin-bottom:8px">Triple Threat ou Fatal 4-Way de <b>Tag Teams</b> (uma tag vencedora)</div>
+      <div class="g">
+        <select name="ftpart">${po(teams,'','Tag 1')}</select>
+        <select name="ftpart">${po(teams,'','Tag 2')}</select>
+        <select name="ftpart">${po(teams,'','Tag 3')}</select>
+        <select name="ftpart">${po(teams,'','Tag 4 (opcional)')}</select>
+      </div>
+      <div class="m" style="margin-top:6px">Escolha 3 ou 4 tag teams distintas.</div>`;
+  } else if(kind==='faction'){
+    box.innerHTML=`<div class="row"><select style="flex:1" id="ffa">${po(facs,'','Facção A')}</select><span class="m">vs</span><select style="flex:1" id="ffb">${po(facs,'','Facção B')}</select></div>`;
+  }
+}
+function feudTitleUI(){
+  const on=$('fht')?.checked;
+  const wrap=$('ftitleWrap');
+  if(wrap)wrap.style.display=on?'block':'none';
+}
+function feudLabel(f){
+  const kind=f.kind||'lutador';
+  if(kind==='lutador')return esc(nm(f.sideA?.[0]||f.a))+' vs '+esc(nm(f.sideB?.[0]||f.b));
+  if(kind==='multi'){
+    const parts=(f.participants||[]).map(nm).map(esc).join(' vs ');
+    return parts||'Triple/Four Singles';
+  }
+  if(kind==='tag'){
+    const tn=id=>{const t=S.teams.find(x=>x.id===id);return t?t.name:id;};
+    return (f.sideA||[]).map(tn).map(esc).join(' / ')+' vs '+(f.sideB||[]).map(tn).map(esc).join(' / ');
+  }
+  if(kind==='multi-tag'){
+    const tn=id=>{const t=S.teams.find(x=>x.id===id);return t?t.name:id;};
+    return (f.participants||[]).map(tn).map(esc).join(' vs ');
+  }
+  if(kind==='faction'){
+    const fn=id=>{const x=S.factions.find(z=>z.id===id);return x?x.name:id;};
+    return (f.sideA||[]).map(fn).map(esc).join(' / ')+' vs '+(f.sideB||[]).map(fn).map(esc).join(' / ');
+  }
+  return 'Rivalidade';
+}
+function kindTag(k){
+  return ({lutador:'1v1',multi:'Triple/Four Singles',tag:'Tag Team', 'multi-tag':'Triple/Four Tags', faction:'Facção'})[k]||k;
+}
+function addShow(){const n=$('sn').value.trim();if(!n)return;const type=$('st').value;const brands=type==='PPV'?Array.from(document.querySelectorAll('[name="ppvbrand"]:checked')).map(x=>x.value):[B];if(type==='PPV'&&!brands.length){alert('Selecione pelo menos uma brand.');return;}S.shows.push({id:uid(),name:n,type,brand:brands[0],brands,date:$('sd').value,matches:[],notes:'',completed:false});save();draw();}
+function addWeeklyPack(){const date=$('weekDate').value||new Date().toISOString().slice(0,10);[['Raw',1],['SmackDown',5],['NXT',2]].forEach(([b,target])=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+((target-d.getDay()+7)%7));const ds=d.toISOString().slice(0,10);if(!S.shows.some(s=>s.type==='Show semanal'&&s.brand===b&&s.date===ds))S.shows.push({id:uid(),name:b,type:'Show semanal',brand:b,brands:[b],date:ds,matches:[],notes:'',completed:false});});save();draw();}
+function createRumble(){const date=$('rumbleDate').value;if(S.shows.some(s=>s.name==='Royal Rumble'&&s.date===date)){alert('Já existe um Royal Rumble nessa data.');return;}S.shows.push({id:uid(),name:'Royal Rumble',type:'PPV',brand:'Raw',brands:['Raw','SmackDown','NXT'],date,matches:[],notes:'Vencedores recebem uma oportunidade pelo título na WrestleMania.',completed:false,rumble:true});save();draw();}
+function addMatch(id){const s=S.shows.find(x=>x.id===id),type=$('type'+id)?.value||'Single',division=$('div'+id)?.value||'Masculino',count=s.name==='Royal Rumble'?30:Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2))),participants=[];if(type==='Tag Team'&&s.name!=='Royal Rumble'&&$('tg'+id+'_0_0')){const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2))),groups=[];for(let g=0;g<nT;g++){const mem=[];for(let k=0;k<per;k++){const v=$('tg'+id+'_'+g+'_'+k)?.value;if(v)mem.push(v);}groups.push(mem);}const flat=groups.flat();if(groups.some(g=>g.length!==per)||new Set(flat).size!==flat.length){alert('Preencha todos os lutadores de cada grupo, sem repetir ninguém.');return;}s.matches.push({t:groups.map(g=>g.map(nm).join(' & ')).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants:flat,groups,outcomes:{},division,matchType:type});save();draw();return;}for(let i=0;i<count;i++){const v=$('mp'+id+'_'+i)?.value;if(v&&!participants.includes(v))participants.push(v);}if(participants.length!==count){alert('Selecione '+count+' wrestlers diferentes para esta luta.');return;}if(type==='Royal Rumble'&&participants.length!==30){alert('Royal Rumble exige 30 participantes.');return;}s.matches.push({t:participants.map(nm).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants,outcomes:{},division,matchType:type});save();draw();}
+function delMatch(id,i){S.shows.find(x=>x.id==id).matches.splice(i,1);save();draw();}
+function matchEdit(id,i,f,v){const m=S.shows.find(x=>x.id==id).matches[i];if(m){m[f]=v;save();}}
+function completeShow(id){const s=S.shows.find(x=>x.id===id);if(!s)return;const was=!!s.completed;s.completed=!s.completed;if(!was&&s.completed&&s.type==='PPV'){generatePushSuggestions(id);}save();draw();}
+function feudEdit(id,f,v) { const x=S.feuds.find(x=>x.id==id); if(x) { x[f]=v; save(); } }
+function exportJSON() { const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='wwe-universe-backup.json'; a.click(); URL.revokeObjectURL(url); }
+function parseBackup(txt) {
+  txt = String(txt == null ? '' : txt).replace(/^\uFEFF/, '').trim();
+  let o = JSON.parse(txt);
+  if (typeof o === 'string') o = JSON.parse(o); // JSON duplamente serializado
+  // aceita formatos embrulhados: {S:{...}}, {data:{...}}, {state:{...}}
+  for (const k of ['S','data','state','universe','backup']) if (o && !o.titles && !o.roster && o[k] && typeof o[k] === 'object') { o = o[k]; break; }
+  if (!o || typeof o !== 'object' || Array.isArray(o)) throw new Error('o arquivo não é um backup do Universe Desk');
+  if (!o.titles && !o.roster) throw new Error('não encontrei "titles" nem "roster" no arquivo');
+  if (!Array.isArray(o.titles)) o.titles = seed().titles;
+  if (!Array.isArray(o.roster)) o.roster = [];
+  return o;
+}
+function showMsg(t) { const m = $('msg'); if (m) m.textContent = t; }
+function imp(txt) {
+  let o;
+  try { o = parseBackup(txt !== undefined && typeof txt === 'string' ? txt : $('bk').value); }
+  catch (e) { showMsg('JSON inválido: ' + (e && e.message || e)); return; }
+  try {
+    S = mig(o); save(); draw();
+    showMsg('Importado com sucesso!');
+  } catch (e) { console.error(e); showMsg('Erro ao importar: ' + (e && e.message || e)); }
+}
+function impFile(inp) {
+  const f = inp && inp.files && inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { imp(String(r.result)); };
+  r.onerror = () => showMsg('Não consegui ler o arquivo.');
+  r.readAsText(f); inp.value = '';
+}
+function pickImport() { if (window.AndroidApp && AndroidApp.pickFile) AndroidApp.pickFile(); else $('impf').click(); }
+window.onNativeImport = function (txt) { imp(txt); };
+
+const V = {
+  landing() {
+    const brands=BRS.filter(b=>b!=='Free Agency');
+    const free=S.roster.filter(r=>r.brand==='Free Agency');
+    return `<section class="landing-hero"><div class="eyebrow">WWE 2K26 · UNIVERSE MANAGEMENT</div><h1>UNIVERSE <span>DESK</span></h1><p>Escolha onde deseja continuar seu Universe Mode.</p></section>
+    <div class="brand-picker">${brands.map(b=>`<button class="brand-tile" style="--c:${COL[b]}" onclick="sb('${b}')"><span class="tile-name">${esc(b)}</span><small>ABRIR BRAND</small><b>Entrar na Home →</b></button>`).join('')}
+    <button class="brand-tile free-tile" style="--c:${COL['Free Agency']}" onclick="sb('Free Agency')"><span class="tile-name">FREE AGENCY</span><small>${free.length} personagens sem contrato</small><b>Ver agentes livres →</b></button>
+    <button class="brand-tile roster-tile" style="--c:#35c9a5" onclick="go('globalRoster')"><span class="tile-name">ROSTER GLOBAL</span><small>Elenco completo, equipes e facções</small><b>Abrir roster global →</b></button>
+    <button class="brand-tile roster-tile" style="--c:#f4c95d" onclick="go('globalChampions')"><span class="tile-name">CAMPEÕES & RANKINGS</span><small>Todos os títulos e desafiantes</small><b>Consultar →</b></button>
+    <button class="brand-tile roster-tile" style="--c:#7fb0ff" onclick="go('bk')"><span class="tile-name">BACKUP</span><small>Exportar e importar seus dados (.json)</small><b>Abrir backup →</b></button>
+    <button class="brand-tile roster-tile" style="--c:#b28dff" onclick="go('popularity')"><span class="tile-name">POPULARIDADE</span><small>Ranking geral do roster</small><b>Consultar →</b></button></div>`;
+  },
+  globalChampions() {
+    const titles=S.titles.slice().sort((a,b)=>(a.brand||'').localeCompare(b.brand||'')||(a.name||'').localeCompare(b.name||''));
+    const champions=titles.filter(t=>t.champ);
+    return `<div class="card"><div class="sh">CAMPEÕES ATUAIS · TODAS AS BRANDS</div><div class="m">Lista global de todos os títulos que possuem campeão no momento.</div></div>${BRS.filter(b=>b!=='Free Agency').map(br=>{const ts=champions.filter(t=>t.brand===br);return `<section class="sec" style="--c:${COL[br]}"><div class="sh">${esc(br.toUpperCase())}</div>${ts.length?ts.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(br)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado nesta brand.')}</section>`}).join('')}`;
+  },
+  popularity() {
+    const roster=S.roster.filter(r=>r.role==='Lutador').slice().sort((a,b)=>popularity(b.id)-popularity(a.id)||a.name.localeCompare(b.name));
+    return `<div class="card"><div class="sh">POPULARIDADE · ROSTER COMPLETO</div><div class="m">Todos os wrestlers, independentemente da brand, ordenados do mais popular ao menos popular.</div><div class="g" style="margin-top:10px"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${roster.length?Math.round(roster.reduce((sum,r)=>sum+popularity(r.id),0)/roster.length):0}%</b><div class="m">Média geral</div></div></div></div><div class="card">${roster.length?roster.map((r,i)=>`<div class="rw"><span class="t">#${i+1} · ${esc(r.name)}</span><span class="sp"></span>${tag(r.brand)}${tag(popularity(r.id)+'%')}</div>`).join(''):em('Nenhum wrestler cadastrado.')}</div>`;
+  },
+  freeAgency() {
+    const fa=S.roster.filter(r=>r.brand==='Free Agency');
+    return `<section class="sec" style="--c:${COL['Free Agency']}"><div class="sh">FREE AGENCY · SEM CONTRATO</div><div class="g"><div><b>${fa.filter(r=>r.role==='Lutador').length}</b><div class="m">Wrestlers</div></div><div><b>${fa.filter(r=>r.role==='Manager').length}</b><div class="m">Managers</div></div></div><div class="m" style="margin-top:8px">Esta área é somente uma lista de personagens sem contrato.</div></section><div class="card"><div class="sh">PERSONAGENS SEM CONTRATO</div>${fa.length?fa.map(r=>`<div class="rw"><span class="t">${esc(r.name)}</span><span class="sp"></span>${tag(r.division)}${tag(r.role)}<span class="m">${esc(r.status)}</span></div>`).join(''):em('Nenhum personagem está na Free Agency.')}</div><div class="g"><button class="add" onclick="go('globalRoster')">Roster global →</button><button class="add" onclick="go('landing')">Voltar ao seletor Home →</button></div>`;
+  },
+  all() {
+    const b=B, roster=lut(b), champs=S.titles.filter(t=>t.brand===b&&t.champ), shows=S.shows.filter(s=>brandsFor(s).includes(b)).sort((a,c)=>(c.date||'').localeCompare(a.date||'')), feuds=S.feuds.filter(f=>!f.brand||f.brand===b), teams=S.teams.filter(t=>t.brand===b), facs=S.factions.filter(f=>f.brand===b);
+    if(b==='Free Agency')return V.freeAgency();
+    const suggestions=roster.filter(r=>!carry(r.id).length).sort((a,c)=>popularity(c.id)-popularity(a.id)).slice(0,5);
+    return `<section class="sec" style="--c:${COL[b]}"><div class="sh">${b.toUpperCase()} · BRAND HQ</div><div class="g"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${champs.length}</b><div class="m">Campeões</div></div><div><b>${shows.length}</b><div class="m">Eventos no histórico</div></div><div><b>${feuds.filter(f=>f.status!=='Encerrada').length}</b><div class="m">Rivalidades ativas</div></div></div><div class="g" style="margin-top:14px"></div></section>
+      
+      <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Ordenadas por popularidade; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
+      <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
+      <div class="card"><div class="sh">TAG TEAMS & FACÇÕES</div><div class="rw"><span>Tag Teams</span><span class="sp"></span><b>${teams.length}</b></div><div class="rw"><span>Facções</span><span class="sp"></span><b>${facs.length}</b></div><button class="add" style="margin-top:10px" onclick="go('teams')">Abrir equipes e facções →</button></div>${b==='Free Agency'?`<div class="card"><div class="sh">MEMBROS EM OUTRAS BRANDS</div>${S.teams.map(t=>{const members=(t.members||[]).map(id=>S.roster.find(r=>r.id==id)).filter(Boolean);return members.length?`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${members.map(r=>esc(r.name)+' · '+esc(r.brand)).join(' / ')}</div></div><span class="sp"></span>${tag(members.some(r=>r.brand==='Free Agency')?'Parte na Free Agency':'Todos alocados')}</div>`:''}).join('')||em('Nenhuma equipe cadastrada.')}</div>`:''}`;
+  },
+  roster() {
+    const fs = (k,a,p) => `<select onchange="F.${k}=this.value;draw()"><option value="">${p}: todos</option>${a.map(x => `<option ${F[k]==x?'selected':''}>${x}</option>`).join('')}</select>`;
+    const brands=[B];
+    const groups=brands.map(br=>{
+      const l=S.roster.filter(r=>r.brand===br&&(!F.r||r.role===F.r)&&(!F.d||r.division===F.d)).sort((a,b)=>(a.role>b.role)-(a.role<b.role)||cmp(a,b));
+      return `<section class="sec" style="--c:${COL[br]}"><div class="sh">${br.toUpperCase()} <span class="m">· ${l.length} personagens</span></div>${l.length?l.map(r=>{
+        const k="'roster','"+r.id+"'", fc=S.factions.find(f=>f.id==r.faction), cl=S.roster.filter(x=>x.manager==r.id), z=statsFor(r.id), pop=popularity(r.id), held=carry(r.id).length>0;
+        return dt('profile-'+r.id,`<div class="row">${avHtml(r,false)}<div style="flex:1;min-width:0"><div class="row"><span class="t">${r.role==='Manager'?'🎩 ':''}${esc(r.name)}</span><span class="sp"></span>${r.role==='Lutador'?tag(pop+'% popularidade',pop>=70?'face':''):''}</div><div class="row" style="margin-top:5px">${r.role==='Lutador'?tag(r.alignment||'Tweener',(r.alignment||'Tweener')==='Face'?'face':(r.alignment||'Tweener')==='Heel'?'heel':''):''}${tag(r.role==='Manager'?'Manager':r.card)}${r.role==='Lutador'?tag(r.origin==='CAW'?'CAW':r.origin==='Oficial WWE'?'Oficial':'Origem pendente'):''}${tag(r.division)}${r.status!=='Ativo'?tag(r.status,'heel'):''}${fc?tag(fc.name):''}${teamFor(r.id).map(t=>tag('👥 '+t.name)).join('')}${r.manager?tag('🎩 '+nm(r.manager)):''}${trophies(r.id)}</div></div></div>`,
+        `<div class="photo-box">${avHtml(r,true)}<div class="fl"><span class="m">FOTO DO PERSONAGEM</span>
+        <input placeholder="Cole a URL da imagem" value="${r.photo&&String(r.photo).startsWith('data:')?'':esc(r.photo||'')}" onchange="setPhotoUrl('${r.id}',this.value)">
+        <div class="photo-actions">
+          <label class="add">📤 Enviar foto<input type="file" accept="image/*" onchange="setPhotoFile('${r.id}',this)"></label>
+          ${r.photo?`<button class="x" type="button" onclick="clearPhoto('${r.id}')">Remover foto</button>`:''}
+        </div>
+        <div class="m" style="margin-top:4px">URL ou envio do celular. A imagem é redimensionada automaticamente.</div>
+      </div></div>
+        <div class="g">${fld('Nome',`<input value="${esc(r.name)}" onchange="st(${k},'name',this.value,1)">`)}${fld('Brand',sel(BRS,r.brand,`onchange="st(${k},'brand',this.value,1)"`))}${fld('Papel',sel(['Lutador','Manager'],r.role,`onchange="st(${k},'role',this.value,1)"`))}${r.role==='Lutador'?fld('Origem',sel(['Oficial WWE','CAW','Não definido'],r.origin||'Não definido',`onchange="st(${k},'origin',this.value,1)"`)):''}${fld('Divisão',sel(DIV,r.division,`onchange="st(${k},'division',this.value,1)"`))}${fld('Nível de card',sel(CARD,r.card,`onchange="st(${k},'card',this.value,1)"`))}${r.role==='Lutador'?fld('Alinhamento',sel(['Face','Heel','Tweener'],r.alignment||'Tweener',`onchange="st(${k},'alignment',this.value,1)"`)):''}${fld('Status',sel(ST,r.status,`onchange="st(${k},'status',this.value,1)"`))}${fld('Push manual (1-10)',sel([1,2,3,4,5,6,7,8,9,10],r.push,`onchange="st(${k},'push',+this.value,1)"`))}${fld('Faction',`<select onchange="st(${k},'faction',this.value,1)"><option value="">—</option>${S.factions.map(f=>`<option value="${f.id}" ${f.id==r.faction?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`)}${r.role==='Lutador'?fld('Manager',`<select onchange="st(${k},'manager',this.value,1)">${po(mgrs(),r.manager,'Sem manager')}</select>`):''}</div>
+        ${r.role==='Lutador'?`<div class="card"><div class="m">ESTATÍSTICAS DE CARREIRA</div><div class="g"><div><b>${z.total}</b><div class="m">Lutas</div></div><div><b>${z.wins}</b><div class="m">Vitórias</div></div><div><b>${z.losses}</b><div class="m">Derrotas</div></div><div><b>${z.draws}</b><div class="m">Empates</div></div><div><b>${z.pct}%</b><div class="m">Aproveitamento</div></div><div><b>${pop}%</b><div class="m">Popularidade</div></div><div><b>${titleReigns(r.id)}</b><div class="m">Reinados</div></div></div><div class="m" style="margin-top:10px">SUGESTÃO DE BOOKING · ${pushLabel(r.id)}${held?' · Campeão atual, excluído das sugestões de push.':''}</div></div><div class="m">HISTÓRICO DE TÍTULOS</div>${titleHistoryMarkup(r.id)}`:''}${r.role==='Manager'?`<div class="m" style="margin-top:10px">Gerencia: ${cl.map(x=>esc(x.name)).join(', ')||'ninguém ainda'}</div>`:''}${fld('História atual',`<textarea rows="2" onchange="st(${k},'story',this.value)">${esc(r.story)}</textarea>`)}${fld('Notas do booker',`<textarea rows="2" onchange="st(${k},'notes',this.value)">${esc(r.notes)}</textarea>`)}<button class="x" onclick="del('roster','${r.id}')">🗑 Remover</button>`);
+      }).join(''):em('Nenhum personagem nesta brand.')}</section>`;
+    }).join('');
+    const all=S.roster.length, wrestlers=S.roster.filter(r=>r.role==='Lutador').length;
+    return `<div class="card"><div class="sh">ROSTER · ${B.toUpperCase()}</div><div class="m" style="margin-bottom:10px">Esta tela mostra apenas os personagens contratados pela brand selecionada. Popularidade começa em 50% (neutro), varia conforme resultados e títulos, e fica limitada entre 0% e 100%.</div><div class="g"><div><b>${all}</b><div class="m">Total de personagens</div></div><div><b>${wrestlers}</b><div class="m">Wrestlers</div></div><div><b>${S.roster.filter(r=>r.origin==='CAW').length}</b><div class="m">CAWs</div></div></div><hr class="roster-form-separator" style="border:0;border-top:2px solid var(--bd);margin:20px 0 16px;opacity:1"><div class="row"><input class="f" id="rn" placeholder="Nome do wrestler / manager"><select id="rr">${opt(['Lutador','Manager'])}</select><select id="ro">${opt(['Oficial WWE','CAW','Não definido'])}</select><select id="rd">${opt(DIV)}</select><select id="ra">${opt(['Heel','Face','Tweener'])}</select><select id="rc">${opt(CARD)}</select><button class="add" onclick="addR()">Adicionar</button></div><div class="m" style="margin-top:10px">Use as fichas expansíveis para abrir o perfil completo. Filtre por papel e divisão no submenu no final da página.</div></div>${groups}${filterMenu('b',COL[B])}`;
+  },
+  globalRoster() {
+    const wrestlers=S.roster.filter(r=>r.role==='Lutador'&&(!G.d||r.division===G.d)), managers=S.roster.filter(r=>r.role==='Manager'&&(!G.d||r.division===G.d));
+    const teamsF=S.teams.filter(t=>!G.d||(t.members||[]).some(id=>(S.roster.find(r=>r.id===id)||{}).division===G.d)), facsF=S.factions.filter(f=>!G.d||S.roster.some(r=>r.faction===f.id&&r.division===G.d));
+    const card=r=>{const title=carry(r.id).map(t=>t.name).join(', ')||'Sem título';const teams=teamFor(r.id).map(t=>t.name).join(', ')||'—';const faction=S.factions.find(f=>f.id===r.faction);return `<div class="rw">${avHtml(r,false)}<div style="flex:1;min-width:0"><span class="t">${esc(r.name)}</span><div class="m">${esc(r.brand)} · ${esc(title)}</div><div class="m">Tag Team: ${esc(teams)} · Facção: ${esc(faction?faction.name:'—')}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`;};
+    return `<div class="card"><div class="sh">ROSTER GLOBAL · VISÃO GERAL</div><div class="m">Todos os personagens, agrupados por divisão e com brand atual, títulos, tag teams e facções.</div><div class="g" style="margin-top:12px"><div><b>${wrestlers.length}</b><div class="m">Wrestlers</div></div><div><b>${managers.length}</b><div class="m">Managers</div></div><div><b>${teamsF.length}</b><div class="m">Tag Teams</div></div><div><b>${facsF.length}</b><div class="m">Facções</div></div></div></div>${G.r==='Manager'||G.d==='Feminino'?'':`<section class="sec" style="--c:#e11d2e"><div class="sh">HOMENS</div>${wrestlers.filter(r=>r.division==='Masculino').length?wrestlers.filter(r=>r.division==='Masculino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(card).join(''):em('Nenhum wrestler masculino cadastrado.')}</section>`}${G.r==='Manager'||G.d==='Masculino'?'':`<section class="sec" style="--c:#d94f9b"><div class="sh">MULHERES</div>${wrestlers.filter(r=>r.division==='Feminino').length?wrestlers.filter(r=>r.division==='Feminino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(card).join(''):em('Nenhuma wrestler feminina cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">TAG TEAMS</div>${teamsF.length?teamsF.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">Brand da equipe: ${esc(t.brand)} · ${(t.members||[]).map(nm).map(esc).join(' / ')||'Sem membros'}</div></div></div>`).join(''):em('Nenhuma tag team cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">FACÇÕES</div>${facsF.length?facsF.map(f=>`<div class="rw"><div><span class="t">${esc(f.name)}</span><div class="m">Brand: ${esc(f.brand)} · ${esc(f.tipo||'Stable')} · ${esc(S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(', ')||'Sem membros')}</div></div></div>`).join(''):em('Nenhuma facção cadastrada.')}</section>`}${G.r==='Lutador'?'':`<section class="sec"><div class="sh">MANAGERS</div>${managers.length?managers.map(card).join(''):em('Nenhum manager cadastrado.')}</section>`}${filterMenu('g','#35c9a5')}`;
+  },
+  titles() {
+    const ts = S.titles.filter(t => t.brand == B), t = ts.find(x => x.id == SEL[B]) || ts[0];ts.forEach(x=>{x.rank=(x.rank||[]).filter(id=>id!==x.champ&&!!person(id));x.rank.sort((a,b)=>popularity(b)-popularity(a));});
+    const h = `<div class="card"><div class="row"><input class="f" id="tn" placeholder="Novo título em ${B}"><select id="tl">${opt(LVS)}</select><button class="add" onclick="addT()">Criar título</button></div></div>
+    <div class="chips">${ts.map(x => `<button class="chip ${t&&x.id==t.id?'on':''}" onclick="SEL['${B}']='${x.id}';draw()">${esc(x.name)}</button>`).join('')}</div>`;
+    if (!t) return h + em('Nenhum título nesta brand.');
+    const p = pool(t), k = "'titles','"+t.id+"'", free = p.filter(x => x.id != t.champ && !t.rank.includes(x.id));
+    return h + `<div class="card hero">
+      <div class="row"><span class="t" style="font-size:17px">${esc(t.name)}</span>${tag(t.lv)}<span class="sp"></span><button class="x" onclick="removeTitle('${t.id}')">🗑 Remover</button></div>
+      <div class="m" style="margin-top:10px">CAMPEÃO ATUAL</div>
+      ${(()=>{
+        if(!t.champ) return `<div class="champ">Vago</div>`;
+        if(t.lv==='Tag Team'){
+          const tm=S.teams.find(x=>x.id===t.champ);
+          if(tm){
+            const mems=(tm.members||[]).map(id=>person(id)).filter(Boolean);
+            return `<div class="champ-row">${mems.slice(0,2).map(r=>avChamp(r)).join('')}<div><div class="champ">🏆 ${esc(tm.name)}</div><div class="m">${mems.map(r=>esc(r.name)).join(' · ')}</div></div></div>`;
+          }
+        }
+        const ch=person(t.champ);
+        return `<div class="champ-row">${avChamp(ch)}<div class="champ">🏆 ${esc(nm(t.champ))}</div></div>`;
+      })()}
+      <div class="g">
+        ${fld('Nome',`<input value="${esc(t.name)}" onchange="st(${k},'name',this.value,1)">`)}
+        ${fld(t.lv=='Tag Team'?'Campeões (time)':'Campeão', t.lv==='Tag Team'
+          ? `<select onchange="setChamp('${t.id}',this.value)">${po(p,t.champ,'Vago')}</select>`
+          : wselRoster(p.filter(x=>x.role!=='Manager'), t.champ, `id=>setChamp('${t.id}',id)`))}
+        ${fld('Desde (data/ep.)',`<input value="${esc(t.since)}" onchange="st(${k},'since',this.value)">`)}
+        ${fld('Reinados',`<input type="number" min="0" value="${t.reigns}" onchange="st(${k},'reigns',+this.value)">`)}
+        ${fld('Defesas',`<div class="row"><input type="number" min="0" value="${t.defs}" style="flex:1" onchange="st(${k},'defs',+this.value)"><button class="add" onclick="defesa('${t.id}')">+1</button></div>`)}
+      </div>
+    </div>
+    <h2>Ranking · ${esc(t.name.toUpperCase())} (${t.rank.length})</h2>
+    <div class="card">
+      ${t.rank.map((id,i) => {const rp=person(id);return `<div class="rw">${avRank(rp)}<span class="t">${i===0?'DESAFIANTE':'#'+(i+1)} · ${esc(nm(id))}</span><span class="sp"></span>${tag(popularity(id)+'% popularidade')}<button class="x" onclick="rkDel('${t.id}',${i})">✕</button></div>`;}).join('') || '<div class="m">Ninguém no ranking ainda.</div>'}
+      <div style="margin-top:10px">${t.lv==='Tag Team'
+        ? `<select onchange="rkAdd('${t.id}',this.value)">${po(free,'','+ adicionar ao ranking')}</select>`
+        : wselRoster(free, '', `id=>{if(id)rkAdd('${t.id}',id)}`)}</div>
+      <textarea rows="2" placeholder="Observações do título" onchange="st(${k},'obs',this.value)">${esc(t.obs)}</textarea>
+    </div>
+    <div class="card"><div class="sh">HISTÓRICO DO TÍTULO · REINADOS</div>${(t.history||[]).length?(t.history||[]).filter(h=>h.champion).map(h=>{const end=h.ended||'Atual';const days=h.ended?(h.daysHeld||0):Math.max(0,Math.floor((new Date().setHours(12,0,0,0)-new Date((h.startDate||t.since||new Date().toISOString().slice(0,10))+'T12:00:00'))/86400000));return `<div class="rw"><div><span class="t">${esc(nm(h.champion))}</span><div class="m">${esc(h.started||'Data anterior')} — ${esc(end)} · ${h.defenses||0} defesa(s) · ${days} dia(s)</div></div><span class="sp"></span>${tag('Reinado')}</div>`;}).join(''):em('Nenhum reinado registrado ainda.')}</div>`;
+  },
+
+  teams() {
+    const l = S.teams.filter(t => B==='Free Agency' ? t.brand==='Free Agency' : t.brand == B);
+    return `<div class="card"><div class="row"><input class="f" id="tmn" placeholder="Nome do tag team em ${B}"><select id="tmBrand">${BRS.map(br=>`<option ${br===B?'selected':''}>${br}</option>`).join('')}</select><button class="add" onclick="addTeam()">Criar time</button></div></div>` +
+    (l.length ? l.map(t => {
+      const k = "'teams','"+t.id+"'", free = S.roster.filter(r => r.role==='Lutador' && !t.members.includes(r.id));
+      return dt(t.id,
+        `<div class="row"><span class="t">${esc(t.name)}</span><span class="sp"></span>${tag(t.status, t.status=='Ativo'?'face':'')}</div>
+         <div class="m">${t.members.map(nm).join(' & ') || 'sem membros'}</div>
+         <div class="row" style="margin-top:5px">${S.titles.filter(x=>x.champ==t.id).map(x=>tag('🏆 '+x.name,'face')).join('')}${t.manager?tag('🎩 '+nm(t.manager)):''}</div>`,
+        `<div class="g">
+          ${fld('Nome',`<input value="${esc(t.name)}" onchange="st(${k},'name',this.value,1)">`)}${fld('Brand da equipe',sel(BRS,t.brand||'Raw',`onchange="st(${k},'brand',this.value,1)"`))}
+          ${fld('Status',sel(['Ativo','Lesionado','Dissolvido'],t.status,`onchange="st(${k},'status',this.value,1)"`))}
+          ${fld('Desde quando',`<input value="${esc(t.since)}" onchange="st(${k},'since',this.value)">`)}
+          ${fld('Manager',`<select onchange="st(${k},'manager',this.value,1)">${po(mgrs(),t.manager,'Sem manager')}</select>`)}
+        </div>
+        <div class="m" style="margin-top:10px">Membros</div>
+        ${t.members.map(id => `<div class="rw"><span>${esc(nm(id))}</span><span class="sp"></span><button class="x" onclick="tmDel('${t.id}','${id}')">remover</button></div>`).join('') || '<div class="m">—</div>'}
+        <select style="margin-top:8px" onchange="tmAdd('${t.id}',this.value)">${po(free,'','+ adicionar membro')}</select>
+        <textarea rows="2" placeholder="Notas do booker" onchange="st(${k},'notes',this.value)">${esc(t.notes)}</textarea>
+        <button class="x" onclick="del('teams','${t.id}')">🗑 Remover time</button>`);
+    }).join('') : em('Nenhum tag team em '+B+'.')) + `<h2>FACÇÕES · ${B.toUpperCase()}</h2>` + this.facs();
+  },
+
+  facs() {
+    const l = S.factions.filter(f => B==='Free Agency' ? f.brand==='Free Agency' : f.brand == B);
+    return `<div class="card"><div class="row"><input class="f" id="fn" placeholder="Nome da faction em ${B}"><select id="ft">${opt(['Stable','Aliança'])}</select><button class="add" onclick="addF()">Criar</button></div></div>` +
+    (l.length ? l.map(f => {
+      const mem = S.roster.filter(r => r.faction == f.id), k = "'factions','"+f.id+"'", free = S.roster.filter(r => r.role==='Lutador' && r.faction != f.id);
+      return dt(f.id,
+        `<div class="row"><span class="t">${esc(f.name)}</span><span class="sp"></span>${tag(f.status, f.status=='Ativa'?'face':'')}</div>
+         <div class="m">${f.tipo} · ${mem.map(r => esc(r.name)).join(', ') || 'sem membros'}</div>`,
+        `<div class="g">
+          ${fld('Nome',`<input value="${esc(f.name)}" onchange="st(${k},'name',this.value,1)">`)}${fld('Brand da facção',sel(BRS,f.brand||'Raw',`onchange="st(${k},'brand',this.value,1)"`))}
+          ${fld('Tipo',sel(['Stable','Aliança'],f.tipo,`onchange="st(${k},'tipo',this.value)"`))}
+          ${fld('Status',sel(['Ativa','Em formação','Dissolvida'],f.status,`onchange="st(${k},'status',this.value,1)"`))}
+          ${fld('Desde quando',`<input value="${esc(f.since)}" onchange="st(${k},'since',this.value)">`)}
+          ${fld('Líder',`<select onchange="st(${k},'leader',this.value,1)">${po(mem,f.leader)}</select>`)}
+          ${fld('Inimigos principais',`<input value="${esc(f.enemies)}" onchange="st(${k},'enemies',this.value)">`)}
+        </div>
+        ${fld('Objetivo / história',`<textarea rows="2" onchange="st(${k},'goal',this.value)">${esc(f.goal)}</textarea>`)}
+        ${fld('Notas do booker',`<textarea rows="2" onchange="st(${k},'notes',this.value)">${esc(f.notes)}</textarea>`)}
+        <div class="m" style="margin-top:10px">Membros</div>
+        ${mem.map(r => `<div class="rw"><span>${f.leader==r.id?'👑 ':''}${esc(r.name)}</span><span class="sp"></span><button class="x" onclick="setMem('${r.id}','')">remover</button></div>`).join('') || '<div class="m">—</div>'}
+        <select style="margin-top:8px" onchange="if(this.value)setMem(this.value,'${f.id}')">${po(free,'','+ adicionar membro')}</select>
+        <button class="x" onclick="del('factions','${f.id}')">🗑 Remover faction</button>`);
+    }).join('') : em('Nenhuma faction em '+B+'.'));
+  },
+
+  feuds() {
+    const l = S.feuds.filter(f => !f.brand || f.brand == B);
+    const titles = S.titles.filter(t => t.brand===B);
+    setTimeout(()=>{feudKindUI();feudTitleUI();},0);
+    return `<div class="card">
+      <div class="sh">NOVA RIVALIDADE · ${B.toUpperCase()}</div>
+      <div class="g">
+        ${fld('Tipo',`<select id="fk" onchange="feudKindUI()"><option value="lutador">Lutador 1v1</option><option value="multi">Triple / Four — Singles</option><option value="tag">Tag Team vs Tag Team</option><option value="multi-tag">Triple / Four — Tag Teams</option><option value="faction">Facção vs Facção</option></select>`)}
+        ${fld('Divisão',`<select id="fdiv" onchange="feudKindUI()">${opt(['Masculino','Feminino','Mix'])}</select>`)}
+        ${fld('Envolve título?',`<label style="display:flex;align-items:center;gap:8px;min-height:40px"><input type="checkbox" id="fht" onchange="feudTitleUI()"> Sim</label>`)}
+      </div>
+      <div id="ftitleWrap" style="display:none;margin-top:10px">${fld('Título em jogo',`<select id="ftitle">${po(titles,'','— escolher título')}</select>`)}</div>
+      <div id="feudSides" style="margin-top:12px"></div>
+      <div class="g" style="margin-top:12px">
+        ${fld('Resumo / storyline',`<input class="f" id="fnt" placeholder="Gancho da rivalidade">`)}
+        ${fld('Objetivo / próximo passo',`<input class="f" id="fgoal" placeholder="Ex.: luta pelo título no PPV">`)}
+      </div>
+      <button class="add" style="margin-top:12px" onclick="addFeud()">Criar rivalidade</button>
+      <div class="m" style="margin-top:8px">Pop: Singles (1v1 ou Triple/Four) vencedor +3.5 / cada perdedor −2. Tag ou Facção: cada membro da tag/facção vencedora +1.5 / perdedores −1.</div>
+    </div>` +
+    (l.length ? l.map(f => {
+      const titleName = f.hasTitle && f.titleId ? (S.titles.find(t=>t.id===f.titleId)||{}).name : '';
+      return `<div class="card">
+      <div class="row"><span class="t">${feudLabel(f)}</span><span class="sp"></span>${tag(kindTag(f.kind||'lutador'))}${tag(f.division||'Masculino')}${f.hasTitle?tag('🏆 '+(titleName||'Título'),'face'):''}${tag(f.status||'Ativa',f.status==='Encerrada'?'face':'')}<button class="x" onclick="del('feuds','${f.id}')">✕</button></div>
+      ${f.notes ? `<div class="m" style="margin:6px 0 10px">${esc(f.notes)}</div>` : ''}
+      <div class="g" style="margin-top:10px">${fld('Próximo passo / objetivo',`<input value="${esc(f.goal||'')}" placeholder="Ex.: confronto no PPV" onchange="feudEdit('${f.id}','goal',this.value)">`)}${fld('História / momentos importantes',`<textarea rows="3" placeholder="Promo, traição, interferência, estipulação..." onchange="feudEdit('${f.id}','story',this.value)">${esc(f.story||'')}</textarea>`)}</div>
+      <div class="row" style="margin-top:10px;gap:10px;flex-wrap:wrap">
+        ${sel(['Ativa','Pausada','Encerrada'],f.status,`onchange="st('feuds','${f.id}','status',this.value,1)"`)}
+        ${resolveButtons(f)}
+      </div>
+    </div>`;
+    }).join('') : em('Nenhuma rivalidade em '+B+'.'));
+  },
+
+  shows() {
+    const l=S.shows.filter(s=>brandsFor(s).includes(B));
+    return `<div class="card"><div class="sh">CALENDÁRIO & EVENTOS</div><div class="g">${fld('Nome do show / PPV',`<input class="f" id="sn" placeholder="Ex.: Backlash, WrestleMania">`)}${fld('Tipo',`<select id="st" onchange="document.getElementById('ppvBrands').style.display=this.value==='PPV'?'grid':'none'"><option>Show semanal</option><option>PPV</option></select>`)}${fld('Data',`<input id="sd" type="date">`)}</div><div id="ppvBrands" class="g" style="display:none;margin-top:10px">${fld('Brands participantes',BRS.slice(0,3).map(b=>`<label><input type="checkbox" name="ppvbrand" value="${b}" ${b===B?'checked':''}> ${b}</label>`).join(''))}</div><button class="add" style="margin-top:10px" onclick="addShow()">Criar evento / card</button></div>
+    <div class="card"><div class="sh">SHOWS SEMANAIS PADRÃO</div><div class="row">${fld('Data de referência',`<input id="weekDate" type="date" value="${new Date().toISOString().slice(0,10)}">`)}<button class="add" onclick="addWeeklyPack()">Gerar semana Raw · SmackDown · NXT</button></div><div class="m" style="margin-top:8px">Cria os três shows sem duplicar eventos na mesma data.</div></div>
+    <div class="card"><div class="sh">ROYAL RUMBLE</div><div class="m">Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.</div><div class="row" style="margin-top:10px"><input id="rumbleDate" type="date"><button class="add" onclick="createRumble()">Criar Royal Rumble</button></div></div>
+    <div class="card"><div class="sh">TIPOS DE LUTA</div><div class="row"><input id="newType" class="f" placeholder="Novo tipo de luta"><button class="add" onclick="addMatchType()">Adicionar tipo</button></div><div class="chips" style="margin-top:10px">${S.matchTypes.map(t=>`<span class="tag">${esc(t)} <button class="x" onclick="delMatchType(${JSON.stringify(t).replace(/"/g,'&quot;')})">×</button></span>`).join('')}</div></div>`+
+    (l.length?l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+s.date.split('-').reverse().join('/'):''} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}<button class="x" onclick="del('shows','${s.id}')">✕</button></div>
+      ${s.matches.map((m,i)=>`<div class="card" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${m.title?tag('🏆 '+m.title,'face'):''}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
+      ${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
+  },
+
+  push() {
+    const pb=S.pushBoard||{suggestions:{men:[],women:[],tagMen:[],tagWomen:[]},selected:{singles:[],tags:[]},activeBonus:{singles:[],tags:[]},pending:false};
+    const sug=pb.suggestions||{};
+    const sel=pb.selected||{singles:[],tags:[]};
+    const ab=pb.activeBonus||{singles:[],tags:[]};
+    const cardW=(id,kind)=>{
+      const r=S.roster.find(x=>x.id===id); if(!r)return '';
+      const on=(sel[kind]||[]).includes(id);
+      const active=(ab.singles||[]).includes(id);
+      return `<button type="button" class="card" style="text-align:left;cursor:pointer;border-color:${on||active?'var(--ac)':''}" onclick="togglePushSelect('singles','${id}')">
+        <div class="row">${avHtml(r,false)}<div style="flex:1"><div class="t">${esc(r.name)}</div><div class="m">${esc(r.brand)} · ${popularity(id)}% pop · ${esc(r.card||'')}</div></div>${on?tag('SELECIONADO','face'):active?tag('PUSH ATIVO','face'):tag('Toque para escolher')}</div>
+      </button>`;
+    };
+    const cardT=(id)=>{
+      const t=S.teams.find(x=>x.id===id); if(!t)return '';
+      const on=(sel.tags||[]).includes(id);
+      const active=(ab.tags||[]).includes(id);
+      const mems=(t.members||[]).map(nm).join(' · ');
+      return `<button type="button" class="card" style="text-align:left;cursor:pointer;border-color:${on||active?'var(--ac)':''}" onclick="togglePushSelect('tags','${id}')">
+        <div class="t">👥 ${esc(t.name)}</div>
+        <div class="m">${esc(t.brand)} · ${esc(mems)}</div>
+        <div style="margin-top:6px">${on?tag('SELECIONADO','face'):active?tag('PUSH ATIVO','face'):tag('Toque para escolher')}</div>
+      </button>`;
+    };
+    const lastPpv=S.shows.find(s=>s.id===pb.lastPpvId);
+    return `<div class="card">
+      <div class="sh">PUSH PÓS-PPV</div>
+      <div class="m">Depois de marcar um PPV como concluído, o sistema sugere 2 homens + 2 mulheres (singles) e 2 tags masculinas + 2 tags femininas. Você escolhe quem recebe o push. O selecionado ganha multiplicador ×1.5 na popularidade até o próximo PPV.</div>
+      <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button class="add" onclick="generatePushSuggestions('');save();draw()">Gerar sugestões agora</button>
+        ${(sel.singles||[]).length+(sel.tags||[]).length?`<button class="add" onclick="confirmPushPicks()">Confirmar push selecionado</button>`:''}
+      </div>
+      ${lastPpv?`<div class="m" style="margin-top:8px">Último PPV que gerou a lista: <b>${esc(lastPpv.name)}</b>${lastPpv.date?' · '+lastPpv.date:''}</div>`:''}
+      ${pb.pending?tag('Aguardando sua escolha de push','face'):(ab.singles||[]).length+(ab.tags||[]).length?tag('Push ativo até o próximo PPV','face'):''}
+    </div>
+    <h2>Singles · Homens (2 sugestões)</h2>
+    <div class="g">${(sug.men||[]).map(id=>cardW(id,'singles')).join('')||em('Sem sugestões. Conclua um PPV ou gere manualmente.')}</div>
+    <h2>Singles · Mulheres (2 sugestões)</h2>
+    <div class="g">${(sug.women||[]).map(id=>cardW(id,'singles')).join('')||em('Sem sugestões.')}</div>
+    <h2>Tag Team · Masculino (2 sugestões)</h2>
+    <div class="g">${(sug.tagMen||[]).map(cardT).join('')||em('Cadastre tag teams masculinas para sugerir.')}</div>
+    <h2>Tag Team · Feminino (2 sugestões)</h2>
+    <div class="g">${(sug.tagWomen||[]).map(cardT).join('')||em('Cadastre tag teams femininas para sugerir.')}</div>
+    <div class="card"><div class="m">Push ativo agora: singles ${(ab.singles||[]).map(nm).map(esc).join(', ')||'—'} · tags ${(ab.tags||[]).map(id=>{const t=S.teams.find(x=>x.id===id);return t?t.name:id;}).map(esc).join(', ')||'—'}</div></div>`;
+  },
+
+  summary() {
+    const shows=S.shows.filter(s=>brandsFor(s).includes(B)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const feuds=S.feuds.filter(f=>!f.brand||f.brand===B);
+    return `<div class="card"><div class="sh">RESUMO HISTÓRICO · ${B.toUpperCase()}</div><div class="g"><div><b>${shows.length}</b><div class="m">Shows e PPVs</div></div><div><b>${shows.filter(s=>s.completed).length}</b><div class="m">Concluídos</div></div><div><b>${feuds.length}</b><div class="m">Rivalidades</div></div></div></div><div class="card"><div class="sh">RIVALIDADES</div>${feuds.length?feuds.map(f=>`<div class="rw"><div><span class="t">${feudLabel(f)}</span><div class="m">${esc(f.goal||f.story||f.notes||'Sem resumo registrado')} · ${kindTag(f.kind||'lutador')}</div></div><span class="sp"></span>${tag(f.status||'Ativa')}</div>`).join(''):em('Sem rivalidades registradas.')}</div><div class="card"><div class="sh">RESULTADOS DE SHOWS E PPVS</div>${shows.length?shows.map(s=>`<div class="card"><div class="row"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.date||'Data não definida')} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>${(s.matches||[]).length?(s.matches||[]).map((m,i)=>`<div class="rw"><div><span>${i+1}. ${esc(m.matchType||'Luta')} · ${esc(matchLine(m))}</span><div class="m">Resultado: ${esc(m.result||'Não registrado')}${m.title?' · '+esc(m.title):''}</div></div></div>`).join(''):em('Card ainda não montado.')}</div>`).join(''):em('Nenhum evento no histórico.')}</div>`;
+  },
+
+  year() {
+    return MS.map((m,i) => {
+      const y = S.year[i+'-'+B] || {};
+      const events=S.shows.filter(s=>s.date&&Number(s.date.slice(5,7))===i+1&&brandsFor(s).includes(B)); return dt('y'+i, `<span class="t">${m}</span><span class="m"> · ${events.length} eventos</span>`,
+        (events.length?`<div class="m" style="margin-bottom:10px">EVENTOS: ${events.map(s=>esc(s.name)).join(' · ')}</div>`:'') + [['e','Principais acontecimentos'],['t','Mudanças de título / campeões'],['n','Notas / impacto na história']]
+          .map(([f,p]) => `<textarea rows="2" placeholder="${p}" onchange="sy('${i}-${B}','${f}',this.value)">${esc(y[f])}</textarea>`).join(''));
+    }).join('');
+  },
+
+  bk() {
+    return `<div class="card">
+      <div class="t">Backup do Universe</div>
+      <div class="m" style="margin:6px 0 12px">SIM, salva automaticamente neste navegador (localStorage). Não some ao fechar a aba. Cuidado: limpar dados do site, outro navegador ou modo anônimo apaga tudo. Faça backup JSON com frequência. Copie abaixo ou baixe o arquivo; para restaurar, cole e toque em Importar.</div>
+      <textarea id="bk" rows="9">${esc(JSON.stringify(S))}</textarea>
+      <div class="row" style="margin-top:10px"><button class="add" onclick="exportJSON()">Baixar backup (.json)</button><button class="add" onclick="imp()">Importar backup (texto colado)</button><button class="add" onclick="pickImport()">Importar arquivo (.json)</button><input id="impf" type="file" accept="*/*" style="display:none" onchange="impFile(this)"><span class="m" id="msg"></span></div>
+    </div>`;
+  }
+};
+
+function draw() {
+  const y=window.scrollY;
+  const theme = tab==='globalRoster' ? 'Global' : B;
+  document.documentElement.dataset.b = theme;
+  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk'].includes(tab))tab='freeAgency';
+  // Título do header: Universe Desk na home; nome da brand quando selecionada; Roster Global / Free Agency
+  const h1 = document.querySelector('header.masthead h1');
+  const sub = document.querySelector('header.masthead .sub');
+  if(h1){
+    if(tab==='landing'){ h1.innerHTML='UNIVERSE <span>DESK</span>'; if(sub)sub.textContent='Seu universo. Seu booking. Sua história.'; }
+    else if(tab==='globalRoster'){ h1.innerHTML='ROSTER <span>GLOBAL</span>'; if(sub)sub.textContent='Visão completa de todos os personagens'; }
+    else if(B==='Free Agency'){ h1.innerHTML='FREE <span>AGENCY</span>'; if(sub)sub.textContent='Agentes livres e contratos'; }
+    else { h1.innerHTML=B.toUpperCase()+' <span>DESK</span>'; if(sub)sub.textContent='Brand ativa · booking em andamento'; }
+  }
+  const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k));
+  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
+  const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
+  $('app').innerHTML=back('')+V[tab]()+back('bottom');
+  window.scrollTo(0,y);
+}
+
+draw();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
+
+<style>
+/* Ajustes de navegação e Home da brand */
+.home-nav{position:static!important;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;padding:8px 0}
+.home-nav>button,.home-nav .brands>button{font-size:11px!important;padding:7px 10px!important;white-space:nowrap}
+.home-nav .nav-label{font-size:10px;letter-spacing:.08em;margin:0 4px}
+.home-nav .brands{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.subnav,.brand-menu{position:static!important;display:flex;justify-content:center;align-items:stretch;gap:7px;flex-wrap:nowrap;width:100%;margin:10px auto 16px}
+.brand-menu-btn{flex:1 1 0;min-width:0!important;max-width:170px;padding:10px 12px!important;font-size:11px!important;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.brand-menu-btn span{font-size:10px!important}
+.brand-home-label{text-align:center;margin:6px 0;font-size:13px;letter-spacing:.18em;font-weight:900}
+.brand-home-columns{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:stretch;margin-bottom:14px}
+.brand-home-columns>.card{margin:0;min-width:0}
+.brand-champions-list .rw{gap:8px}
+.brand-champions-list .rw b{max-width:52%;text-align:right;font-size:12px}
+@media(max-width:850px){.brand-menu{flex-wrap:wrap}.brand-menu-btn{flex:1 1 130px;max-width:none}.brand-home-columns{grid-template-columns:1fr}}
+</style>
+
+<style>
+/* Home: hierarquia visual, alinhamento e cores por área */
+.top,.home-nav{position:static!important}
+.home-nav{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0 13px}
+.home-nav>button,.home-nav .brands>button{min-height:36px;font-size:11px!important;padding:8px 13px!important;white-space:nowrap;border:1px solid color-mix(in srgb,var(--c,var(--bd)) 48%,var(--bd));border-radius:8px}
+.home-nav>button.on,.home-nav .brands>button.on{background:color-mix(in srgb,var(--c,var(--ac)) 22%,var(--card));border-color:var(--c,var(--ac));color:var(--tx)}
+.home-nav .brands{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.nav-divider{height:30px;width:1px;background:var(--bd);margin:0 4px;flex:0 0 1px}
+.brand-picker{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:1120px;margin:18px auto 28px;padding:0 16px}
+.brand-tile{min-height:135px!important;display:flex!important;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;padding:18px!important;border:1px solid color-mix(in srgb,var(--c) 45%,var(--bd))!important;border-left:4px solid var(--c)!important;border-radius:12px!important;background:linear-gradient(135deg,color-mix(in srgb,var(--c) 12%,var(--card)),var(--card))!important;gap:12px}
+.brand-tile .brand-mark{color:var(--c)!important;font-weight:900;letter-spacing:.08em}
+.brand-tile small{color:var(--mu)}
+.brand-tile b{margin-top:auto}
+.landing-hero{text-align:center;margin:20px auto 12px;max-width:800px}
+.landing-hero p{color:var(--mu)}
+.brand-home-label{color:var(--c)!important;text-align:center;margin:8px 0 10px;font-size:13px;letter-spacing:.18em;font-weight:900}
+.brand-menu{position:static!important;display:flex;justify-content:center;align-items:stretch;gap:7px;flex-wrap:nowrap;width:100%;margin:10px auto 16px}
+.brand-menu-btn{flex:1 1 0;min-width:0!important;max-width:160px;padding:10px 11px!important;font-size:11px!important;display:flex;flex-direction:column;justify-content:space-between;gap:8px;border-top:2px solid var(--c,var(--bd))}
+.brand-menu-btn span{font-size:10px!important;color:var(--mu)}
+@media(max-width:760px){.brand-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.brand-menu{flex-wrap:wrap}.brand-menu-btn{flex:1 1 130px;max-width:none}.nav-divider{height:1px;width:100%;flex-basis:100%;margin:1px 0}}
+@media(max-width:460px){.brand-picker{grid-template-columns:1fr}.home-nav{gap:6px}}
+</style>
+
+<style>
+/* Separação clara entre resumo do roster e formulário de cadastro */
+.roster-form-separator{border:0!important;border-top:2px solid var(--bd)!important;margin:20px 0 16px!important;opacity:1}
+</style>
+<style>
+/* v10: alinhamento da Home e do cabeçalho */
+.brand-lockup .brand-mark{display:flex;align-items:center;justify-content:center;letter-spacing:-2px;line-height:1;overflow:hidden}
+.brand-lockup .brand-mark span{opacity:.75}
+.tile-name{display:block;font-size:clamp(18px,2.2vw,26px);font-weight:900;letter-spacing:.08em;line-height:1.15;color:var(--c);text-transform:uppercase;overflow-wrap:break-word}
+.free-tile .tile-name,.roster-tile .tile-name{font-size:clamp(15px,1.55vw,19px);letter-spacing:.06em}
+.home-nav{width:100%;max-width:1120px;margin:0 auto!important}
+.home-nav .brands{margin:0!important;max-width:none}
+.brand-picker{grid-template-columns:repeat(12,minmax(0,1fr))!important;align-items:stretch}
+.brand-picker>.brand-tile{grid-column:span 4}
+.brand-picker>.free-tile,.brand-picker>.roster-tile{grid-column:span 3}
+.brand-tile small{line-height:1.3}
+@media(max-width:900px){.brand-picker{grid-template-columns:repeat(6,minmax(0,1fr))!important}.brand-picker>.brand-tile{grid-column:span 2}.brand-picker>.free-tile,.brand-picker>.roster-tile{grid-column:span 3}}
+@media(max-width:700px){.home-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px!important;padding:10px 12px 12px}.home-nav .brands{display:contents!important}.home-nav .nav-divider{display:none}.home-nav>button,.home-nav .brands>button{width:100%;padding:9px 4px!important;font-size:10px!important;justify-content:center;text-align:center}.home-nav .nav-wide{grid-column:span 2}}
+@media(max-width:420px){.home-nav>button,.home-nav .brands>button{letter-spacing:.2px!important;font-size:9.5px!important}.home-nav .brands>button::before{display:none}}
+@media(max-width:560px){.brand-picker{grid-template-columns:1fr!important}.brand-picker>.brand-tile,.brand-picker>.free-tile,.brand-picker>.roster-tile{grid-column:auto;min-height:0!important}}
+</style>
+<style>
+/* v11: submenu de filtros e botão voltar */
+.back-btn{display:flex;align-items:center;gap:8px;width:100%;margin:0 0 14px;padding:12px 14px;border-radius:10px;border:1px solid color-mix(in srgb,var(--c) 55%,var(--bd));background:color-mix(in srgb,var(--c) 14%,var(--card));color:var(--tx);font-weight:800;font-size:13px;letter-spacing:.04em;cursor:pointer;text-align:left}
+.back-btn.bottom{margin:18px 0 0}
+.filter-menu{position:static;z-index:1;margin-top:18px;padding:12px;border:1px solid color-mix(in srgb,var(--c) 55%,var(--bd));border-radius:14px;background:color-mix(in srgb,var(--c) 12%,var(--card));display:grid;gap:8px;box-shadow:none}
+.fm-row{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none}
+.fm-l{flex:none;min-width:64px;font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--c)}
+.fm-chip{flex:none;padding:8px 13px;border-radius:999px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:12px;font-weight:700;cursor:pointer}
+.fm-chip.on{background:var(--c);border-color:var(--c);color:#fff;text-shadow:0 1px 2px #0006}
+
+/* Fotos de lutadores */
+.av{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bd);background:#1a1a22;flex-shrink:0}
+.av-lg{width:120px;height:120px;border-radius:14px;object-fit:cover;border:2px solid var(--bd);background:#1a1a22;display:block}
+.av-ph{display:grid;place-items:center;font-weight:900;font-size:14px;color:var(--mu);background:linear-gradient(145deg,#1a1e28,#12151c)}
+.av-ph.av-lg{font-size:36px;letter-spacing:-1px}
+.photo-box{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
+.photo-box .fl{flex:1;min-width:180px}
+.photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.photo-actions label.add{display:inline-flex;align-items:center;cursor:pointer;margin:0}
+.photo-actions input[type=file]{display:none}
+
+.champ-photo{width:88px;height:88px;border-radius:12px;object-fit:cover;border:2px solid var(--ac);background:#1a1a22;display:block;box-shadow:0 6px 18px color-mix(in srgb,var(--ac) 25%,transparent)}
+.champ-photo.av-ph{font-size:28px;display:grid;place-items:center}
+.champ-row{display:flex;gap:14px;align-items:center;margin:8px 0 12px}
+.rank-av{width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid var(--bd);flex-shrink:0;background:#1a1a22}
+.rank-av.av-ph{font-size:11px;display:grid;place-items:center;border-radius:6px}
+.wsel{position:relative;width:100%}
+.wsel-btn{width:100%;display:flex;align-items:center;gap:8px;background:var(--in);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;color:var(--tx);font:inherit;cursor:pointer;text-align:left;min-height:44px}
+.wsel-btn .av{width:28px;height:28px}
+.wsel-menu{display:none;position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:240px;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;box-shadow:0 12px 28px #000a}
+.wsel.open .wsel-menu{display:block}
+.wsel-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:0;background:transparent;color:var(--tx);font:inherit;cursor:pointer;text-align:left}
+.wsel-item:hover,.wsel-item.on{background:color-mix(in srgb,var(--ac) 14%,transparent)}
+.wsel-item .av{width:28px;height:28px}
+.av-sq{border-radius:8px!important}
+</style>
+
+
