@@ -1,4 +1,4 @@
-const CACHE = 'universe-desk-v4';
+const CACHE = 'universe-desk-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -25,18 +25,16 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // rede primeiro (sempre a versão nova); cache só se estiver offline
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetched = fetch(event.request)
-        .then((response) => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(event.request, copy)).catch(() => {});
-          }
-          return response;
-        })
-        .catch(() => cached || caches.match('./index.html'));
-      return cached || fetched;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(event.request, copy)).catch(() => {});
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request).then((c) => c || caches.match('./index.html')))
   );
 });

@@ -521,6 +521,8 @@ function mig(o) {
     f.resolved = !!f.resolved;
   });
   o.year = o.year || {};
+  o.moves = o.moves || [];
+  o.nxtReview = o.nxtReview || {last:'',kept:[]};
   o.matchTypes = o.matchTypes || ['Single','Tag Team','Triple Threat','Fatal 4-Way','Battle Royal','Royal Rumble','Ladder Match','Tables Match','TLC','Hell in a Cell','Steel Cage','No Holds Barred','Iron Man','Submission','Last Man Standing'];
   o.roster.forEach(r => {
     r.role = r.role || 'Lutador';
@@ -660,7 +662,7 @@ const OP = new Set(), SEL = {};
 let B = 'Raw', tab = 'landing', F = {r:'', d:''}, G = {r:'', d:''};
 const tg = (id,o) => { o ? OP.add(id) : OP.delete(id); };
 const dt = (id,head,body) => `<details class="card" ${OP.has(id)?'open':''} ontoggle="tg('${id}',this.open)"><summary>${head}</summary>${body}</details>`;
-const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['globalRoster','Roster global'],['bk','Backup']];
+const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['downgrade','Downgrade → NXT'],['nxtcut','Revisão da NXT'],['globalRoster','Roster global'],['bk','Backup']];
 
 function sb(b) { B = b; tab = b==='Free Agency'?'freeAgency':'all'; draw(); window.scrollTo(0,0); }
 function go(t) { tab = t; draw(); window.scrollTo(0,0); }
@@ -668,6 +670,136 @@ function setF(scope,k,v){(scope==='g'?G:F)[k]=v;draw();}
 function filterMenu(scope,color){const f=scope==='g'?G:F;const row=(k,label,opts,all)=>`<div class="fm-row"><span class="fm-l">${label}</span>${[['',all]].concat(opts.map(o=>[o,o])).map(([v,l])=>`<button class="fm-chip ${f[k]===v?'on':''}" onclick="setF('${scope}','${k}','${v}')">${l}</button>`).join('')}</div>`;return `<div class="filter-menu" style="--c:${color}">${row('r','PAPEL',['Lutador','Manager'],'Todos')}${row('d','DIVISÃO',DIV,'Todas')}</div>`;}
 function st(k,id,f,v,rd) { const x=S[k].find(x=>x.id==id); if(x)x[f]=v; save(); if(rd)draw(); }
 function statsFor(id){let wins=0,losses=0,draws=0;S.shows.forEach(s=>(s.matches||[]).forEach(m=>{if(!(m.participants||[]).includes(id))return;const o=(m.outcomes||{})[id];if(o==='Vitoria')wins++;else if(o==='Derrota')losses++;else if(o==='Empate')draws++;}));const total=wins+losses+draws;return{wins,losses,draws,total,pct:total?Math.round(wins/total*100):0};}
+
+/* ===== ESTRELAS DAS LUTAS (0 a 5, passo 0,5) ===== */
+const STAR_STEPS=Array.from({length:11},(_,i)=>i/2);
+function starTxt(v){if(typeof v!=='number'||isNaN(v))return '';const f=Math.floor(v);return (f?'★'.repeat(f):'')+(v-f>=.5?'½':'')+(v===0?'☆':'')+' '+v.toFixed(1).replace('.',',');}
+function starsInfo(id){let sum=0,n=0;S.shows.forEach(sh=>(sh.matches||[]).forEach(m=>{if(typeof m.stars==='number'&&(m.participants||[]).includes(id)){sum+=m.stars;n++;}}));
+  // nota manual do perfil (opcional) vale como ponto de partida; sem ela, o ponto de partida é 3,0 (neutro)
+  const r=S.roster.find(x=>x.id===id),man=r&&typeof r.starBase==='number'?r.starBase:null,base=man!=null?man:3;
+  return {n,sum,man,avg:n?sum/n:null,adj:(sum+base*2)/(n+2)};}
+function starLine(id){const i=starsInfo(id),f=v=>v.toFixed(1).replace('.',',');if(i.man!=null)return '★ '+f(i.adj)+(i.n?' ('+i.n+(i.n===1?' luta':' lutas')+' + base '+f(i.man)+')':' (manual)');return i.n?'★ '+f(i.avg)+' ('+i.n+(i.n===1?' luta':' lutas')+')':'★ sem notas';}
+function starFactor(id){return .4+1.6*starsInfo(id).adj/5;}      // 0,4 (péssimo) … 2,0 (5 estrelas)
+function pushWeight(r){const p=popularity(r.id),ideal=Math.abs((p<40?40:p>75?75:p)-55);const fit=Math.max(.2,1-ideal/25);const f=starFactor(r.id);return fit*f*f;}
+function weightedOrder(items,wfn){return items.map(x=>({x,k:-Math.log(Math.random()||1e-9)/Math.max(1e-6,wfn(x))})).sort((a,b)=>a.k-b.k).map(o=>o.x);}
+function setMatchStars(showId,idx,val){const m=S.shows.find(s=>s.id==showId).matches[idx];if(val==='')delete m.stars;else m.stars=Math.max(0,Math.min(5,Math.round(+val*2)/2));save();draw();}
+
+/* ===== DATA DO UNIVERSO / UTILITÁRIOS DE DATA ===== */
+const WK={Raw:1,SmackDown:5,NXT:2}, DIAS=['dom','seg','ter','qua','qui','sex','sáb'];
+function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function pd(x){const [y,m,d]=x.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(x,n){const d=pd(x);d.setDate(d.getDate()+n);return dstr(d);}
+function addMonths(x,n){const d=pd(x);d.setMonth(d.getMonth()+n);return dstr(d);}
+function fmtBR(x){return x?x.split('-').reverse().join('/'):'';}
+function dow(x){return DIAS[pd(x).getDay()];}
+function universeDate(){const done=S.shows.filter(s=>s.completed&&s.date).map(s=>s.date).sort();if(done.length)return done[done.length-1];const all=S.shows.filter(s=>s.date).map(s=>s.date).sort();return all.length?all[0]:dstr(new Date());}
+
+/* ===== CALENDÁRIO: shows semanais avançam +7 dias automaticamente ===== */
+function lastWeekly(b){const l=S.shows.filter(s=>s.type==='Show semanal'&&s.brand===b&&s.date).map(s=>s.date).sort();return l.length?l[l.length-1]:'';}
+function nextWeekly(b){const l=lastWeekly(b);if(l)return {date:addDays(l,7),auto:true,last:l};const d=new Date();d.setDate(d.getDate()+((WK[b]-d.getDay()+7)%7));return {date:dstr(d),auto:false,last:''};}
+function createWeekly(b,manual){const date=manual||nextWeekly(b).date;if(S.shows.some(s=>s.type==='Show semanal'&&s.brand===b&&s.date===date)){alert(b+' já tem show semanal em '+fmtBR(date)+'.');return false;}S.shows.push({id:uid(),name:b,type:'Show semanal',brand:b,brands:[b],date,matches:[],notes:'',completed:false});return true;}
+function addWeeklyOne(b){const el=$('wk'+b);if(createWeekly(b,el&&el.value)){save();draw();}}
+function addWeeklyPack(){let ok=false;['Raw','SmackDown','NXT'].forEach(b=>{const el=$('wk'+b);if(createWeekly(b,el&&el.value))ok=true;});if(ok){save();draw();}}
+
+/* ===== DESEMPENHO (usado no downgrade e na revisão da NXT) ===== */
+function champIds(){const ids=new Set();S.titles.forEach(t=>{if(!t.champ)return;ids.add(t.champ);const tm=S.teams.find(x=>x.id===t.champ);if(tm)(tm.members||[]).forEach(m=>ids.add(m));});return ids;}
+function perfOf(r,pool){const pop=popularity(r.id),si=starsInfo(r.id),st=statsFor(r.id);const maxW=Math.max(1,...pool.map(x=>statsFor(x.id).wins));
+  const starsBad=(5-si.adj)/5*100,winsBad=100*(1-(.5*st.wins/maxW+.5*(st.total?st.wins/st.total:.5)));
+  return {r,pop,si,st,score:.35*(100-pop)+.35*starsBad+.30*winsBad};}
+function perfReason(c){const w=c.st.wins;return 'Pop '+Math.round(c.pop)+'% · '+starLine(c.r.id)+' · '+w+(w===1?' vitória':' vitórias')+(c.st.total?' ('+c.st.pct+'%)':'')+' · pior nota '+c.score.toFixed(0)+'/100';}
+function worstByDivision(pool,n){const ch=champIds(),res={};['Masculino','Feminino'].forEach(d=>{const g=pool.filter(r=>r.division===d&&!ch.has(r.id));res[d]=g.map(r=>perfOf(r,g)).sort((a,b)=>b.score-a.score).slice(0,n);});return res;}
+function moveBrand(id,to,kind){const r=S.roster.find(x=>x.id===id);if(!r)return;if(!confirm((kind==='cut'?'Demitir ':'Mandar para a '+to+': ')+r.name+(kind==='cut'?' (vai para a Free Agency)?':'?')))return;
+  (S.moves=S.moves||[]).unshift({date:universeDate(),id,name:r.name,from:r.brand,to,kind});r.brand=to;save();draw();}
+function nxtState(){const rv=S.nxtReview=S.nxtReview||{last:'',kept:[]};rv.kept=rv.kept||[];const today=universeDate();let base=rv.last;if(!base){const ds=S.shows.filter(s=>s.date).map(s=>s.date).sort();base=ds[0]||today;}const due=addMonths(base,6);return {rv,today,base,due,isDue:today>=due};}
+function keepNxt(id){const rv=nxtState().rv;if(!rv.kept.includes(id))rv.kept.push(id);save();draw();}
+function finishNxtReview(){if(!confirm('Concluir a revisão de hoje? A próxima será daqui a 6 meses.'))return;const st=nxtState();st.rv.last=st.today;st.rv.kept=[];save();draw();}
+
+
+/* ===== SUGESTÃO DE BOOKING (renovada a cada 3 meses, pela data do universo) ===== */
+function hashN(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rngFrom(seed){let a=hashN(String(seed))||1;return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function pickR(rnd,arr){return arr.length?arr[Math.floor(rnd()*arr.length)]:null;}
+function rosterAverages(){const l=S.roster.filter(r=>r.role==='Lutador'&&r.brand!=='Free Agency');if(!l.length)return {pop:50,adj:3};return {pop:l.reduce((a,r)=>a+popularity(r.id),0)/l.length,adj:l.reduce((a,r)=>a+starsInfo(r.id).adj,0)/l.length};}
+const FAC_WORDS=['Regime','Syndicate','Order','Dominion','Collective','Alliance','Legion','Council'];
+const TAG_WORDS=['Connection','Express','Dynasty','Inc.','Brothers','Duo','Project','Tandem'];
+function buildBooking(r,bump){
+  const today=universeDate(),av=rosterAverages(),pop=popularity(r.id),si=starsInfo(r.id),st=statsFor(r.id),held=carry(r.id);
+  const rnd=rngFrom(r.id+'|'+today+'|'+(bump||0));
+  const z=(pop-av.pop)/15+(si.adj-av.adj)/.8+(st.total>=3?(st.pct-50)/50:0)+(held.length?1:0);
+  const reduced=!held.length&&(pop<av.pop-8||si.adj<av.adj-.7||(st.total>=3&&st.pct<30));
+  const tier=reduced?'reduzido':(z>=1.5||(pop>=75&&si.adj>=3.5))?'forte':z>=.4?'subindo':'estavel';
+  const short=r.name.split(' ').slice(-1)[0];
+  const same=S.roster.filter(x=>x.id!==r.id&&x.role==='Lutador'&&x.status!=='Lesionado'&&x.brand===r.brand&&x.division===r.division);
+  const byClose=(arr)=>arr.slice().sort((a,b)=>Math.abs(popularity(a.id)-pop)-Math.abs(popularity(b.id)-pop)).slice(0,3);
+  const al=r.alignment||'Tweener';
+  const opp=al==='Face'?'Heel':al==='Heel'?'Face':null;
+  const rivals=byClose(same.filter(x=>!opp||x.alignment===opp));
+  const rival=pickR(rnd,rivals.length?rivals:byClose(same)),rival2=pickR(rnd,byClose(same).filter(x=>!rival||x.id!==rival.id));
+  const free=same.filter(x=>!S.teams.some(t=>(t.members||[]).includes(x.id)&&t.status!=='Dissolvido'));
+  const partner=(r.brand!=='Free Agency'&&!teamFor(r.id).length)?pickR(rnd,byClose(free.filter(x=>x.alignment===al||!x.alignment))):null;
+  const facPool=same.filter(x=>!x.faction&&(!partner||x.id!==partner.id)&&x.alignment===al);
+  const facMembers=(!r.faction&&r.brand!=='Free Agency'&&facPool.length>=2)?byClose(facPool).slice(0,2):[];
+  const titles=S.titles.filter(t=>t.brand===r.brand&&t.champ&&!held.includes(t)&&((S.roster.find(x=>x.id===t.champ)||{}).division||r.division)===r.division&&t.lv!=='Tag Team');
+  const title=pickR(rnd,titles.filter(t=>(r.card==='Main Event'?t.lv==='Main Event':true)));
+  const plan=[],act={turn:null,partner:null,teamName:'',facIds:[],facName:''};
+  const rv=rival?rival.name:'um rival da brand';
+  let head,why;
+  if(r.brand==='Free Agency'){
+    tier==='reduzido'?(head='Sem contrato · baixa demanda',why='Popularidade e estrelas abaixo da média do elenco.'):(head='Sem contrato · bom candidato à contratação',why='Estatísticas acima ou na média do elenco: vale contratar.');
+    plan.push('Contratar para '+(r.division==='Feminino'?'Raw ou SmackDown':'Raw, SmackDown ou NXT')+' conforme a vaga e iniciar com 2–3 vitórias em TV para recuperar o momentum.');
+  }else if(tier==='forte'){
+    head='Destaque · booking de topo de card';
+    why='Popularidade '+Math.round(pop)+'% (média do elenco '+Math.round(av.pop)+'%), '+starLine(r.id).replace('★ ','')+' estrelas'+(held.length?' e campeão atual':'')+'. Está com momentum.';
+    plan.push(held.length?'Defesas de título em PPV contra '+rv+(rival2?' e '+rival2.name:'')+', com reinado longo e vitórias limpas.':(title?'Disputa pelo '+title.name+' (campeão: '+nm(title.champ)+'), construída em 3 shows com promos e luta em PPV.':'Rivalidade principal com '+rv+' ao longo dos próximos 3 meses, fechando em luta de PPV.'));
+    plan.push('Espaço no main event de TV e promo de abertura ao menos 1 vez por mês.');
+    if(al==='Face'&&pop>=75){act.turn='Heel';plan.push('Virada heel: traição a '+(partner?partner.name:'um aliado')+' no auge do apoio do público — história de "quem te fez grande agora te abandona".');}
+    else if(al==='Heel'&&pop>=75){act.turn='Face';plan.push('Virada face: o público já torce por ele; deixe os fãs "adotarem" '+short+' após uma derrota injusta por interferência.');}
+    else if(al==='Tweener'){act.turn=rnd()<.5?'Face':'Heel';plan.push('Definir alinhamento ('+act.turn+') para dar direção clara ao personagem no topo.');}
+  }else if(tier==='subindo'){
+    head='Em ascensão · meio de card em alta';
+    why='Acima da média recente ('+Math.round(pop)+'% de popularidade, '+si.adj.toFixed(1).replace('.',',')+'★). Merece subir de degrau.';
+    plan.push('Rivalidade com '+rv+': dois confrontos em TV (um de cada lado vencendo) e luta decisiva em PPV.');
+    plan.push('Sequência de 2–3 vitórias em TV para firmar o nome e sustentar o crescimento.');
+    if(title)plan.push('Se mantiver o ritmo, disputar o '+title.name+' no próximo ciclo.');
+  }else if(tier==='estavel'){
+    head='Estável · manter no meio de card';
+    why='Desempenho na média do elenco ('+Math.round(pop)+'% de popularidade, '+si.adj.toFixed(1).replace('.',',')+'★).';
+    plan.push('Luta de TV regular e uma história curta com '+rv+' para testar a reação do público.');
+    plan.push('Subir só se emendar boas lutas (≥ 3,5★) e vitórias nos próximos shows.');
+  }else{
+    head='Participação reduzida até melhorar';
+    why='Abaixo da média do elenco ('+Math.round(pop)+'% vs '+Math.round(av.pop)+'% de popularidade; '+si.adj.toFixed(1).replace('.',',')+'★ vs '+av.adj.toFixed(1).replace('.',',')+'★'+(st.total>=3?'; '+st.pct+'% de aproveitamento':'')+').';
+    plan.push('Aparições curtas: segmentos, promos e lutas de TV sem destaque; fora de títulos e de lutas principais de PPV.');
+    plan.push('Reconstrução: vitória clara sobre '+(rival?rival.name:'um lutador de nível menor')+' para reabrir a história.');
+    plan.push('Meta para voltar a ter destaque: popularidade ≥ '+Math.round(av.pop)+'% e estrelas ≥ '+av.adj.toFixed(1).replace('.',',')+'.');
+    {act.turn=al==='Face'?'Heel':'Face';plan.push('Mudança de alinhamento ('+al+' → '+act.turn+') para renovar o personagem: '+(act.turn==='Heel'?'abandona o público que "não o apoiou o suficiente"':'passa a ser o azarão que o público volta a abraçar')+'.');}
+  }
+  if(partner&&tier!=='forte'||(partner&&tier==='forte'&&rnd()<.4)){act.partner=partner.id;act.teamName=short+' & '+partner.name.split(' ').slice(-1)[0]+' '+pickR(rnd,TAG_WORDS);plan.push('Tag team com '+partner.name+' ("'+act.teamName+'"): '+(tier==='reduzido'?'dividir o holofote ajuda a recuperar fôlego e a estar em lutas de PPV.':'abre a disputa pelos títulos de duplas.'));}
+  if(facMembers.length&&(tier==='forte'||tier==='subindo')&&rnd()<.6){act.facIds=facMembers.map(x=>x.id);act.facName=short+' '+pickR(rnd,FAC_WORDS);plan.push('Facção "'+act.facName+'" com '+facMembers.map(x=>x.name).join(' e ')+': '+short+' como líder, dominando o meio de card.');}
+  if(rival)plan.push('História sugerida: '+(al==='Face'?rv+' passa a desprezar '+r.name+' depois de roubar uma vitória; '+r.name+' busca revanche limpa.':al==='Heel'?r.name+' ataca '+rv+' nos bastidores para provar quem manda; a revanche vira o evento principal da semana.':r.name+' e '+rv+' disputam o respeito do vestiário — o vencedor decide de que lado vai ficar.'));
+  return {date:today,next:addMonths(today,3),tier,head,why,plan,act,bump:bump||0};
+}
+let _bkSave=0;
+function ensureBooking(r){
+  if(r.role!=='Lutador')return null;
+  const b=r.bookingSug;
+  if(!b||universeDate()>=b.next){r.bookingSug=buildBooking(r,0);if(!_bkSave)_bkSave=setTimeout(()=>{_bkSave=0;save();},60);}
+  return r.bookingSug;
+}
+function regenBooking(id){const r=S.roster.find(x=>x.id===id);if(!r)return;r.bookingSug=buildBooking(r,((r.bookingSug||{}).bump||0)+1);save();draw();}
+function bookingTurn(id){const r=S.roster.find(x=>x.id===id),a=r&&r.bookingSug&&r.bookingSug.act;if(!a||!a.turn)return;if(!confirm('Mudar o alinhamento de '+r.name+' para '+a.turn+'?'))return;r.alignment=a.turn;a.turn=null;save();draw();}
+function bookingTeam(id){const r=S.roster.find(x=>x.id===id),a=r&&r.bookingSug&&r.bookingSug.act;if(!a||!a.partner)return;const pt=S.roster.find(x=>x.id===a.partner);if(!pt)return;if(!confirm('Criar a tag team "'+a.teamName+'" com '+r.name+' e '+pt.name+'?'))return;S.teams.push({id:uid(),name:a.teamName,brand:r.brand,members:[r.id,pt.id],status:'Ativo',since:'',manager:'',notes:'Criada pela sugestão de booking.'});a.partner=null;save();draw();}
+function bookingFaction(id){const r=S.roster.find(x=>x.id===id),a=r&&r.bookingSug&&r.bookingSug.act;if(!a||!a.facIds||!a.facIds.length)return;const ms=a.facIds.map(i=>S.roster.find(x=>x.id===i)).filter(Boolean);if(!confirm('Criar a facção "'+a.facName+'" com '+[r].concat(ms).map(x=>x.name).join(', ')+'?'))return;const f={id:uid(),name:a.facName,brand:r.brand,tipo:'Stable',status:'Ativa',since:'',leader:r.id,goal:'',enemies:'',notes:'Criada pela sugestão de booking.'};S.factions.push(f);[r].concat(ms).forEach(x=>x.faction=f.id);a.facIds=[];save();draw();}
+function bookingBlock(r,held){
+  const b=ensureBooking(r);if(!b)return '';
+  const col=b.tier==='reduzido'?'heel':'face';
+  return `<div class="card" style="margin-top:10px"><div class="row" style="flex-wrap:wrap"><div class="m">SUGESTÃO DE BOOKING · renovada a cada 3 meses</div><span class="sp"></span>${tag(b.head,col)}</div>
+  <div class="m" style="margin:8px 0">${esc(b.why)}${held?' Campeão atual: fora das sugestões de push.':''}</div>
+  <ul style="margin:0 0 8px 18px;padding:0">${b.plan.map(x=>`<li class="m" style="margin:4px 0">${esc(x)}</li>`).join('')}</ul>
+  <div class="row" style="flex-wrap:wrap;gap:6px">${b.act.turn?`<button class="add" onclick="bookingTurn('${r.id}')">Aplicar: virar ${b.act.turn}</button>`:''}${b.act.partner?`<button class="add" onclick="bookingTeam('${r.id}')">Criar tag team sugerida</button>`:''}${b.act.facIds&&b.act.facIds.length?`<button class="add" onclick="bookingFaction('${r.id}')">Criar facção sugerida</button>`:''}<button class="add" onclick="regenBooking('${r.id}')">Outra sugestão</button></div>
+  <div class="m" style="margin-top:6px">Gerada em ${fmtBR(b.date)} · próxima renovação em ${fmtBR(b.next)} (data do universo).</div></div>`;
+}
+
 function teamFor(id){return S.teams.filter(t=>(t.members||[]).includes(id));}
 function historyHas(h,field,id){return h[field]===id||(h[field+'Members']||[]).includes(id)||teamFor(id).some(tm=>tm.id===h[field]);}
 function titleReigns(id){return S.titles.reduce((n,t)=>n+(t.history||[]).filter(h=>historyHas(h,'champion',id)).length,0);}
@@ -717,8 +849,9 @@ function generatePushSuggestions(ppvId){
     return ideal(pa)-ideal(pb2) || pb2-pa;
   };
   // temporariamente sem bônus já limpo
-  let men=S.roster.filter(r=>eligible(r)&&r.division==='Masculino').sort(rankW);
-  let women=S.roster.filter(r=>eligible(r)&&r.division==='Feminino').sort(rankW);
+  // quanto melhores as estrelas (e quanto mais "espaço para crescer" em popularidade), maior a chance de ser sugerido
+  let men=weightedOrder(S.roster.filter(r=>eligible(r)&&r.division==='Masculino'),pushWeight);
+  let women=weightedOrder(S.roster.filter(r=>eligible(r)&&r.division==='Feminino'),pushWeight);
   // evita campeões mundiais principais se possível
   const worldish=t=>/championship/i.test(t.name)&&t.lv==='Main Event';
   const isWorldChamp=id=>S.titles.some(t=>worldish(t)&&t.champ===id);
@@ -728,8 +861,9 @@ function generatePushSuggestions(ppvId){
   pb.suggestions.men=pick(men);
   pb.suggestions.women=pick(women);
   const tags=S.teams.filter(t=>(t.members||[]).length>=2&&t.status!=='Dissolvido');
-  const tagMen=tags.filter(t=>teamDivision(t)==='Masculino').sort((a,b)=>b.members.length-a.members.length);
-  const tagWomen=tags.filter(t=>teamDivision(t)==='Feminino').sort((a,b)=>b.members.length-a.members.length);
+  const tw=t=>{const ms=(t.members||[]).map(id=>S.roster.find(r=>r.id===id)).filter(Boolean);return ms.length?ms.reduce((a,r)=>a+pushWeight(r),0)/ms.length:.2;};
+  const tagMen=weightedOrder(tags.filter(t=>teamDivision(t)==='Masculino'),tw);
+  const tagWomen=weightedOrder(tags.filter(t=>teamDivision(t)==='Feminino'),tw);
   pb.suggestions.tagMen=tagMen.slice(0,2).map(t=>t.id);
   pb.suggestions.tagWomen=tagWomen.slice(0,2).map(t=>t.id);
   pb.pending=true;
@@ -1024,8 +1158,7 @@ function feudLabel(f){
 function kindTag(k){
   return ({lutador:'1v1',multi:'Triple/Four Singles',tag:'Tag Team', 'multi-tag':'Triple/Four Tags', faction:'Facção'})[k]||k;
 }
-function addShow(){const n=$('sn').value.trim();if(!n)return;const type=$('st').value;const brands=type==='PPV'?Array.from(document.querySelectorAll('[name="ppvbrand"]:checked')).map(x=>x.value):[B];if(type==='PPV'&&!brands.length){alert('Selecione pelo menos uma brand.');return;}S.shows.push({id:uid(),name:n,type,brand:brands[0],brands,date:$('sd').value,matches:[],notes:'',completed:false});save();draw();}
-function addWeeklyPack(){const date=$('weekDate').value||new Date().toISOString().slice(0,10);[['Raw',1],['SmackDown',5],['NXT',2]].forEach(([b,target])=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+((target-d.getDay()+7)%7));const ds=d.toISOString().slice(0,10);if(!S.shows.some(s=>s.type==='Show semanal'&&s.brand===b&&s.date===ds))S.shows.push({id:uid(),name:b,type:'Show semanal',brand:b,brands:[b],date:ds,matches:[],notes:'',completed:false});});save();draw();}
+function addShow(){const type=$('st').value;const n=$('sn').value.trim()||(type==='Show semanal'?B:'');if(!n)return;const brands=type==='PPV'?Array.from(document.querySelectorAll('[name="ppvbrand"]:checked')).map(x=>x.value):[B];if(type==='PPV'&&!brands.length){alert('Selecione pelo menos uma brand.');return;}const date=$('sd').value||(type==='Show semanal'?nextWeekly(B).date:'');S.shows.push({id:uid(),name:n,type,brand:brands[0],brands,date,matches:[],notes:'',completed:false});save();draw();}
 function createRumble(){const date=$('rumbleDate').value;if(S.shows.some(s=>s.name==='Royal Rumble'&&s.date===date)){alert('Já existe um Royal Rumble nessa data.');return;}S.shows.push({id:uid(),name:'Royal Rumble',type:'PPV',brand:'Raw',brands:['Raw','SmackDown','NXT'],date,matches:[],notes:'Vencedores recebem uma oportunidade pelo título na WrestleMania.',completed:false,rumble:true});save();draw();}
 function addMatch(id){const s=S.shows.find(x=>x.id===id),type=$('type'+id)?.value||'Single',division=$('div'+id)?.value||'Masculino',count=s.name==='Royal Rumble'?30:Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2))),participants=[];if(type==='Tag Team'&&s.name!=='Royal Rumble'&&$('tg'+id+'_0_0')){const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2))),groups=[];for(let g=0;g<nT;g++){const mem=[];for(let k=0;k<per;k++){const v=$('tg'+id+'_'+g+'_'+k)?.value;if(v)mem.push(v);}groups.push(mem);}const flat=groups.flat();if(groups.some(g=>g.length!==per)||new Set(flat).size!==flat.length){alert('Preencha todos os lutadores de cada grupo, sem repetir ninguém.');return;}s.matches.push({t:groups.map(g=>g.map(nm).join(' & ')).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants:flat,groups,outcomes:{},division,matchType:type});save();draw();return;}for(let i=0;i<count;i++){const v=$('mp'+id+'_'+i)?.value;if(v&&!participants.includes(v))participants.push(v);}if(participants.length!==count){alert('Selecione '+count+' wrestlers diferentes para esta luta.');return;}if(type==='Royal Rumble'&&participants.length!==30){alert('Royal Rumble exige 30 participantes.');return;}s.matches.push({t:participants.map(nm).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants,outcomes:{},division,matchType:type});save();draw();}
 function delMatch(id,i){S.shows.find(x=>x.id==id).matches.splice(i,1);save();draw();}
@@ -1065,6 +1198,21 @@ function impFile(inp) {
 function pickImport() { if (window.AndroidApp && AndroidApp.pickFile) AndroidApp.pickFile(); else $('impf').click(); }
 window.onNativeImport = function (txt) { imp(txt); };
 
+function profileCard(r,showBrand){
+        const k="'roster','"+r.id+"'", fc=S.factions.find(f=>f.id==r.faction), cl=S.roster.filter(x=>x.manager==r.id), z=statsFor(r.id), pop=popularity(r.id), held=carry(r.id).length>0;
+        return dt('profile-'+r.id,`<div class="row">${avHtml(r,false)}<div style="flex:1;min-width:0"><div class="row"><span class="t">${r.role==='Manager'?'🎩 ':''}${esc(r.name)}</span><span class="sp"></span>${r.role==='Lutador'?tag(pop+'% popularidade',pop>=70?'face':''):''}</div><div class="row" style="margin-top:5px">${r.role==='Lutador'?tag(r.alignment||'Tweener',(r.alignment||'Tweener')==='Face'?'face':(r.alignment||'Tweener')==='Heel'?'heel':''):''}${tag(r.role==='Manager'?'Manager':r.card)}${r.role==='Lutador'?tag(r.origin==='CAW'?'CAW':r.origin==='Oficial WWE'?'Oficial':'Origem pendente'):''}${showBrand?tag('📍 '+r.brand):''}${tag(r.division)}${r.status!=='Ativo'?tag(r.status,'heel'):''}${fc?tag(fc.name):''}${teamFor(r.id).map(t=>tag('👥 '+t.name)).join('')}${r.manager?tag('🎩 '+nm(r.manager)):''}${trophies(r.id)}</div></div></div>`,
+        `<div class="photo-box">${avHtml(r,true)}<div class="fl"><span class="m">FOTO DO PERSONAGEM</span>
+        <input placeholder="Cole a URL da imagem" value="${r.photo&&String(r.photo).startsWith('data:')?'':esc(r.photo||'')}" onchange="setPhotoUrl('${r.id}',this.value)">
+        <div class="photo-actions">
+          <label class="add">📤 Enviar foto<input type="file" accept="image/*" onchange="setPhotoFile('${r.id}',this)"></label>
+          ${r.photo?`<button class="x" type="button" onclick="clearPhoto('${r.id}')">Remover foto</button>`:''}
+        </div>
+        <div class="m" style="margin-top:4px">URL ou envio do celular. A imagem é redimensionada automaticamente.</div>
+      </div></div>
+        <div class="g">${fld('Nome',`<input value="${esc(r.name)}" onchange="st(${k},'name',this.value,1)">`)}${fld('Brand',sel(BRS,r.brand,`onchange="st(${k},'brand',this.value,1)"`))}${fld('Papel',sel(['Lutador','Manager'],r.role,`onchange="st(${k},'role',this.value,1)"`))}${r.role==='Lutador'?fld('Origem',sel(['Oficial WWE','CAW','Não definido'],r.origin||'Não definido',`onchange="st(${k},'origin',this.value,1)"`)):''}${fld('Divisão',sel(DIV,r.division,`onchange="st(${k},'division',this.value,1)"`))}${fld('Nível de card',sel(CARD,r.card,`onchange="st(${k},'card',this.value,1)"`))}${r.role==='Lutador'?fld('Alinhamento',sel(['Face','Heel','Tweener'],r.alignment||'Tweener',`onchange="st(${k},'alignment',this.value,1)"`)):''}${fld('Status',sel(ST,r.status,`onchange="st(${k},'status',this.value,1)"`))}${r.role==='Lutador'?fld('Estrelas do lutador (0–5, manual)',`<select onchange="st(${k},'starBase',this.value===''?null:+this.value,1)"><option value="">Sem nota (automático)</option>${STAR_STEPS.map(v=>`<option value="${v}" ${r.starBase===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`):''}${fld('Push manual (1-10)',sel([1,2,3,4,5,6,7,8,9,10],r.push,`onchange="st(${k},'push',+this.value,1)"`))}${fld('Faction',`<select onchange="st(${k},'faction',this.value,1)"><option value="">—</option>${S.factions.map(f=>`<option value="${f.id}" ${f.id==r.faction?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`)}${r.role==='Lutador'?fld('Manager',`<select onchange="st(${k},'manager',this.value,1)">${po(mgrs(),r.manager,'Sem manager')}</select>`):''}</div>
+        ${r.role==='Lutador'?`<div class="card"><div class="m">ESTATÍSTICAS DE CARREIRA</div><div class="g"><div><b>${z.total}</b><div class="m">Lutas</div></div><div><b>${z.wins}</b><div class="m">Vitórias</div></div><div><b>${z.losses}</b><div class="m">Derrotas</div></div><div><b>${z.draws}</b><div class="m">Empates</div></div><div><b>${z.pct}%</b><div class="m">Aproveitamento</div></div><div><b>${pop}%</b><div class="m">Popularidade</div></div><div><b>${starsInfo(r.id).adj.toFixed(1).replace('.',',')}★</b><div class="m">Estrelas</div></div><div><b>${titleReigns(r.id)}</b><div class="m">Reinados</div></div></div></div>${bookingBlock(r,held)}<div class="m">HISTÓRICO DE TÍTULOS</div>${titleHistoryMarkup(r.id)}`:''}${r.role==='Manager'?`<div class="m" style="margin-top:10px">Gerencia: ${cl.map(x=>esc(x.name)).join(', ')||'ninguém ainda'}</div>`:''}${fld('História atual',`<textarea rows="2" onchange="st(${k},'story',this.value)">${esc(r.story)}</textarea>`)}${fld('Notas do booker',`<textarea rows="2" onchange="st(${k},'notes',this.value)">${esc(r.notes)}</textarea>`)}<button class="x" onclick="del('roster','${r.id}')">🗑 Remover</button>`);
+}
+
 const V = {
   landing() {
     const brands=BRS.filter(b=>b!=='Free Agency');
@@ -1088,15 +1236,15 @@ const V = {
   },
   freeAgency() {
     const fa=S.roster.filter(r=>r.brand==='Free Agency');
-    return `<section class="sec" style="--c:${COL['Free Agency']}"><div class="sh">FREE AGENCY · SEM CONTRATO</div><div class="g"><div><b>${fa.filter(r=>r.role==='Lutador').length}</b><div class="m">Wrestlers</div></div><div><b>${fa.filter(r=>r.role==='Manager').length}</b><div class="m">Managers</div></div></div><div class="m" style="margin-top:8px">Esta área é somente uma lista de personagens sem contrato.</div></section><div class="card"><div class="sh">PERSONAGENS SEM CONTRATO</div>${fa.length?fa.map(r=>`<div class="rw"><span class="t">${esc(r.name)}</span><span class="sp"></span>${tag(r.division)}${tag(r.role)}<span class="m">${esc(r.status)}</span></div>`).join(''):em('Nenhum personagem está na Free Agency.')}</div><div class="g"><button class="add" onclick="go('globalRoster')">Roster global →</button><button class="add" onclick="go('landing')">Voltar ao seletor Home →</button></div>`;
+    return `<section class="sec" style="--c:${COL['Free Agency']}"><div class="sh">FREE AGENCY · SEM CONTRATO</div><div class="g"><div><b>${fa.filter(r=>r.role==='Lutador').length}</b><div class="m">Wrestlers</div></div><div><b>${fa.filter(r=>r.role==='Manager').length}</b><div class="m">Managers</div></div></div><div class="m" style="margin-top:8px">Toque em um personagem para abrir o perfil, editar, trocar de brand (contratar) ou remover.</div></section><div class="card"><div class="sh">PERSONAGENS SEM CONTRATO</div>${fa.length?fa.slice().sort((x,y)=>(x.role>y.role)-(x.role<y.role)||x.name.localeCompare(y.name)).map(r=>profileCard(r)).join(''):em('Nenhum personagem está na Free Agency.')}</div><div class="g"><button class="add" onclick="go('globalRoster')">Roster global →</button><button class="add" onclick="go('landing')">Voltar ao seletor Home →</button></div>`;
   },
   all() {
     const b=B, roster=lut(b), champs=S.titles.filter(t=>t.brand===b&&t.champ), shows=S.shows.filter(s=>brandsFor(s).includes(b)).sort((a,c)=>(c.date||'').localeCompare(a.date||'')), feuds=S.feuds.filter(f=>!f.brand||f.brand===b), teams=S.teams.filter(t=>t.brand===b), facs=S.factions.filter(f=>f.brand===b);
     if(b==='Free Agency')return V.freeAgency();
-    const suggestions=roster.filter(r=>!carry(r.id).length).sort((a,c)=>popularity(c.id)-popularity(a.id)).slice(0,5);
+    const suggestions=roster.filter(r=>!carry(r.id).length).sort((a,c)=>pushWeight(c)-pushWeight(a)).slice(0,5);
     return `<section class="sec" style="--c:${COL[b]}"><div class="sh">${b.toUpperCase()} · BRAND HQ</div><div class="g"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${champs.length}</b><div class="m">Campeões</div></div><div><b>${shows.length}</b><div class="m">Eventos no histórico</div></div><div><b>${feuds.filter(f=>f.status!=='Encerrada').length}</b><div class="m">Rivalidades ativas</div></div></div><div class="g" style="margin-top:14px"></div></section>
       
-      <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Ordenadas por popularidade; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
+      <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Consideram popularidade e a média de estrelas das lutas; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias · ${starLine(r.id)}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
       <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
       <div class="card"><div class="sh">TAG TEAMS & FACÇÕES</div><div class="rw"><span>Tag Teams</span><span class="sp"></span><b>${teams.length}</b></div><div class="rw"><span>Facções</span><span class="sp"></span><b>${facs.length}</b></div><button class="add" style="margin-top:10px" onclick="go('teams')">Abrir equipes e facções →</button></div>${b==='Free Agency'?`<div class="card"><div class="sh">MEMBROS EM OUTRAS BRANDS</div>${S.teams.map(t=>{const members=(t.members||[]).map(id=>S.roster.find(r=>r.id==id)).filter(Boolean);return members.length?`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${members.map(r=>esc(r.name)+' · '+esc(r.brand)).join(' / ')}</div></div><span class="sp"></span>${tag(members.some(r=>r.brand==='Free Agency')?'Parte na Free Agency':'Todos alocados')}</div>`:''}).join('')||em('Nenhuma equipe cadastrada.')}</div>`:''}`;
   },
@@ -1106,18 +1254,7 @@ const V = {
     const groups=brands.map(br=>{
       const l=S.roster.filter(r=>r.brand===br&&(!F.r||r.role===F.r)&&(!F.d||r.division===F.d)).sort((a,b)=>(a.role>b.role)-(a.role<b.role)||cmp(a,b));
       return `<section class="sec" style="--c:${COL[br]}"><div class="sh">${br.toUpperCase()} <span class="m">· ${l.length} personagens</span></div>${l.length?l.map(r=>{
-        const k="'roster','"+r.id+"'", fc=S.factions.find(f=>f.id==r.faction), cl=S.roster.filter(x=>x.manager==r.id), z=statsFor(r.id), pop=popularity(r.id), held=carry(r.id).length>0;
-        return dt('profile-'+r.id,`<div class="row">${avHtml(r,false)}<div style="flex:1;min-width:0"><div class="row"><span class="t">${r.role==='Manager'?'🎩 ':''}${esc(r.name)}</span><span class="sp"></span>${r.role==='Lutador'?tag(pop+'% popularidade',pop>=70?'face':''):''}</div><div class="row" style="margin-top:5px">${r.role==='Lutador'?tag(r.alignment||'Tweener',(r.alignment||'Tweener')==='Face'?'face':(r.alignment||'Tweener')==='Heel'?'heel':''):''}${tag(r.role==='Manager'?'Manager':r.card)}${r.role==='Lutador'?tag(r.origin==='CAW'?'CAW':r.origin==='Oficial WWE'?'Oficial':'Origem pendente'):''}${tag(r.division)}${r.status!=='Ativo'?tag(r.status,'heel'):''}${fc?tag(fc.name):''}${teamFor(r.id).map(t=>tag('👥 '+t.name)).join('')}${r.manager?tag('🎩 '+nm(r.manager)):''}${trophies(r.id)}</div></div></div>`,
-        `<div class="photo-box">${avHtml(r,true)}<div class="fl"><span class="m">FOTO DO PERSONAGEM</span>
-        <input placeholder="Cole a URL da imagem" value="${r.photo&&String(r.photo).startsWith('data:')?'':esc(r.photo||'')}" onchange="setPhotoUrl('${r.id}',this.value)">
-        <div class="photo-actions">
-          <label class="add">📤 Enviar foto<input type="file" accept="image/*" onchange="setPhotoFile('${r.id}',this)"></label>
-          ${r.photo?`<button class="x" type="button" onclick="clearPhoto('${r.id}')">Remover foto</button>`:''}
-        </div>
-        <div class="m" style="margin-top:4px">URL ou envio do celular. A imagem é redimensionada automaticamente.</div>
-      </div></div>
-        <div class="g">${fld('Nome',`<input value="${esc(r.name)}" onchange="st(${k},'name',this.value,1)">`)}${fld('Brand',sel(BRS,r.brand,`onchange="st(${k},'brand',this.value,1)"`))}${fld('Papel',sel(['Lutador','Manager'],r.role,`onchange="st(${k},'role',this.value,1)"`))}${r.role==='Lutador'?fld('Origem',sel(['Oficial WWE','CAW','Não definido'],r.origin||'Não definido',`onchange="st(${k},'origin',this.value,1)"`)):''}${fld('Divisão',sel(DIV,r.division,`onchange="st(${k},'division',this.value,1)"`))}${fld('Nível de card',sel(CARD,r.card,`onchange="st(${k},'card',this.value,1)"`))}${r.role==='Lutador'?fld('Alinhamento',sel(['Face','Heel','Tweener'],r.alignment||'Tweener',`onchange="st(${k},'alignment',this.value,1)"`)):''}${fld('Status',sel(ST,r.status,`onchange="st(${k},'status',this.value,1)"`))}${fld('Push manual (1-10)',sel([1,2,3,4,5,6,7,8,9,10],r.push,`onchange="st(${k},'push',+this.value,1)"`))}${fld('Faction',`<select onchange="st(${k},'faction',this.value,1)"><option value="">—</option>${S.factions.map(f=>`<option value="${f.id}" ${f.id==r.faction?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`)}${r.role==='Lutador'?fld('Manager',`<select onchange="st(${k},'manager',this.value,1)">${po(mgrs(),r.manager,'Sem manager')}</select>`):''}</div>
-        ${r.role==='Lutador'?`<div class="card"><div class="m">ESTATÍSTICAS DE CARREIRA</div><div class="g"><div><b>${z.total}</b><div class="m">Lutas</div></div><div><b>${z.wins}</b><div class="m">Vitórias</div></div><div><b>${z.losses}</b><div class="m">Derrotas</div></div><div><b>${z.draws}</b><div class="m">Empates</div></div><div><b>${z.pct}%</b><div class="m">Aproveitamento</div></div><div><b>${pop}%</b><div class="m">Popularidade</div></div><div><b>${titleReigns(r.id)}</b><div class="m">Reinados</div></div></div><div class="m" style="margin-top:10px">SUGESTÃO DE BOOKING · ${pushLabel(r.id)}${held?' · Campeão atual, excluído das sugestões de push.':''}</div></div><div class="m">HISTÓRICO DE TÍTULOS</div>${titleHistoryMarkup(r.id)}`:''}${r.role==='Manager'?`<div class="m" style="margin-top:10px">Gerencia: ${cl.map(x=>esc(x.name)).join(', ')||'ninguém ainda'}</div>`:''}${fld('História atual',`<textarea rows="2" onchange="st(${k},'story',this.value)">${esc(r.story)}</textarea>`)}${fld('Notas do booker',`<textarea rows="2" onchange="st(${k},'notes',this.value)">${esc(r.notes)}</textarea>`)}<button class="x" onclick="del('roster','${r.id}')">🗑 Remover</button>`);
+        return profileCard(r);
       }).join(''):em('Nenhum personagem nesta brand.')}</section>`;
     }).join('');
     const all=S.roster.length, wrestlers=S.roster.filter(r=>r.role==='Lutador').length;
@@ -1127,7 +1264,7 @@ const V = {
     const wrestlers=S.roster.filter(r=>r.role==='Lutador'&&(!G.d||r.division===G.d)), managers=S.roster.filter(r=>r.role==='Manager'&&(!G.d||r.division===G.d));
     const teamsF=S.teams.filter(t=>!G.d||(t.members||[]).some(id=>(S.roster.find(r=>r.id===id)||{}).division===G.d)), facsF=S.factions.filter(f=>!G.d||S.roster.some(r=>r.faction===f.id&&r.division===G.d));
     const card=r=>{const title=carry(r.id).map(t=>t.name).join(', ')||'Sem título';const teams=teamFor(r.id).map(t=>t.name).join(', ')||'—';const faction=S.factions.find(f=>f.id===r.faction);return `<div class="rw">${avHtml(r,false)}<div style="flex:1;min-width:0"><span class="t">${esc(r.name)}</span><div class="m">${esc(r.brand)} · ${esc(title)}</div><div class="m">Tag Team: ${esc(teams)} · Facção: ${esc(faction?faction.name:'—')}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`;};
-    return `<div class="card"><div class="sh">ROSTER GLOBAL · VISÃO GERAL</div><div class="m">Todos os personagens, agrupados por divisão e com brand atual, títulos, tag teams e facções.</div><div class="g" style="margin-top:12px"><div><b>${wrestlers.length}</b><div class="m">Wrestlers</div></div><div><b>${managers.length}</b><div class="m">Managers</div></div><div><b>${teamsF.length}</b><div class="m">Tag Teams</div></div><div><b>${facsF.length}</b><div class="m">Facções</div></div></div></div>${G.r==='Manager'||G.d==='Feminino'?'':`<section class="sec" style="--c:#e11d2e"><div class="sh">HOMENS</div>${wrestlers.filter(r=>r.division==='Masculino').length?wrestlers.filter(r=>r.division==='Masculino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(card).join(''):em('Nenhum wrestler masculino cadastrado.')}</section>`}${G.r==='Manager'||G.d==='Masculino'?'':`<section class="sec" style="--c:#d94f9b"><div class="sh">MULHERES</div>${wrestlers.filter(r=>r.division==='Feminino').length?wrestlers.filter(r=>r.division==='Feminino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(card).join(''):em('Nenhuma wrestler feminina cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">TAG TEAMS</div>${teamsF.length?teamsF.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">Brand da equipe: ${esc(t.brand)} · ${(t.members||[]).map(nm).map(esc).join(' / ')||'Sem membros'}</div></div></div>`).join(''):em('Nenhuma tag team cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">FACÇÕES</div>${facsF.length?facsF.map(f=>`<div class="rw"><div><span class="t">${esc(f.name)}</span><div class="m">Brand: ${esc(f.brand)} · ${esc(f.tipo||'Stable')} · ${esc(S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(', ')||'Sem membros')}</div></div></div>`).join(''):em('Nenhuma facção cadastrada.')}</section>`}${G.r==='Lutador'?'':`<section class="sec"><div class="sh">MANAGERS</div>${managers.length?managers.map(card).join(''):em('Nenhum manager cadastrado.')}</section>`}${filterMenu('g','#35c9a5')}`;
+    return `<div class="card"><div class="sh">ROSTER GLOBAL · VISÃO GERAL</div><div class="m">Todos os personagens por divisão. Toque em um personagem para abrir o perfil completo e editar (nome, brand, status, foto, etc.).</div><div class="g" style="margin-top:12px"><div><b>${wrestlers.length}</b><div class="m">Wrestlers</div></div><div><b>${managers.length}</b><div class="m">Managers</div></div><div><b>${teamsF.length}</b><div class="m">Tag Teams</div></div><div><b>${facsF.length}</b><div class="m">Facções</div></div></div></div>${G.r==='Manager'||G.d==='Feminino'?'':`<section class="sec" style="--c:#e11d2e"><div class="sh">HOMENS</div>${wrestlers.filter(r=>r.division==='Masculino').length?wrestlers.filter(r=>r.division==='Masculino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(r=>profileCard(r,true)).join(''):em('Nenhum wrestler masculino cadastrado.')}</section>`}${G.r==='Manager'||G.d==='Masculino'?'':`<section class="sec" style="--c:#d94f9b"><div class="sh">MULHERES</div>${wrestlers.filter(r=>r.division==='Feminino').length?wrestlers.filter(r=>r.division==='Feminino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(r=>profileCard(r,true)).join(''):em('Nenhuma wrestler feminina cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">TAG TEAMS</div>${teamsF.length?teamsF.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">Brand da equipe: ${esc(t.brand)} · ${(t.members||[]).map(nm).map(esc).join(' / ')||'Sem membros'}</div></div></div>`).join(''):em('Nenhuma tag team cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">FACÇÕES</div>${facsF.length?facsF.map(f=>`<div class="rw"><div><span class="t">${esc(f.name)}</span><div class="m">Brand: ${esc(f.brand)} · ${esc(f.tipo||'Stable')} · ${esc(S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(', ')||'Sem membros')}</div></div></div>`).join(''):em('Nenhuma facção cadastrada.')}</section>`}${G.r==='Lutador'?'':`<section class="sec"><div class="sh">MANAGERS</div>${managers.length?managers.map(r=>profileCard(r,true)).join(''):em('Nenhum manager cadastrado.')}</section>`}${filterMenu('g','#35c9a5')}`;
   },
   titles() {
     const ts = S.titles.filter(t => t.brand == B), t = ts.find(x => x.id == SEL[B]) || ts[0];ts.forEach(x=>{x.rank=(x.rank||[]).filter(id=>id!==x.champ&&!!person(id));x.rank.sort((a,b)=>popularity(b)-popularity(a));});
@@ -1255,15 +1392,35 @@ const V = {
 
   shows() {
     const l=S.shows.filter(s=>brandsFor(s).includes(B));
-    return `<div class="card"><div class="sh">CALENDÁRIO & EVENTOS</div><div class="g">${fld('Nome do show / PPV',`<input class="f" id="sn" placeholder="Ex.: Backlash, WrestleMania">`)}${fld('Tipo',`<select id="st" onchange="document.getElementById('ppvBrands').style.display=this.value==='PPV'?'grid':'none'"><option>Show semanal</option><option>PPV</option></select>`)}${fld('Data',`<input id="sd" type="date">`)}</div><div id="ppvBrands" class="g" style="display:none;margin-top:10px">${fld('Brands participantes',BRS.slice(0,3).map(b=>`<label><input type="checkbox" name="ppvbrand" value="${b}" ${b===B?'checked':''}> ${b}</label>`).join(''))}</div><button class="add" style="margin-top:10px" onclick="addShow()">Criar evento / card</button></div>
-    <div class="card"><div class="sh">SHOWS SEMANAIS PADRÃO</div><div class="row">${fld('Data de referência',`<input id="weekDate" type="date" value="${new Date().toISOString().slice(0,10)}">`)}<button class="add" onclick="addWeeklyPack()">Gerar semana Raw · SmackDown · NXT</button></div><div class="m" style="margin-top:8px">Cria os três shows sem duplicar eventos na mesma data.</div></div>
+    return `<div class="card"><div class="sh">CALENDÁRIO & EVENTOS</div><div class="g">${fld('Nome do show / PPV',`<input class="f" id="sn" placeholder="Ex.: Backlash">`)}${fld('Tipo',`<select id="st" onchange="document.getElementById('ppvBrands').style.display=this.value==='PPV'?'grid':'none'"><option>Show semanal</option><option>PPV</option></select>`)}${fld('Data (opcional no show semanal)',`<input id="sd" type="date">`)}</div><div class="m" style="margin-top:6px">Show semanal sem data: usa automaticamente a mesma data da semana seguinte ao último show dessa brand (${esc(B)}: ${nextWeekly(B).date?fmtBR(nextWeekly(B).date)+' ('+dow(nextWeekly(B).date)+')':'—'}). Se você escolher uma data, ela vale e as próximas contam a partir dela.</div><div id="ppvBrands" class="g" style="display:none;margin-top:10px">${fld('Brands participantes',BRS.slice(0,3).map(b=>`<label><input type="checkbox" name="ppvbrand" value="${b}" ${b===B?'checked':''}> ${b}</label>`).join(''))}</div><button class="add" style="margin-top:10px" onclick="addShow()">Criar evento / card</button></div>
+    <div class="card"><div class="sh">SHOWS SEMANAIS · DATAS AUTOMÁTICAS</div><div class="m" style="margin-bottom:10px">O próximo show de cada brand cai sempre 1 semana depois do último. Só preencha a data (calendário) se quiser uma data diferente.</div>${['Raw','SmackDown','NXT'].map(b=>{const n=nextWeekly(b);return `<div class="row" style="margin-bottom:8px;flex-wrap:wrap"><div style="min-width:170px"><div class="t">${b}</div><div class="m">${n.last?'Último: '+fmtBR(n.last)+' ('+dow(n.last)+') · ':'Sem show ainda · '}${n.auto?'Próximo automático':'Sugestão'}: ${fmtBR(n.date)} (${dow(n.date)})</div></div><span class="sp"></span><input id="wk${b}" type="date" title="Data manual (opcional)"><button class="add" onclick="addWeeklyOne('${b}')">Criar próximo ${b}</button></div>`;}).join('')}<button class="add" style="margin-top:6px" onclick="addWeeklyPack()">Criar os três próximos (Raw · SmackDown · NXT)</button></div>
     <div class="card"><div class="sh">ROYAL RUMBLE</div><div class="m">Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.</div><div class="row" style="margin-top:10px"><input id="rumbleDate" type="date"><button class="add" onclick="createRumble()">Criar Royal Rumble</button></div></div>
     <div class="card"><div class="sh">TIPOS DE LUTA</div><div class="row"><input id="newType" class="f" placeholder="Novo tipo de luta"><button class="add" onclick="addMatchType()">Adicionar tipo</button></div><div class="chips" style="margin-top:10px">${S.matchTypes.map(t=>`<span class="tag">${esc(t)} <button class="x" onclick="delMatchType(${JSON.stringify(t).replace(/"/g,'&quot;')})">×</button></span>`).join('')}</div></div>`+
-    (l.length?l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+s.date.split('-').reverse().join('/'):''} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}<button class="x" onclick="del('shows','${s.id}')">✕</button></div>
-      ${s.matches.map((m,i)=>`<div class="card" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${m.title?tag('🏆 '+m.title,'face'):''}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
+    (l.length?l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}<button class="x" onclick="del('shows','${s.id}')">✕</button></div>
+      ${s.matches.map((m,i)=>`<div class="card" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
       ${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
   },
 
+
+  downgrade() {
+    const pool=S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&['Raw','SmackDown'].includes(r.brand));
+    const w=worstByDivision(pool,4);
+    const card=(c,top)=>`<div class="card" style="margin-top:8px;${top?'border-color:var(--ac)':''}"><div class="row">${avHtml(c.r,false)}<div style="flex:1;min-width:0"><div class="t">${esc(c.r.name)}</div><div class="m">${esc(c.r.brand)} · ${perfReason(c)}</div></div>${top?tag('SUGESTÃO','face'):''}<button class="add" onclick="moveBrand('${c.r.id}','NXT','down')">Mandar para a NXT</button></div></div>`;
+    const sec=(d,lbl)=>`<div class="card"><div class="sh">${lbl}</div>${w[d].length?card(w[d][0],true)+(w[d].length>1?`<div class="m" style="margin:12px 0 0">Outros candidatos</div>`+w[d].slice(1).map(c=>card(c,false)).join(''):''):em('Nenhum candidato (campeões não entram na lista).')}</div>`;
+    const mv=(S.moves||[]).filter(m=>m.kind==='down').slice(0,8);
+    return `<div class="card"><div class="sh">DOWNGRADE PARA A NXT</div><div class="m">Sugere 1 homem e 1 mulher de Raw/SmackDown com o pior desempenho: poucas vitórias, estrelas baixas nas lutas e popularidade baixa (35% popularidade · 35% estrelas · 30% vitórias). Campeões atuais e lesionados não entram. Wrestlers sem lutas avaliadas contam como nota neutra (3,0).</div></div>${sec('Masculino','HOMEM SUGERIDO')}${sec('Feminino','MULHER SUGERIDA')}${mv.length?`<div class="card"><div class="sh">ÚLTIMOS DOWNGRADES</div>${mv.map(m=>`<div class="rw"><span class="t">${esc(m.name)}</span><span class="sp"></span><span class="m">${esc(m.from)} → ${esc(m.to)} · ${fmtBR(m.date)}</span></div>`).join('')}</div>`:''}`;
+  },
+  nxtcut() {
+    const st=nxtState();
+    const pool=S.roster.filter(r=>r.role==='Lutador'&&r.brand==='NXT'&&r.status!=='Lesionado');
+    const w=worstByDivision(pool,2);
+    const kept=st.rv.kept||[];
+    const card=(c)=>`<div class="card" style="margin-top:8px"><div class="row">${avHtml(c.r,false)}<div style="flex:1;min-width:0"><div class="t">${esc(c.r.name)}</div><div class="m">${perfReason(c)}</div></div><button class="add" onclick="moveBrand('${c.r.id}','Free Agency','cut')">Demitir</button><button class="add" onclick="keepNxt('${c.r.id}')">Manter</button></div></div>`;
+    const sec=(d,lbl)=>{const l=w[d].filter(c=>!kept.includes(c.r.id));return `<div class="card"><div class="sh">${lbl}</div>${l.length?l.map(card).join(''):em('Nenhuma sugestão pendente.')}</div>`;};
+    const status=st.isDue?`${tag('REVISÃO DISPONÍVEL','face')} <span class="m">desde ${fmtBR(st.due)} (data do universo: ${fmtBR(st.today)})</span>`:`<span class="m">Próxima revisão em <b>${fmtBR(st.due)}</b> (data do universo: ${fmtBR(st.today)}). Abaixo, uma prévia de como está o ranking agora.</span>`;
+    const mv=(S.moves||[]).filter(m=>m.kind==='cut').slice(0,8);
+    return `<div class="card"><div class="sh">REVISÃO DA NXT · A CADA 6 MESES</div><div class="m" style="margin-bottom:8px">A cada 6 meses (pela data dos shows do universo) sugere dispensar os 2 piores homens e as 2 piores mulheres da NXT, pela pior combinação de popularidade, estrelas das lutas e vitórias. Campeões e lesionados ficam de fora. "Demitir" envia o lutador para a Free Agency.</div><div class="row" style="flex-wrap:wrap;gap:8px">${status}<span class="sp"></span><button class="add" onclick="finishNxtReview()">Concluir revisão (reinicia 6 meses)</button></div></div>${sec('Masculino','HOMENS · PIORES DA NXT')}${sec('Feminino','MULHERES · PIORES DA NXT')}${mv.length?`<div class="card"><div class="sh">ÚLTIMAS DEMISSÕES</div>${mv.map(m=>`<div class="rw"><span class="t">${esc(m.name)}</span><span class="sp"></span><span class="m">${esc(m.from)} → ${esc(m.to)} · ${fmtBR(m.date)}</span></div>`).join('')}</div>`:''}`;
+  },
   push() {
     const pb=S.pushBoard||{suggestions:{men:[],women:[],tagMen:[],tagWomen:[]},selected:{singles:[],tags:[]},activeBonus:{singles:[],tags:[]},pending:false};
     const sug=pb.suggestions||{};
@@ -1274,7 +1431,7 @@ const V = {
       const on=(sel[kind]||[]).includes(id);
       const active=(ab.singles||[]).includes(id);
       return `<button type="button" class="card" style="text-align:left;cursor:pointer;border-color:${on||active?'var(--ac)':''}" onclick="togglePushSelect('singles','${id}')">
-        <div class="row">${avHtml(r,false)}<div style="flex:1"><div class="t">${esc(r.name)}</div><div class="m">${esc(r.brand)} · ${popularity(id)}% pop · ${esc(r.card||'')}</div></div>${on?tag('SELECIONADO','face'):active?tag('PUSH ATIVO','face'):tag('Toque para escolher')}</div>
+        <div class="row">${avHtml(r,false)}<div style="flex:1"><div class="t">${esc(r.name)}</div><div class="m">${esc(r.brand)} · ${popularity(id)}% pop · ${starLine(id)} · ${esc(r.card||'')}</div></div>${on?tag('SELECIONADO','face'):active?tag('PUSH ATIVO','face'):tag('Toque para escolher')}</div>
       </button>`;
     };
     const cardT=(id)=>{
@@ -1349,9 +1506,9 @@ function draw() {
     else if(B==='Free Agency'){ h1.innerHTML='FREE <span>AGENCY</span>'; if(sub)sub.textContent='Agentes livres e contratos'; }
     else { h1.innerHTML=B.toUpperCase()+' <span>DESK</span>'; if(sub)sub.textContent='Brand ativa · booking em andamento'; }
   }
-  const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k));
+  const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k)||(k==='downgrade'&&B!=='NXT')||(k==='nxtcut'&&B==='NXT'));
   $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
-  const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
+  const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
   $('app').innerHTML=back('')+V[tab]()+back('bottom');
   window.scrollTo(0,y);
 }
