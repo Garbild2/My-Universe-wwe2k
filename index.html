@@ -501,7 +501,7 @@ const N = {
 const LV = ['Main Event','Midcard','Lowcard','Tag Team','Main Event','Midcard','Lowcard'];
 const uid = () => Math.random().toString(36).slice(2,9);
 const mkT = (n,b,lv) => ({id:uid(), name:n, brand:b, lv, champ:'', since:'', reigns:0, defs:0, rank:[], obs:''});
-const seed = () => ({roster:[], teams:[], titles: BR3.flatMap(b => N[b].split(',').map((n,j) => mkT(n,b,LV[j]))), factions:[], feuds:[], shows:[], year:{}, matchTypes:['Single','Tag Team','Triple Threat','Fatal 4-Way','Battle Royal','Royal Rumble','Ladder Match','Tables Match','TLC','Hell in a Cell','Steel Cage','No Holds Barred','Iron Man','Submission','Last Man Standing'], pushBoard:{suggestions:{men:[],women:[],tagMen:[],tagWomen:[]}, selected:{singles:[],tags:[]}, activeBonus:{singles:[],tags:[]}, lastPpvId:'', pending:false}});
+const seed = () => ({roster:[], teams:[], titles: BR3.flatMap(b => N[b].split(',').map((n,j) => mkT(n,b,LV[j]))), factions:[], feuds:[], shows:[], year:{}, matchTypes:['Promo','Single','Tag Team','Triple Threat','Fatal 4-Way','Battle Royal','Royal Rumble','Ladder Match','Tables Match','TLC','Hell in a Cell','Steel Cage','No Holds Barred','Iron Man','Submission','Last Man Standing'], pushBoard:{suggestions:{men:[],women:[],tagMen:[],tagWomen:[]}, selected:{singles:[],tags:[]}, activeBonus:{singles:[],tags:[]}, lastPpvId:'', pending:false}, promoAdded:true});
 
 function mig(o) {
   if (!o || !o.titles) return seed();
@@ -522,6 +522,7 @@ function mig(o) {
   });
   o.year = o.year || {};
   o.moves = o.moves || [];
+  if(!o.promoAdded){ if(!o.matchTypes.includes('Promo')) o.matchTypes.unshift('Promo'); o.promoAdded=true; }
   o.nxtReview = o.nxtReview || {last:'',kept:[]};
   o.matchTypes = o.matchTypes || ['Single','Tag Team','Triple Threat','Fatal 4-Way','Battle Royal','Royal Rumble','Ladder Match','Tables Match','TLC','Hell in a Cell','Steel Cage','No Holds Barred','Iron Man','Submission','Last Man Standing'];
   o.roster.forEach(r => {
@@ -669,7 +670,7 @@ function go(t) { tab = t; draw(); window.scrollTo(0,0); }
 function setF(scope,k,v){(scope==='g'?G:F)[k]=v;draw();}
 function filterMenu(scope,color){const f=scope==='g'?G:F;const row=(k,label,opts,all)=>`<div class="fm-row"><span class="fm-l">${label}</span>${[['',all]].concat(opts.map(o=>[o,o])).map(([v,l])=>`<button class="fm-chip ${f[k]===v?'on':''}" onclick="setF('${scope}','${k}','${v}')">${l}</button>`).join('')}</div>`;return `<div class="filter-menu" style="--c:${color}">${row('r','PAPEL',['Lutador','Manager'],'Todos')}${row('d','DIVISÃO',DIV,'Todas')}</div>`;}
 function st(k,id,f,v,rd) { const x=S[k].find(x=>x.id==id); if(x)x[f]=v; save(); if(rd)draw(); }
-function statsFor(id){let wins=0,losses=0,draws=0;S.shows.forEach(s=>(s.matches||[]).forEach(m=>{if(!(m.participants||[]).includes(id))return;const o=(m.outcomes||{})[id];if(o==='Vitoria')wins++;else if(o==='Derrota')losses++;else if(o==='Empate')draws++;}));const total=wins+losses+draws;return{wins,losses,draws,total,pct:total?Math.round(wins/total*100):0};}
+function statsFor(id){let wins=0,losses=0,draws=0;S.shows.forEach(s=>(s.matches||[]).forEach(m=>{if(m.matchType==='Promo'||!(m.participants||[]).includes(id))return;const o=(m.outcomes||{})[id];if(o==='Vitoria')wins++;else if(o==='Derrota')losses++;else if(o==='Empate')draws++;}));const total=wins+losses+draws;return{wins,losses,draws,total,pct:total?Math.round(wins/total*100):0};}
 
 /* ===== ESTRELAS DAS LUTAS (0 a 5, passo 0,5) ===== */
 const STAR_STEPS=Array.from({length:11},(_,i)=>i/2);
@@ -800,6 +801,19 @@ function bookingBlock(r,held){
   <div class="m" style="margin-top:6px">Gerada em ${fmtBR(b.date)} · próxima renovação em ${fmtBR(b.next)} (data do universo).</div></div>`;
 }
 
+
+/* ===== minimizar shows (lembra no aparelho) ===== */
+const MINS=new Set((()=>{try{return JSON.parse(localStorage.getItem('universedesk_min')||'[]');}catch(e){return[];}})());
+function saveMins(){try{localStorage.setItem('universedesk_min',JSON.stringify([...MINS]));}catch(e){}}
+function toggleMinShow(id){if(MINS.has(id))MINS.delete(id);else MINS.add(id);saveMins();const y=window.scrollY;draw();window.scrollTo(0,y);}
+function minAllShows(on){S.shows.filter(x=>brandsFor(x).includes(B)).forEach(x=>{if(on)MINS.add(x.id);else MINS.delete(x.id);});saveMins();draw();}
+function miniShow(sh){const ms=sh.matches||[];const rated=ms.filter(m=>typeof m.stars==='number');const avg=rated.length?rated.reduce((a,m)=>a+m.stars,0)/rated.length:null;
+  return `<div class="m" style="margin:8px 0">${ms.length} ${ms.length===1?'luta':'lutas'}${avg!=null?' · média '+starTxt(Math.round(avg*2)/2)+' ('+avg.toFixed(1).replace('.',',')+')':''}</div>${ms.map((m,i)=>`<div class="rw"><span class="m">${i+1}.</span><div style="flex:1;min-width:0"><div class="t" style="font-size:13px">${esc(matchLine(m))}</div><div class="m">${esc(m.matchType||'Luta')}${m.result?' · Vencedor: '+esc(m.result):' · sem resultado'}</div></div>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆','face'):''}</div>`).join('')}`;}
+
+
+function showAvg(sh){const r=(sh.matches||[]).filter(m=>typeof m.stars==='number'&&m.matchType!=='Promo');return r.length?{avg:r.reduce((a,m)=>a+m.stars,0)/r.length,n:r.length}:null;}
+function starAvgTxt(v){return starTxt(Math.floor(v*2)/2).replace(/\s[\d,]+$/,'')+' '+v.toFixed(2).replace('.',',');}
+
 function teamFor(id){return S.teams.filter(t=>(t.members||[]).includes(id));}
 function historyHas(h,field,id){return h[field]===id||(h[field+'Members']||[]).includes(id)||teamFor(id).some(tm=>tm.id===h[field]);}
 function titleReigns(id){return S.titles.reduce((n,t)=>n+(t.history||[]).filter(h=>historyHas(h,'champion',id)).length,0);}
@@ -817,8 +831,11 @@ function popularity(id){
   let score=50+(r&&r.popAdj?+r.popAdj:0);
   S.shows.forEach(s=>(s.matches||[]).forEach(m=>{
     const o=(m.outcomes||{})[id];if(!o)return;
-    if(o==='Vitoria'){if(m.matchType==='Royal Rumble')score+=10;else if(s.type==='PPV')score+=2.5;else score+=1;}
-    else if(o==='Derrota')score-=.5;
+    // Promo: vencedor +0,5 · perdedor −0,5 · empate: todos +0,5
+    if(m.matchType==='Promo'){if(o==='Vitoria'||o==='Empate')score+=.5;else if(o==='Derrota')score-=.5;return;}
+    const stv=typeof m.stars==='number'?m.stars:null;
+    if(o==='Vitoria'){let g=m.matchType==='Royal Rumble'?10:s.type==='PPV'?2.5:1;if(stv===5)g*=1.5;score+=g;}   // luta 5★: vencedor ganha ×1,5
+    else if(o==='Derrota'){let l=.5;if(stv!==null&&stv>=5)l=0;else if(stv!==null&&stv>=4)l=.25;score-=l;}        // 5★ não perde · 4–4,5★ perde metade
   }));
   S.titles.forEach(t=>(t.history||[]).forEach(h=>{
     if(historyHas(h,'champion',id))score+=5;
@@ -887,6 +904,16 @@ function confirmPushPicks(){
   save();draw();
 }
 function applyPop(id,delta){const r=S.roster.find(x=>x.id===id);if(!r)return;r.popAdj=(+r.popAdj||0)+delta;}
+
+/* ===== duplas de rivalidade: time cadastrado OU lutadores avulsos ===== */
+function getTeam(id){let t=S.teams.find(x=>x.id===id);if(t)return t;for(const f of S.feuds){const g=f.groups&&f.groups[id];if(g)return {id,name:g.name,members:g.members,brand:f.brand};}return null;}
+function fillPickers(name,tid){const t=S.teams.find(x=>x.id===tid);[...document.querySelectorAll('[name="'+name+'"]')].forEach((h,k)=>{const id=(t&&(t.members||[])[k])||'';h.value=id;const w=h.closest('.wsel'),bt=w&&w.querySelector('.wsel-btn'),r=S.roster.find(x=>x.id===id);if(bt)bt.innerHTML=r?avHtml(r,false)+'<span>'+esc(r.name)+'</span>':'<span class="m">Selecionar wrestler…</span>';});}
+function groupFromPicks(name,teamId,store){const ids=[...new Set([...document.querySelectorAll('[name="'+name+'"]')].map(x=>x.value).filter(Boolean))];if(!ids.length)return {empty:true};if(ids.length<2)return {err:'Cada dupla precisa de pelo menos 2 lutadores.'};
+  const same=t=>t&&(t.members||[]).length===ids.length&&ids.every(i=>t.members.includes(i));
+  const t=S.teams.find(x=>x.id===teamId&&same(x))||S.teams.find(same);if(t)return {id:t.id,ids};
+  const gid='g'+uid();store[gid]={name:ids.map(nm).join(' & '),members:ids};return {id:gid,ids};}
+function pickerSlot(pool,key,label,teams){return `<div class="card" style="margin:6px 0"><div class="m">${label}</div><select onchange="fillPickers('${key}',this.value)" style="margin:6px 0"><option value="">Preencher com time cadastrado (opcional)</option>${teams.map(t=>`<option value="${t.id}">${esc(t.name)} · ${esc((t.members||[]).map(nm).join(' / '))}</option>`).join('')}</select><div class="g">${wselInput(pool,key,'','Lutador 1')}${wselInput(pool,key,'','Lutador 2')}${wselInput(pool,key,'','Lutador 3 (opcional)')}</div></div>`;}
+
 function feudSideMembers(f,side){
   const ids=[];
   if(f.kind==='lutador'){
@@ -894,7 +921,7 @@ function feudSideMembers(f,side){
     arr.forEach(id=>{if(id)ids.push(id);});
   } else if(f.kind==='tag'){
     const teams=side==='a'?(f.sideA||[]):(f.sideB||[]);
-    teams.forEach(tid=>{const t=S.teams.find(x=>x.id===tid);if(t)(t.members||[]).forEach(m=>ids.push(m));});
+    teams.forEach(tid=>{const t=getTeam(tid);if(t)(t.members||[]).forEach(m=>ids.push(m));});
   } else if(f.kind==='faction'){
     const facs=side==='a'?(f.sideA||[]):(f.sideB||[]);
     facs.forEach(fid=>{S.roster.filter(r=>r.faction===fid).forEach(r=>ids.push(r.id));});
@@ -902,7 +929,7 @@ function feudSideMembers(f,side){
   return [...new Set(ids)];
 }
 function teamMemberNames(tid){
-  const t=S.teams.find(x=>x.id===tid);
+  const t=getTeam(tid);
   if(!t)return '';
   return (t.members||[]).map(nm).filter(Boolean).join(' · ')||'sem membros';
 }
@@ -922,10 +949,10 @@ function resolveFeud(id,winnerKey){
   } else if(f.kind==='multi-tag'){
     const parts=(f.participants||[]).filter(Boolean);
     if(!parts.includes(winnerKey))return;
-    const tWin=S.teams.find(x=>x.id===winnerKey);
+    const tWin=getTeam(winnerKey);
     win=(tWin&&tWin.members||[]).slice();
     parts.filter(tid=>tid!==winnerKey).forEach(tid=>{
-      const t=S.teams.find(x=>x.id===tid);
+      const t=getTeam(tid);
       if(t)(t.members||[]).forEach(m=>lose.push(m));
     });
     win=[...new Set(win)]; lose=[...new Set(lose)].filter(x=>!win.includes(x));
@@ -948,10 +975,10 @@ function resolveButtons(f){
   if(f.resolved){
     let label=f.winnerSide||'';
     if(f.kind==='multi') label=nm(f.winnerSide);
-    else if(f.kind==='multi-tag'){const t=S.teams.find(x=>x.id===f.winnerSide);label=t?t.name+' ('+teamMemberNames(f.winnerSide)+')':f.winnerSide;}
+    else if(f.kind==='multi-tag'){const t=getTeam(f.winnerSide);label=t?t.name+' ('+teamMemberNames(f.winnerSide)+')':f.winnerSide;}
     else if(f.kind==='tag'){
       const tid=((f.winnerSide==='a'?f.sideA:f.sideB)||[])[0];
-      const t=S.teams.find(x=>x.id===tid);
+      const t=getTeam(tid);
       label=t?(t.name+' · '+teamMemberNames(t.id)):'Lado '+(f.winnerSide||'').toUpperCase();
     } else if(f.kind==='faction'){
       const fid=((f.winnerSide==='a'?f.sideA:f.sideB)||[])[0];
@@ -968,7 +995,7 @@ function resolveButtons(f){
   }
   if(f.kind==='multi-tag'){
     return (f.participants||[]).map(tid=>{
-      const t=S.teams.find(x=>x.id===tid);
+      const t=getTeam(tid);
       const name=t?t.name:tid;
       const mems=teamMemberNames(tid);
       return `<button class="add" onclick="resolveFeud('${f.id}','${tid}')">🏆 ${esc(name)} <span class="m">(${esc(mems)})</span></button>`;
@@ -976,7 +1003,7 @@ function resolveButtons(f){
   }
   if(f.kind==='tag'){
     const a=f.sideA&&f.sideA[0], b=f.sideB&&f.sideB[0];
-    const ta=S.teams.find(x=>x.id===a), tb=S.teams.find(x=>x.id===b);
+    const ta=getTeam(a), tb=getTeam(b);
     return `<button class="add" onclick="resolveFeud('${f.id}','a')">🏆 ${esc(ta?ta.name:'Lado A')} <span class="m">(${esc(teamMemberNames(a))})</span></button>
       <button class="add" onclick="resolveFeud('${f.id}','b')">🏆 ${esc(tb?tb.name:'Lado B')} <span class="m">(${esc(teamMemberNames(b))})</span></button>`;
   }
@@ -996,19 +1023,19 @@ function brandsFor(s){return s.brands&&s.brands.length?s.brands:[s.brand||'Raw']
 function monthYear(v=new Date()){const d=v instanceof Date?v:new Date(v+'T12:00:00');return Number.isNaN(d.getTime())?'Data não definida':MS[d.getMonth()]+' '+d.getFullYear();}
 function assignChampion(t,v,date){if(!t||t.champ===v)return;t.history=t.history||[];const previous=t.champ||'';if(previous){const open=[...t.history].reverse().find(h=>h.champion===previous&&!h.ended);if(open){open.ended=monthYear(date);open.lostTo=v||'';open.daysHeld=Math.max(0,Math.round((new Date((date||new Date().toISOString().slice(0,10))+'T12:00:00')-new Date((open.startDate||t.since||date||new Date().toISOString().slice(0,10))+'T12:00:00'))/86400000));}}if(previous||v)t.history.push({champion:v||'',championMembers:(S.teams.find(tm=>tm.id===v)?.members||[]).slice(),previous,previousMembers:(S.teams.find(tm=>tm.id===previous)?.members||[]).slice(),started:monthYear(date),startDate:date||new Date().toISOString().slice(0,10),ended:'',lostTo:'',defenses:0});t.champ=v;t.rank=(t.rank||[]).filter(x=>x!==v);if(v){t.since=monthYear(date);t.reigns=(t.reigns||0)+1;t.defs=0;}else t.since='';}
 const TL=['A','B','C','D','E','F'];
-function matchLine(m){return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
+function matchLine(m){if(m.matchType==='Promo')return '🎤 Promo: '+(m.participants||[]).map(nm).join(' · ');return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
 function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
 function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
-function fillGroup(id,g,tid){const t=S.teams.find(x=>x.id===tid);if(!t)return;(t.members||[]).forEach((m,k)=>{const el=$('tg'+id+'_'+g+'_'+k);if(el&&[...el.options].some(o=>o.value===m))el.value=m;});}
+function fillGroup(id,g,tid){const t=getTeam(tid);if(!t)return;(t.members||[]).forEach((m,k)=>{const el=$('tg'+id+'_'+g+'_'+k);if(el&&[...el.options].some(o=>o.value===m))el.value=m;});}
 function setMatchResult(showId,idx,val){const s=S.shows.find(s=>s.id==showId),m=s.matches[idx],title=m.title?S.titles.find(t=>t.name===m.title&&brandsFor(s).includes(t.brand)):null;m.outcomes={};delete m.winGroup;const isG=typeof val==='string'&&val.indexOf('__g')===0;if(val==='__draw'){(m.participants||[]).forEach(id=>m.outcomes[id]='Empate');m.result='Empate';}else if(val){const gi=isG?+val.slice(3):-1,winners=isG?((m.groups||[])[gi]||[]):[val];(m.participants||[]).forEach(id=>m.outcomes[id]=winners.includes(id)?'Vitoria':'Derrota');if(isG){m.winGroup=gi;m.result='Time '+TL[gi]+' ('+winners.map(nm).join(' & ')+')';}else m.result=nm(val);if(!isG&&(s.name==='Royal Rumble'||m.matchType==='Royal Rumble')){s.rumbleWinners=s.rumbleWinners||{};s.rumbleWinners[m.division||'Masculino']=val;const note='Vencedor da Royal Rumble '+(m.division||'Masculino')+': '+nm(val)+' — oportunidade pelo título na WrestleMania.';if(!(s.notes||'').includes(note))s.notes=(s.notes||'')+'\n'+note;}const champ=isG?(teamForGroup(winners)||{}).id:val;if(title&&isG&&!champ){alert('O time vencedor não está cadastrado em Tag Teams. Cadastre o time para atribuir o título.');}else if(title&&champ&&(isG||m.participants.includes(val))){if(title.champ&&champ===title.champ){if(!m._defenseCounted){title.defs=(title.defs||0)+1;const h=[...(title.history||[])].reverse().find(x=>x.champion===champ&&!x.ended);if(h)h.defenses=(h.defenses||0)+1;m._defenseCounted=true;}}else{assignChampion(title,champ,s.date||new Date().toISOString().slice(0,10));m._defenseCounted=false;}}}else{m.result='';}save();draw();}
 function addMatchType(){const n=$('newType').value.trim();if(n&&!S.matchTypes.includes(n)){S.matchTypes.push(n);save();draw();}}
 function delMatchType(n){if(confirm('Remover o tipo de luta '+n+'?')){S.matchTypes=S.matchTypes.filter(x=>x!==n);save();draw();}}
 function refreshMatchForm(id){const el=$('matchForm'+id);if(!el)return;const keep={};el.querySelectorAll('select,input').forEach(x=>{if(x.id)keep[x.id]=x.value;});el.innerHTML=matchForm(id);Object.keys(keep).forEach(k=>{const x=$(k);if(!x)return;if(x.tagName==='SELECT'&&![...x.options].some(o=>o.value===keep[k]))return;x.value=keep[k];if(x.type==='hidden'){const w=x.closest('.wsel');const b=w&&w.querySelector('.wsel-btn');const r=S.roster.find(z=>z.id===keep[k]);if(b)b.innerHTML=r?avHtml(r,false)+'<span>'+esc(r.name)+'</span>':'<span class="m">Selecionar wrestler…</span>';}});bindWselInputs(el);}
-function rumbleForm(id,division){const s=S.shows.find(x=>x.id===id),pool=S.roster.filter(r=>r.role==='Lutador'&&r.division===division&&r.status!=='Lesionado'&&r.status!=='Ausente'&&(brandsFor(s).includes(r.brand)||r.brand==='Free Agency'));return `<div class="card" style="margin-top:12px"><div class="sh">ROYAL RUMBLE ${division.toUpperCase()} · 30 PARTICIPANTES</div><div class="g">${Array.from({length:30},(_,i)=>fld('Entrada '+(i+1),`<select id="rmp${id}${division}_${i}"><option value="">Selecionar wrestler</option>${pool.map(r=>`<option value="${r.id}">${esc(r.name)} · ${esc(r.brand)}</option>`).join('')}</select>`)).join('')}</div><div class="row" style="margin-top:10px"><button class="add" onclick="addRumbleMatch('${id}','${division}')">Adicionar Rumble ${division==='Masculino'?'masculina':'feminina'}</button></div></div>`;}
+function rumbleForm(id,division){const s=S.shows.find(x=>x.id===id),pool=S.roster.filter(r=>r.role==='Lutador'&&r.division===division&&r.status!=='Lesionado'&&r.status!=='Ausente'&&(brandsFor(s).includes(r.brand)));return `<div class="card" style="margin-top:12px"><div class="sh">ROYAL RUMBLE ${division.toUpperCase()} · 30 PARTICIPANTES</div><div class="g">${Array.from({length:30},(_,i)=>fld('Entrada '+(i+1),`<select id="rmp${id}${division}_${i}"><option value="">Selecionar wrestler</option>${pool.map(r=>`<option value="${r.id}">${esc(r.name)} · ${esc(r.brand)}</option>`).join('')}</select>`)).join('')}</div><div class="row" style="margin-top:10px"><button class="add" onclick="addRumbleMatch('${id}','${division}')">Adicionar Rumble ${division==='Masculino'?'masculina':'feminina'}</button></div></div>`;}
 function addRumbleMatch(id,division){const s=S.shows.find(x=>x.id===id);if(s.matches.some(m=>m.matchType==='Royal Rumble'&&m.division===division)){alert('A Rumble '+division.toLowerCase()+' já foi adicionada. Remova a luta existente para recriá-la.');return;}const participants=[];for(let i=0;i<30;i++){const v=$('rmp'+id+division+'_'+i)?.value;if(v&&!participants.includes(v))participants.push(v);}if(participants.length!==30){alert('Selecione 30 wrestlers diferentes para a Rumble '+division.toLowerCase()+'.');return;}s.matches.push({t:'Royal Rumble '+division, title:'', result:'', notes:'Vencedor ganha uma oportunidade pelo título na WrestleMania.', participants, outcomes:{}, division, matchType:'Royal Rumble'});save();draw();}
-function matchForm(id){const s=S.shows.find(x=>x.id===id);const div=$('div'+id)?.value||'Masculino';const rumble=s.name==='Royal Rumble';const type=$('type'+id)?.value||(rumble?'Royal Rumble':'Single');const tagm=type==='Tag Team'&&!rumble;const count=rumble?30:Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2)));const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2)));const pool=S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&r.status!=='Ausente'&&(div==='Mix'||r.division===div)&&(brandsFor(s).includes(r.brand)||r.brand==='Free Agency'));const wopts='<option value="">Selecionar wrestler</option>'+pool.map(r=>`<option value="${r.id}">${esc(r.name)} · ${esc(r.brand)}</option>`).join('');const numSel=(key,from,to,cur)=>`<select id="${key}${id}" onchange="refreshMatchForm('${id}')">${Array.from({length:to-from+1},(_,k)=>from+k).map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('')}</select>`;const teams=S.teams.filter(t=>brandsFor(s).includes(t.brand)||t.brand==='Free Agency');const third=rumble?'<span class="m">Royal Rumble: 30 participantes obrigatórios</span>':tagm?fld('Nº de times',numSel('nt',2,6,nT))+fld('Lutadores por time',numSel('per',1,4,per)):fld('Participantes',numSel('cnt',2,10,count));const pick=(iid,ph)=>rumble?`<select id="${iid}">${wopts}</select>`:wselInput(pool,'wrestler','',ph||'Selecionar wrestler',iid);
+function matchForm(id){const s=S.shows.find(x=>x.id===id);const div=$('div'+id)?.value||'Masculino';const rumble=s.name==='Royal Rumble';const type=$('type'+id)?.value||(rumble?'Royal Rumble':'Single');const tagm=type==='Tag Team'&&!rumble;const promo=type==='Promo'&&!rumble;const count=rumble?30:promo?Math.max(1,Math.min(3,parseInt($('cnt'+id)?.value||2))):Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2)));const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2)));const pool=S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&r.status!=='Ausente'&&(div==='Mix'||r.division===div)&&(brandsFor(s).includes(r.brand)));const wopts='<option value="">Selecionar wrestler</option>'+pool.map(r=>`<option value="${r.id}">${esc(r.name)} · ${esc(r.brand)}</option>`).join('');const numSel=(key,from,to,cur)=>`<select id="${key}${id}" onchange="refreshMatchForm('${id}')">${Array.from({length:to-from+1},(_,k)=>from+k).map(n=>`<option ${n===cur?'selected':''}>${n}</option>`).join('')}</select>`;const teams=S.teams.filter(t=>brandsFor(s).includes(t.brand));const third=rumble?'<span class="m">Royal Rumble: 30 participantes obrigatórios</span>':tagm?fld('Nº de times',numSel('nt',2,6,nT))+fld('Lutadores por time',numSel('per',1,4,per)):promo?fld('Pessoas na promo (1–3)',numSel('cnt',1,3,count)):fld('Participantes',numSel('cnt',2,10,count));const pick=(iid,ph)=>rumble?`<select id="${iid}">${wopts}</select>`:wselInput(pool,'wrestler','',ph||'Selecionar wrestler',iid);
 const body=tagm?Array.from({length:nT},(_,g)=>`<div class="card" style="margin:8px 0 0"><div class="sh">GRUPO ${TL[g]}</div><div class="g">${fld('Time cadastrado (opcional)',`<select onchange="fillGroup('${id}',${g},this.value)"><option value="">Escolher time</option>${teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>`)}${Array.from({length:per},(_,k)=>fld('Lutador '+(k+1),pick('tg'+id+'_'+g+'_'+k,'Lutador '+(k+1)))).join('')}</div></div>`).join(''):`<div class="g" style="margin-top:8px">${Array.from({length:count},(_,k)=>fld('Participante '+(k+1),pick('mp'+id+'_'+k,'Participante '+(k+1)))).join('')}</div>`;
-const html=`<div class="g" style="margin-top:10px">${fld('Tipo de luta',`<select id="type${id}" onchange="refreshMatchForm('${id}')">${S.matchTypes.map(t=>`<option ${t===type?'selected':''}>${esc(t)}</option>`).join('')}</select>`)}${fld('Divisão',`<select id="div${id}" onchange="refreshMatchForm('${id}')">${['Masculino','Feminino','Mix'].map(x=>`<option ${x===div?'selected':''}>${x}</option>`).join('')}</select>`)}${third}</div>${body}<div class="row" style="margin-top:8px"><select id="mt${id}"><option value="">Sem título</option>${S.titles.filter(t=>brandsFor(s).includes(t.brand)&&(!tagm||t.lv==='Tag Team')).map(t=>`<option>${esc(t.name)}</option>`).join('')}</select><button class="add" onclick="addMatch('${id}')">+ Adicionar luta</button></div>`;
+const html=`<div class="g" style="margin-top:10px">${fld('Tipo de luta',`<select id="type${id}" onchange="refreshMatchForm('${id}')">${S.matchTypes.map(t=>`<option ${t===type?'selected':''}>${esc(t)}</option>`).join('')}</select>`)}${fld('Divisão',`<select id="div${id}" onchange="refreshMatchForm('${id}')">${['Masculino','Feminino','Mix'].map(x=>`<option ${x===div?'selected':''}>${x}</option>`).join('')}</select>`)}${third}</div>${body}<div class="row" style="margin-top:8px"><select id="mt${id}"><option value="">Sem título</option>${promo?'':S.titles.filter(t=>brandsFor(s).includes(t.brand)&&(!tagm||t.lv==='Tag Team')).map(t=>`<option>${esc(t.name)}</option>`).join('')}</select><button class="add" onclick="addMatch('${id}')">+ Adicionar luta</button></div>`;
 setTimeout(()=>bindWselInputs(),0);
 return html;}
 
@@ -1062,7 +1089,7 @@ function addFeud() {
   const titleId = hasTitle ? ($('ftitle')?.value || '') : '';
   const notes = $('fnt').value.trim();
   const goal = ($('fgoal')?.value || '').trim();
-  let sideA=[], sideB=[], participants=[];
+  let sideA=[], sideB=[], participants=[], groups={};
   if(kind==='lutador'){
     const a=document.querySelector('[name="fa"]')?.value||$('fa')?.value;
     const b=document.querySelector('[name="fb2"]')?.value||$('fb2')?.value;
@@ -1073,20 +1100,24 @@ function addFeud() {
     if(participants.length<3||participants.length>4){alert('Triple/Four Singles precisa de 3 ou 4 lutadores.');return;}
     if(new Set(participants).size!==participants.length){alert('Lutadores repetidos.');return;}
   } else if(kind==='tag'){
-    sideA=[...document.querySelectorAll('[name="fta"]')].map(x=>x.value).filter(Boolean);
-    sideB=[...document.querySelectorAll('[name="ftb"]')].map(x=>x.value).filter(Boolean);
-    if(sideA.length!==1||sideB.length!==1){alert('Escolha uma tag de cada lado.');return;}
-    if(sideA[0]===sideB[0]){alert('Tags iguais.');return;}
+    const ga=groupFromPicks('ftm_A',$('fts_A')?.value,groups),gb=groupFromPicks('ftm_B',$('fts_B')?.value,groups);
+    if(ga.err||gb.err){alert(ga.err||gb.err);return;}
+    if(ga.empty||gb.empty){alert('Escolha os lutadores (ou um time) de cada lado.');return;}
+    if(ga.ids.some(i=>gb.ids.includes(i))){alert('O mesmo lutador não pode estar nos dois lados.');return;}
+    sideA=[ga.id]; sideB=[gb.id];
   } else if(kind==='multi-tag'){
-    participants=[...document.querySelectorAll('[name="ftpart"]')].map(x=>x.value).filter(Boolean);
-    if(participants.length<3||participants.length>4){alert('Escolha 3 ou 4 tag teams.');return;}
-    if(new Set(participants).size!==participants.length){alert('Tags repetidas.');return;}
+    const gs=[0,1,2,3].map(i=>groupFromPicks('ftmn_'+i,$('ftsn_'+i)?.value,groups));
+    if(gs.some(g=>g.err)){alert(gs.find(g=>g.err).err);return;}
+    const used=gs.filter(g=>!g.empty);
+    if(used.length<3||used.length>4){alert('Escolha 3 ou 4 duplas.');return;}
+    const all=used.flatMap(g=>g.ids);if(new Set(all).size!==all.length){alert('Um lutador aparece em mais de uma dupla.');return;}
+    participants=used.map(g=>g.id);
   } else if(kind==='faction'){
     const a=$('ffa').value, b=$('ffb').value;
     if(!a||!b||a===b){alert('Escolha duas facções diferentes.');return;}
     sideA=[a]; sideB=[b];
   }
-  S.feuds.push({id:uid(), brand:B, kind, division, hasTitle, titleId, sideA, sideB, participants, a:sideA[0]||participants[0]||'', b:sideB[0]||participants[1]||'', status:'Ativa', notes, goal, story:'', resolved:false});
+  S.feuds.push({id:uid(), brand:B, kind, division, hasTitle, titleId, sideA, sideB, participants, a:sideA[0]||participants[0]||'', b:sideB[0]||participants[1]||'', status:'Ativa', notes, goal, story:'', resolved:false, groups});
   save(); draw();
 }
 function feudKindUI(){
@@ -1115,16 +1146,11 @@ function feudKindUI(){
       <div class="m" style="margin-top:6px">Escolha 3 ou 4 lutadores. Não é tag team — cada um luta por si.</div>`;
     bindWselInputs(box);
   } else if(kind==='tag'){
-    box.innerHTML=`<div class="row"><select name="fta" style="flex:1">${po(teams,'','Tag A')}</select><span class="m">vs</span><select name="ftb" style="flex:1">${po(teams,'','Tag B')}</select></div>`;
+    box.innerHTML=`<div class="m" style="margin-bottom:6px">Escolha os lutadores de cada dupla — com ou sem time cadastrado.</div>${pickerSlot(wrestlers,'ftm_A','DUPLA A',teams).replace("fillPickers('ftm_A'","fillPickers('ftm_A'").replace('<select onchange','<select id="fts_A" onchange')}<div class="m" style="text-align:center">vs</div>${pickerSlot(wrestlers,'ftm_B','DUPLA B',teams).replace('<select onchange','<select id="fts_B" onchange')}`;
+    bindWselInputs(box);
   } else if(kind==='multi-tag'){
-    box.innerHTML=`<div class="m" style="margin-bottom:8px">Triple Threat ou Fatal 4-Way de <b>Tag Teams</b> (uma tag vencedora)</div>
-      <div class="g">
-        <select name="ftpart">${po(teams,'','Tag 1')}</select>
-        <select name="ftpart">${po(teams,'','Tag 2')}</select>
-        <select name="ftpart">${po(teams,'','Tag 3')}</select>
-        <select name="ftpart">${po(teams,'','Tag 4 (opcional)')}</select>
-      </div>
-      <div class="m" style="margin-top:6px">Escolha 3 ou 4 tag teams distintas.</div>`;
+    box.innerHTML=`<div class="m" style="margin-bottom:6px">Triple Threat ou Fatal 4-Way de <b>duplas</b> (uma dupla vencedora). Escolha 3 ou 4 duplas, com ou sem time cadastrado.</div>${[0,1,2,3].map(i=>pickerSlot(wrestlers,'ftmn_'+i,'DUPLA '+(i+1)+(i===3?' (opcional)':''),teams).replace('<select onchange','<select id="ftsn_'+i+'" onchange')).join('')}`;
+    bindWselInputs(box);
   } else if(kind==='faction'){
     box.innerHTML=`<div class="row"><select style="flex:1" id="ffa">${po(facs,'','Facção A')}</select><span class="m">vs</span><select style="flex:1" id="ffb">${po(facs,'','Facção B')}</select></div>`;
   }
@@ -1142,11 +1168,11 @@ function feudLabel(f){
     return parts||'Triple/Four Singles';
   }
   if(kind==='tag'){
-    const tn=id=>{const t=S.teams.find(x=>x.id===id);return t?t.name:id;};
+    const tn=id=>{const t=getTeam(id);return t?t.name:id;};
     return (f.sideA||[]).map(tn).map(esc).join(' / ')+' vs '+(f.sideB||[]).map(tn).map(esc).join(' / ');
   }
   if(kind==='multi-tag'){
-    const tn=id=>{const t=S.teams.find(x=>x.id===id);return t?t.name:id;};
+    const tn=id=>{const t=getTeam(id);return t?t.name:id;};
     return (f.participants||[]).map(tn).map(esc).join(' vs ');
   }
   if(kind==='faction'){
@@ -1160,7 +1186,7 @@ function kindTag(k){
 }
 function addShow(){const type=$('st').value;const n=$('sn').value.trim()||(type==='Show semanal'?B:'');if(!n)return;const brands=type==='PPV'?Array.from(document.querySelectorAll('[name="ppvbrand"]:checked')).map(x=>x.value):[B];if(type==='PPV'&&!brands.length){alert('Selecione pelo menos uma brand.');return;}const date=$('sd').value||(type==='Show semanal'?nextWeekly(B).date:'');S.shows.push({id:uid(),name:n,type,brand:brands[0],brands,date,matches:[],notes:'',completed:false});save();draw();}
 function createRumble(){const date=$('rumbleDate').value;if(S.shows.some(s=>s.name==='Royal Rumble'&&s.date===date)){alert('Já existe um Royal Rumble nessa data.');return;}S.shows.push({id:uid(),name:'Royal Rumble',type:'PPV',brand:'Raw',brands:['Raw','SmackDown','NXT'],date,matches:[],notes:'Vencedores recebem uma oportunidade pelo título na WrestleMania.',completed:false,rumble:true});save();draw();}
-function addMatch(id){const s=S.shows.find(x=>x.id===id),type=$('type'+id)?.value||'Single',division=$('div'+id)?.value||'Masculino',count=s.name==='Royal Rumble'?30:Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2))),participants=[];if(type==='Tag Team'&&s.name!=='Royal Rumble'&&$('tg'+id+'_0_0')){const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2))),groups=[];for(let g=0;g<nT;g++){const mem=[];for(let k=0;k<per;k++){const v=$('tg'+id+'_'+g+'_'+k)?.value;if(v)mem.push(v);}groups.push(mem);}const flat=groups.flat();if(groups.some(g=>g.length!==per)||new Set(flat).size!==flat.length){alert('Preencha todos os lutadores de cada grupo, sem repetir ninguém.');return;}s.matches.push({t:groups.map(g=>g.map(nm).join(' & ')).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants:flat,groups,outcomes:{},division,matchType:type});save();draw();return;}for(let i=0;i<count;i++){const v=$('mp'+id+'_'+i)?.value;if(v&&!participants.includes(v))participants.push(v);}if(participants.length!==count){alert('Selecione '+count+' wrestlers diferentes para esta luta.');return;}if(type==='Royal Rumble'&&participants.length!==30){alert('Royal Rumble exige 30 participantes.');return;}s.matches.push({t:participants.map(nm).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants,outcomes:{},division,matchType:type});save();draw();}
+function addMatch(id){const s=S.shows.find(x=>x.id===id),type=$('type'+id)?.value||'Single',division=$('div'+id)?.value||'Masculino',count=s.name==='Royal Rumble'?30:type==='Promo'?Math.max(1,Math.min(3,parseInt($('cnt'+id)?.value||2))):Math.max(2,Math.min(10,parseInt($('cnt'+id)?.value||2))),participants=[];if(type==='Tag Team'&&s.name!=='Royal Rumble'&&$('tg'+id+'_0_0')){const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2))),groups=[];for(let g=0;g<nT;g++){const mem=[];for(let k=0;k<per;k++){const v=$('tg'+id+'_'+g+'_'+k)?.value;if(v)mem.push(v);}groups.push(mem);}const flat=groups.flat();if(groups.some(g=>g.length!==per)||new Set(flat).size!==flat.length){alert('Preencha todos os lutadores de cada grupo, sem repetir ninguém.');return;}s.matches.push({t:groups.map(g=>g.map(nm).join(' & ')).join(' vs '),title:$('mt'+id).value||'',result:'',notes:'',participants:flat,groups,outcomes:{},division,matchType:type});save();draw();return;}for(let i=0;i<count;i++){const v=$('mp'+id+'_'+i)?.value;if(v&&!participants.includes(v))participants.push(v);}if(participants.length!==count){alert('Selecione '+count+' wrestlers diferentes para esta luta.');return;}if(type==='Royal Rumble'&&participants.length!==30){alert('Royal Rumble exige 30 participantes.');return;}s.matches.push({t:participants.map(nm).join(type==='Promo'?' · ':' vs '),title:type==='Promo'?'':($('mt'+id).value||''),result:'',notes:'',participants,outcomes:{},division,matchType:type});save();draw();}
 function delMatch(id,i){S.shows.find(x=>x.id==id).matches.splice(i,1);save();draw();}
 function matchEdit(id,i,f,v){const m=S.shows.find(x=>x.id==id).matches[i];if(m){m[f]=v;save();}}
 function completeShow(id){const s=S.shows.find(x=>x.id===id);if(!s)return;const was=!!s.completed;s.completed=!s.completed;if(!was&&s.completed&&s.type==='PPV'){generatePushSuggestions(id);}save();draw();}
@@ -1245,7 +1271,7 @@ const V = {
     return `<section class="sec" style="--c:${COL[b]}"><div class="sh">${b.toUpperCase()} · BRAND HQ</div><div class="g"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${champs.length}</b><div class="m">Campeões</div></div><div><b>${shows.length}</b><div class="m">Eventos no histórico</div></div><div><b>${feuds.filter(f=>f.status!=='Encerrada').length}</b><div class="m">Rivalidades ativas</div></div></div><div class="g" style="margin-top:14px"></div></section>
       
       <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Consideram popularidade e a média de estrelas das lutas; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias · ${starLine(r.id)}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
-      <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
+      <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas${s.completed&&showAvg(s)?' · média '+starAvgTxt(showAvg(s).avg):''}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
       <div class="card"><div class="sh">TAG TEAMS & FACÇÕES</div><div class="rw"><span>Tag Teams</span><span class="sp"></span><b>${teams.length}</b></div><div class="rw"><span>Facções</span><span class="sp"></span><b>${facs.length}</b></div><button class="add" style="margin-top:10px" onclick="go('teams')">Abrir equipes e facções →</button></div>${b==='Free Agency'?`<div class="card"><div class="sh">MEMBROS EM OUTRAS BRANDS</div>${S.teams.map(t=>{const members=(t.members||[]).map(id=>S.roster.find(r=>r.id==id)).filter(Boolean);return members.length?`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${members.map(r=>esc(r.name)+' · '+esc(r.brand)).join(' / ')}</div></div><span class="sp"></span>${tag(members.some(r=>r.brand==='Free Agency')?'Parte na Free Agency':'Todos alocados')}</div>`:''}).join('')||em('Nenhuma equipe cadastrada.')}</div>`:''}`;
   },
   roster() {
@@ -1396,9 +1422,9 @@ const V = {
     <div class="card"><div class="sh">SHOWS SEMANAIS · DATAS AUTOMÁTICAS</div><div class="m" style="margin-bottom:10px">O próximo show de cada brand cai sempre 1 semana depois do último. Só preencha a data (calendário) se quiser uma data diferente.</div>${['Raw','SmackDown','NXT'].map(b=>{const n=nextWeekly(b);return `<div class="row" style="margin-bottom:8px;flex-wrap:wrap"><div style="min-width:170px"><div class="t">${b}</div><div class="m">${n.last?'Último: '+fmtBR(n.last)+' ('+dow(n.last)+') · ':'Sem show ainda · '}${n.auto?'Próximo automático':'Sugestão'}: ${fmtBR(n.date)} (${dow(n.date)})</div></div><span class="sp"></span><input id="wk${b}" type="date" title="Data manual (opcional)"><button class="add" onclick="addWeeklyOne('${b}')">Criar próximo ${b}</button></div>`;}).join('')}<button class="add" style="margin-top:6px" onclick="addWeeklyPack()">Criar os três próximos (Raw · SmackDown · NXT)</button></div>
     <div class="card"><div class="sh">ROYAL RUMBLE</div><div class="m">Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.</div><div class="row" style="margin-top:10px"><input id="rumbleDate" type="date"><button class="add" onclick="createRumble()">Criar Royal Rumble</button></div></div>
     <div class="card"><div class="sh">TIPOS DE LUTA</div><div class="row"><input id="newType" class="f" placeholder="Novo tipo de luta"><button class="add" onclick="addMatchType()">Adicionar tipo</button></div><div class="chips" style="margin-top:10px">${S.matchTypes.map(t=>`<span class="tag">${esc(t)} <button class="x" onclick="delMatchType(${JSON.stringify(t).replace(/"/g,'&quot;')})">×</button></span>`).join('')}</div></div>`+
-    (l.length?l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}<button class="x" onclick="del('shows','${s.id}')">✕</button></div>
-      ${s.matches.map((m,i)=>`<div class="card" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
-      ${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
+    (l.length?`<div class="row" style="gap:8px;margin:4px 0 8px"><button class="add" onclick="minAllShows(true)">▾ Minimizar todos</button><button class="add" onclick="minAllShows(false)">▸ Expandir todos</button></div>`+l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}${s.completed&&showAvg(s)?tag('Média do show: '+starAvgTxt(showAvg(s).avg)+' ('+showAvg(s).n+(showAvg(s).n===1?' luta':' lutas')+')','face'):''}<button class="add" type="button" onclick="toggleMinShow('${s.id}')" style="padding:6px 10px">${MINS.has(s.id)?'▸ Expandir':'▾ Minimizar'}</button><button class="x" onclick="del('shows','${s.id}')">✕</button></div>
+      ${MINS.has(s.id)?miniShow(s):`<div>${s.matches.map((m,i)=>`<div class="card" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${m.matchType==='Promo'?'':fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
+      ${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`}</div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
   },
 
 
