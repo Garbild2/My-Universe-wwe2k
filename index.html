@@ -549,13 +549,30 @@ let S = null;
 try { S = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD)); } catch(e) {}
 S = mig(S);
 
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} };
+let SAVE_ERR = false;
+function updSaveWarn() {
+  let el = document.getElementById('saveWarn');
+  if (!SAVE_ERR) { if (el) el.remove(); return; }
+  if (!document.body) return;
+  if (!el) {
+    el = document.createElement('div'); el.id = 'saveWarn';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c0392b;color:#fff;padding:10px 14px;font:600 14px/1.35 system-ui,sans-serif;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.5)';
+    el.innerHTML = '⚠️ O salvamento automático FALHOU (armazenamento cheio ou bloqueado). Suas alterações recentes podem ser perdidas — baixe um backup agora na aba 💾 BACKUP. <button style="margin-left:8px;padding:4px 10px;border:0;border-radius:6px;font-weight:700;cursor:pointer" onclick="exportBackup()">Baixar backup</button>';
+    document.body.appendChild(el);
+  }
+}
+const save = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); if (SAVE_ERR) { SAVE_ERR = false; updSaveWarn(); } autoSnap(); }
+  catch (e) { SAVE_ERR = true; updSaveWarn(); }
+};
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $ = id => document.getElementById(id);
 const opt = a => a.map(x => `<option>${x}</option>`).join('');
 const sel = (a,v,at) => `<select ${at}>` + a.map(x => `<option ${x==v?'selected':''}>${x}</option>`).join('') + '</select>';
 const fld = (l,h) => `<label class="fl"><span class="m">${l}</span>${h}</label>`;
-const byN = (a,b) => a.name.localeCompare(b.name);
+const byN = (a,b) => a.name.localeCompare(b.name,'pt-BR',{sensitivity:'base'});
+// ordem escolhida no menu: A–Z (padrão), Nível de card, Popularidade ou Estrelas
+const sorter = o => o==='card' ? ((a,b)=>cmp(a,b)) : o==='pop' ? ((a,b)=>popularity(b.id)-popularity(a.id)||byN(a,b)) : o==='stars' ? ((a,b)=>starsInfo(b.id).adj-starsInfo(a.id).adj||byN(a,b)) : o==='brand' ? ((a,b)=>(a.brand||'').localeCompare(b.brand||'')||byN(a,b)) : byN;
 const cmp = (a,b) => CARD.indexOf(a.card) - CARD.indexOf(b.card) || b.push - a.push || byN(a,b);
 const person = id => S.roster.find(r => r.id == id) || S.teams.find(t => t.id == id);
 const nm = id => (person(id) || {name:'Vago'}).name;
@@ -620,10 +637,11 @@ function bindWselInputs(root){
       const w=btn.closest('.wsel'); w.classList.remove('open');
       const h=w.querySelector('input[type=hidden]');
       const b=w.querySelector('.wsel-btn');
-      if(btn.dataset.clear){ if(h)h.value=''; if(b)b.innerHTML='<span class="m">Selecionar wrestler…</span>'; return; }
+      if(btn.dataset.clear){ if(h)h.value=''; if(b)b.innerHTML='<span class="m">Selecionar wrestler…</span>'; refreshPreviewFor(w); return; }
       const id=btn.dataset.id; if(h)h.value=id;
       const r=S.roster.find(x=>x.id===id);
       if(b&&r)b.innerHTML=avHtml(r,false)+'<span>'+esc(r.name)+'</span>';
+      refreshPreviewFor(w);
     });
   });
 }
@@ -660,7 +678,7 @@ const em = t => `<div class="empty">${t}</div>`;
 const tag = (t,c) => `<span class="tag ${c||''}">${esc(t)}</span>`;
 const trophies = id => carry(id).map(x => tag('🏆 ' + x.name, 'face')).join('');
 const OP = new Set(), SEL = {};
-let B = 'Raw', tab = 'landing', F = {r:'', d:''}, G = {r:'', d:''};
+let B = 'Raw', tab = 'landing', F = {r:'', d:'', o:'az'}, G = {r:'', d:'', o:'az'};
 const tg = (id,o) => { o ? OP.add(id) : OP.delete(id); };
 const dt = (id,head,body) => `<details class="card" ${OP.has(id)?'open':''} ontoggle="tg('${id}',this.open)"><summary>${head}</summary>${body}</details>`;
 const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['downgrade','Downgrade → NXT'],['nxtcut','Revisão da NXT'],['globalRoster','Roster global'],['bk','Backup']];
@@ -668,7 +686,8 @@ const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Rost
 function sb(b) { B = b; tab = b==='Free Agency'?'freeAgency':'all'; draw(); window.scrollTo(0,0); }
 function go(t) { tab = t; draw(); window.scrollTo(0,0); }
 function setF(scope,k,v){(scope==='g'?G:F)[k]=v;draw();}
-function filterMenu(scope,color){const f=scope==='g'?G:F;const row=(k,label,opts,all)=>`<div class="fm-row"><span class="fm-l">${label}</span>${[['',all]].concat(opts.map(o=>[o,o])).map(([v,l])=>`<button class="fm-chip ${f[k]===v?'on':''}" onclick="setF('${scope}','${k}','${v}')">${l}</button>`).join('')}</div>`;return `<div class="filter-menu" style="--c:${color}">${row('r','PAPEL',['Lutador','Manager'],'Todos')}${row('d','DIVISÃO',DIV,'Todas')}</div>`;}
+function filterMenu(scope,color){const f=scope==='g'?G:F;const row=(k,label,opts,all)=>`<div class="fm-row"><span class="fm-l">${label}</span>${[['',all]].concat(opts.map(o=>[o,o])).map(([v,l])=>`<button class="fm-chip ${f[k]===v?'on':''}" onclick="setF('${scope}','${k}','${v}')">${l}</button>`).join('')}</div>`;return `<div class="filter-menu" style="--c:${color}">${row('r','PAPEL',['Lutador','Manager'],'Todos')}${row('d','DIVISÃO',DIV,'Todas')}${ordRow(scope,f)}</div>`;}
+function ordRow(scope,f){const opts=[['az','A–Z'],['card','Nível de card'],['pop','Popularidade'],['stars','Estrelas']].concat(scope==='g'?[['brand','Brand']]:[]);return `<div class="fm-row"><span class="fm-l">ORDEM</span>${opts.map(([v,l])=>`<button class="fm-chip ${(f.o||'az')===v?'on':''}" onclick="setF('${scope}','o','${v}')">${l}</button>`).join('')}</div>`;}
 function st(k,id,f,v,rd) { const x=S[k].find(x=>x.id==id); if(x)x[f]=v; save(); if(rd)draw(); }
 function statsFor(id){let wins=0,losses=0,draws=0;S.shows.forEach(s=>(s.matches||[]).forEach(m=>{if(m.matchType==='Promo'||!(m.participants||[]).includes(id))return;const o=(m.outcomes||{})[id];if(o==='Vitoria')wins++;else if(o==='Derrota')losses++;else if(o==='Empate')draws++;}));const total=wins+losses+draws;return{wins,losses,draws,total,pct:total?Math.round(wins/total*100):0};}
 
@@ -807,8 +826,7 @@ const MINS=new Set((()=>{try{return JSON.parse(localStorage.getItem('universedes
 function saveMins(){try{localStorage.setItem('universedesk_min',JSON.stringify([...MINS]));}catch(e){}}
 function toggleMinShow(id){if(MINS.has(id))MINS.delete(id);else MINS.add(id);saveMins();const y=window.scrollY;draw();window.scrollTo(0,y);}
 function minAllShows(on){S.shows.filter(x=>brandsFor(x).includes(B)).forEach(x=>{if(on)MINS.add(x.id);else MINS.delete(x.id);});saveMins();draw();}
-function miniShow(sh){const ms=sh.matches||[];const rated=ms.filter(m=>typeof m.stars==='number');const avg=rated.length?rated.reduce((a,m)=>a+m.stars,0)/rated.length:null;
-  return `<div class="m" style="margin:8px 0">${ms.length} ${ms.length===1?'luta':'lutas'}${avg!=null?' · média '+starTxt(Math.round(avg*2)/2)+' ('+avg.toFixed(1).replace('.',',')+')':''}</div>${ms.map((m,i)=>`<div class="rw"><span class="m">${i+1}.</span><div style="flex:1;min-width:0"><div class="t" style="font-size:13px">${esc(matchLine(m))}</div><div class="m">${esc(m.matchType||'Luta')}${m.result?' · Vencedor: '+esc(m.result):' · sem resultado'}</div></div>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆','face'):''}</div>`).join('')}`;}
+function miniShow(sh){return '';}
 
 
 function showAvg(sh){const r=(sh.matches||[]).filter(m=>typeof m.stars==='number'&&m.matchType!=='Promo');return r.length?{avg:r.reduce((a,m)=>a+m.stars,0)/r.length,n:r.length}:null;}
@@ -913,6 +931,18 @@ function groupFromPicks(name,teamId,store){const ids=[...new Set([...document.qu
   const t=S.teams.find(x=>x.id===teamId&&same(x))||S.teams.find(same);if(t)return {id:t.id,ids};
   const gid='g'+uid();store[gid]={name:ids.map(nm).join(' & '),members:ids};return {id:gid,ids};}
 function pickerSlot(pool,key,label,teams){return `<div class="card" style="margin:6px 0"><div class="m">${label}</div><select onchange="fillPickers('${key}',this.value)" style="margin:6px 0"><option value="">Preencher com time cadastrado (opcional)</option>${teams.map(t=>`<option value="${t.id}">${esc(t.name)} · ${esc((t.members||[]).map(nm).join(' / '))}</option>`).join('')}</select><div class="g">${wselInput(pool,key,'','Lutador 1')}${wselInput(pool,key,'','Lutador 2')}${wselInput(pool,key,'','Lutador 3 (opcional)')}</div></div>`;}
+
+
+/* ===== pôsteres (por enquanto só nas rivalidades) ===== */
+function posterHtml(id){const r=S.roster.find(x=>x.id===id);const name=r?r.name:'Vago';
+  return `<div class="poster" title="${esc(name)}">${esc(initials(name))}${r&&r.photo?`<img src="${esc(r.photo)}" alt="" onerror="this.style.display='none'">`:''}<span class="pn">${esc(name)}</span></div>`;}
+function feudGroups(f){const k=f.kind||'lutador';
+  if(k==='lutador')return [[(f.sideA||[f.a])[0]],[(f.sideB||[f.b])[0]]];
+  if(k==='multi')return (f.participants||[]).map(x=>[x]);
+  if(k==='multi-tag')return (f.participants||[]).map(tid=>((getTeam(tid)||{}).members||[]));
+  return [feudSideMembers(f,'a'),feudSideMembers(f,'b')];}
+function feudPosters(f){const gs=feudGroups(f).filter(g=>g.length);if(!gs.length)return '';
+  return `<div class="vsrow">${gs.map(g=>`<div class="vsgrp">${g.map(posterHtml).join('')}</div>`).join('<span class="vs">VS</span>')}</div>`;}
 
 function feudSideMembers(f,side){
   const ids=[];
@@ -1023,6 +1053,114 @@ function brandsFor(s){return s.brands&&s.brands.length?s.brands:[s.brand||'Raw']
 function monthYear(v=new Date()){const d=v instanceof Date?v:new Date(v+'T12:00:00');return Number.isNaN(d.getTime())?'Data não definida':MS[d.getMonth()]+' '+d.getFullYear();}
 function assignChampion(t,v,date){if(!t||t.champ===v)return;t.history=t.history||[];const previous=t.champ||'';if(previous){const open=[...t.history].reverse().find(h=>h.champion===previous&&!h.ended);if(open){open.ended=monthYear(date);open.lostTo=v||'';open.daysHeld=Math.max(0,Math.round((new Date((date||new Date().toISOString().slice(0,10))+'T12:00:00')-new Date((open.startDate||t.since||date||new Date().toISOString().slice(0,10))+'T12:00:00'))/86400000));}}if(previous||v)t.history.push({champion:v||'',championMembers:(S.teams.find(tm=>tm.id===v)?.members||[]).slice(),previous,previousMembers:(S.teams.find(tm=>tm.id===previous)?.members||[]).slice(),started:monthYear(date),startDate:date||new Date().toISOString().slice(0,10),ended:'',lostTo:'',defenses:0});t.champ=v;t.rank=(t.rank||[]).filter(x=>x!==v);if(v){t.since=monthYear(date);t.reigns=(t.reigns||0)+1;t.defs=0;}else t.since='';}
 const TL=['A','B','C','D','E','F'];
+
+/* ===== v1.5: pré-visualização, sugestão, arrastar, rivalidade a partir da luta ===== */
+let PREVMODE=(()=>{try{return localStorage.getItem('universedesk_prev')||'poster';}catch(e){return 'poster';}})();
+function matchGroups(m){return (m.groups&&m.groups.length)?m.groups:(m.participants||[]).map(x=>[x]);}
+function matchPosters(m){const gs=matchGroups(m).filter(g=>g.length);
+  if(m.matchType==='Promo'||gs.length<2)return `<div class="vsgrp" style="margin:4px 0">${gs.map(g=>g.map(posterHtml).join('')).join('')}</div>`;
+  return `<div class="vsrow" style="margin:4px 0">${gs.map(g=>`<div class="vsgrp">${g.map(posterHtml).join('')}</div>`).join('<span class="vs">VS</span>')}</div>`;}
+function cardPreviewHtml(s,draft){
+  const items=(s.matches||[]).map((m,i)=>({m,i,d:false}));
+  if(draft)items.push({m:draft,i:items.length,d:true});
+  if(!items.length)return '<div class="m">Nenhuma luta no card ainda.</div>';
+  const head=it=>`${it.i+1}. ${esc(it.m.matchType||'Luta')}${it.m.title?' · 🏆 '+esc(it.m.title):''}${typeof it.m.stars==='number'?' · '+starTxt(it.m.stars):''}${it.d?' · (montando…)':''}`;
+  if(PREVMODE==='lista')return `<div>${items.map(it=>`<div class="pvl ${it.d?'draft':''}"><b>${head(it)}</b><br><span class="m">${esc(matchLine(it.m))}</span></div>`).join('')}</div>`;
+  return `<div class="pv">${items.map(it=>`<div class="pvm ${it.d?'draft':''}"><div class="pvh">${head(it)}</div>${matchPosters(it.m)}</div>`).join('')}</div>`;}
+function draftMatch(id){
+  const type=$('type'+id)?.value;if(!type)return null;
+  const title=$('mt'+id)?.value||'';
+  if($('tg'+id+'_0_0')){
+    const nT=Math.max(2,Math.min(6,parseInt($('nt'+id)?.value||2))),per=Math.max(1,Math.min(4,parseInt($('per'+id)?.value||2))),groups=[];
+    for(let g=0;g<nT;g++){const mem=[];for(let k=0;k<per;k++){const v=$('tg'+id+'_'+g+'_'+k)?.value;if(v)mem.push(v);}if(mem.length)groups.push(mem);}
+    if(!groups.length)return null;
+    return {matchType:'Tag Team',title,groups,participants:groups.flat()};}
+  const cnt=type==='Promo'?3:10,ps=[];
+  for(let i=0;i<cnt;i++){const v=$('mp'+id+'_'+i)?.value;if(v&&!ps.includes(v))ps.push(v);}
+  if(!ps.length)return null;
+  return {matchType:type,title:type==='Promo'?'':title,participants:ps};}
+function refreshPreview(id){const s=S.shows.find(x=>x.id===id),el=$('prev'+id);if(s&&el)el.innerHTML=cardPreviewHtml(s,draftMatch(id));}
+function refreshPreviewFor(el){const f=el&&el.closest&&el.closest('[id^="matchForm"]');if(f)refreshPreview(f.id.slice(9));}
+document.addEventListener('change',e=>refreshPreviewFor(e.target));
+function setPrev(mode){PREVMODE=mode;try{localStorage.setItem('universedesk_prev',mode);}catch(e){}
+  S.shows.forEach(x=>refreshPreview(x.id));document.querySelectorAll('.pvbtn').forEach(b=>b.style.outline=b.dataset.m===mode?'2px solid var(--ac)':'');}
+(function(){const _r=refreshMatchForm;refreshMatchForm=function(id){_r(id);refreshPreview(id);};})();
+
+/* arrastar para reordenar (ponteiro: funciona com toque e mouse) */
+function moveMatch(sid,from,to){const s=S.shows.find(x=>x.id==sid);if(!s)return;const a=s.matches;if(to<0||to>=a.length||from===to)return;const [x]=a.splice(from,1);a.splice(to,0,x);save();draw();}
+function dragStart(ev,sid,i){
+  ev.preventDefault();const h=ev.currentTarget,card=h.closest('.mcard');if(!card)return;
+  const D={from:i,to:i};card.classList.add('drag');
+  try{h.setPointerCapture(ev.pointerId);}catch(e){}
+  const mv=e=>{
+    const el=document.elementFromPoint(e.clientX,e.clientY),t=el&&el.closest&&el.closest('.mcard');
+    if(t&&t.dataset.sid===sid){D.to=+t.dataset.mi;document.querySelectorAll('.mcard.over').forEach(x=>x.classList.remove('over'));if(D.to!==D.from)t.classList.add('over');}
+    if(e.clientY<80)window.scrollBy(0,-14);else if(e.clientY>window.innerHeight-80)window.scrollBy(0,14);};
+  const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up);
+    document.querySelectorAll('.mcard.over,.mcard.drag').forEach(x=>x.classList.remove('over','drag'));
+    if(D.to!==D.from)moveMatch(sid,D.from,D.to);};
+  window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);window.addEventListener('pointercancel',up);}
+
+/* sugerir luta: rivalidades ativas + popularidade */
+const SUGGN={};
+function setPick(iid,val){const h=$(iid);if(!h)return;h.value=val;const w=h.closest('.wsel'),b=w&&w.querySelector('.wsel-btn'),r=S.roster.find(z=>z.id===val);if(b&&r)b.innerHTML=avHtml(r,false)+'<span>'+esc(r.name)+'</span>';}
+function suggestCandidates(s){
+  const booked=new Set((s.matches||[]).flatMap(m=>m.participants||[])),br=brandsFor(s);
+  const ok=id=>{const r=S.roster.find(x=>x.id===id);return r&&r.role==='Lutador'&&r.status!=='Lesionado'&&r.status!=='Ausente'&&br.includes(r.brand)&&!booked.has(id);};
+  const out=[];
+  S.feuds.forEach(f=>{
+    if(f.resolved||(f.status&&f.status!=='Ativa')||f.kind==='faction')return;
+    const gs=feudGroups(f).filter(g=>g.length);if(gs.length<2)return;
+    const flat=gs.flat();if(!flat.every(ok)||new Set(flat).size!==flat.length)return;
+    const tagLike=f.kind==='tag'||f.kind==='multi-tag';
+    if(tagLike&&(gs.length>6||gs.some(g=>g.length!==gs[0].length)||gs[0].length>4))return;
+    if(!tagLike&&gs.length>10)return;
+    const pop=flat.reduce((a,id)=>a+popularity(id),0)/flat.length,st=flat.reduce((a,id)=>a+starsInfo(id).adj,0)/flat.length;
+    const past=(S.shows||[]).reduce((n,sh)=>n+(sh.matches||[]).filter(m=>flat.every(id=>(m.participants||[]).includes(id))).length,0);
+    const score=pop+st*2+(f.hasTitle?8:0)-past*1.5;
+    const tt=f.hasTitle&&f.titleId?S.titles.find(t=>t.id===f.titleId):null;
+    out.push({score,groups:gs,tagLike,division:f.division||'Masculino',title:tt?tt.name:'',why:`Rivalidade ativa: ${gs.map(g=>g.map(nm).join(' & ')).join(' vs ')} · popularidade média ${pop.toFixed(0)}${f.hasTitle?' · valendo título':''}`});});
+  out.sort((a,b)=>b.score-a.score);
+  if(!out.length){
+    const div=$('div'+s.id)?.value||'Masculino';
+    const pool=S.roster.filter(r=>ok(r.id)&&(div==='Mix'||r.division===div)).sort((a,b)=>popularity(b.id)-popularity(a.id));
+    if(pool.length>=2)out.push({score:0,groups:[[pool[0].id],[pool[1].id]],tagLike:false,division:div,title:'',why:`Sem rivalidade ativa disponível — sugestão por popularidade: ${pool[0].name} vs ${pool[1].name}`});}
+  return out;}
+function suggestMatch(id){
+  const s=S.shows.find(x=>x.id===id);if(!s)return;
+  const c=suggestCandidates(s),box=$('sugg'+id);
+  if(!c.length){if(box)box.textContent='Sem sugestão: nenhuma rivalidade ativa livre (ou todos já estão no card).';return;}
+  const n=(SUGGN[id]||0)%c.length;SUGGN[id]=n+1;const x=c[n];
+  const set=(k,v)=>{const e=$(k+id);if(e)e.value=v;};
+  set('div',x.division);set('type',x.tagLike?'Tag Team':'Single');refreshMatchForm(id);
+  if(x.tagLike){set('nt',x.groups.length);set('per',x.groups[0].length);}else set('cnt',x.groups.length);
+  refreshMatchForm(id);
+  if(x.tagLike)x.groups.forEach((g,gi)=>g.forEach((w,k)=>setPick('tg'+id+'_'+gi+'_'+k,w)));
+  else x.groups.forEach((g,i)=>setPick('mp'+id+'_'+i,g[0]));
+  const mt=$('mt'+id);if(mt){mt.value=x.title&&[...mt.options].some(o=>o.value===x.title)?x.title:'';}
+  refreshPreview(id);
+  if(box)box.textContent='💡 '+x.why+(c.length>1?`  (sugestão ${n+1}/${c.length} — clique de novo para outra)`:'');}
+
+/* criar rivalidade a partir de uma luta */
+function feudFromMatch(sid,i){
+  const s=S.shows.find(x=>x.id==sid),m=s&&s.matches[i];if(!m)return;
+  const gs=matchGroups(m).filter(g=>g.length),n=gs.length,flat=gs.flat();
+  if(n<2){alert('Uma rivalidade precisa de pelo menos 2 lados.');return;}
+  if(n>4){alert('Rivalidades suportam até 4 lados; esta luta tem '+n+'.');return;}
+  const sig=a=>a.slice().sort().join('|'),mine=sig(flat);
+  if(S.feuds.some(f=>!f.resolved&&(!f.status||f.status==='Ativa')&&sig(feudGroups(f).flat())===mine)){alert('Já existe uma rivalidade ativa com esses lutadores.');return;}
+  if(!confirm('Criar rivalidade a partir desta luta?\n\n'+matchLine(m)))return;
+  const allSingle=gs.every(g=>g.length===1),groups={};
+  const gid=g=>{const t=teamForGroup(g);if(t&&(t.members||[]).length===g.length)return t.id;const id='g'+uid();groups[id]={name:g.map(nm).join(' & '),members:g.slice()};return id;};
+  let kind,sideA=[],sideB=[],participants=[];
+  if(allSingle){if(n===2){kind='lutador';sideA=[gs[0][0]];sideB=[gs[1][0]];}else{kind='multi';participants=gs.map(g=>g[0]);}}
+  else{const ids=gs.map(gid);if(n===2){kind='tag';sideA=[ids[0]];sideB=[ids[1]];}else{kind='multi-tag';participants=ids;}}
+  const br=brandsFor(s),brand=br.includes(B)?B:s.brand;
+  const tt=m.title?S.titles.find(t=>t.name===m.title&&br.includes(t.brand)):null;
+  const f={id:uid(),brand,kind,division:m.division||'Masculino',hasTitle:!!tt,titleId:tt?tt.id:'',sideA,sideB,participants,a:sideA[0]||participants[0]||'',b:sideB[0]||participants[1]||'',status:'Ativa',
+    notes:`Criada a partir da luta ${i+1} de ${s.name}${s.date?' ('+fmtBR(s.date)+')':''}: ${matchLine(m)}${m.result?' — resultado: '+m.result:''}.`,goal:'',story:'',resolved:false,groups};
+  S.feuds.push(f);m.feudId=f.id;save();draw();
+  alert('Rivalidade criada! Veja na aba Rivalidades da brand.');}
 function matchLine(m){if(m.matchType==='Promo')return '🎤 Promo: '+(m.participants||[]).map(nm).join(' · ');return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
 function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
 function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
@@ -1125,7 +1263,7 @@ function feudKindUI(){
   const box=$('feudSides');
   if(!box)return;
   const divFilter = $('fdiv')?.value||'Masculino';
-  const wrestlers = lut().filter(r=>divFilter==='Mix'||r.division===divFilter);
+  const wrestlers = lut(B).filter(r=>divFilter==='Mix'||r.division===divFilter);
   const teams = S.teams.filter(t=>t.brand===B||!t.brand);
   const facs = S.factions.filter(f=>f.brand===B||!f.brand);
   if(kind==='lutador'){
@@ -1191,7 +1329,17 @@ function delMatch(id,i){S.shows.find(x=>x.id==id).matches.splice(i,1);save();dra
 function matchEdit(id,i,f,v){const m=S.shows.find(x=>x.id==id).matches[i];if(m){m[f]=v;save();}}
 function completeShow(id){const s=S.shows.find(x=>x.id===id);if(!s)return;const was=!!s.completed;s.completed=!s.completed;if(!was&&s.completed&&s.type==='PPV'){generatePushSuggestions(id);}save();draw();}
 function feudEdit(id,f,v) { const x=S.feuds.find(x=>x.id==id); if(x) { x[f]=v; save(); } }
-function exportJSON() { const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='wwe-universe-backup.json'; a.click(); URL.revokeObjectURL(url); }
+function exportJSON() { const blob=null; exportBackup(); }
+function exportBackup() {
+  const name = 'UniverseDesk_Backup_' + dstr(new Date()) + '.json';
+  const txt = JSON.stringify(S, null, 2);
+  try { localStorage.setItem('universedesk_lastexport', String(Date.now())); } catch (e) {}
+  if (window.AndroidApp && AndroidApp.saveFile) { try { AndroidApp.saveFile(name, 'application/json', txt); showMsg('Backup salvo: ' + name); return; } catch (e) {} }
+  const blob = new Blob([txt], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showMsg('Backup baixado: ' + name);
+}
 function parseBackup(txt) {
   txt = String(txt == null ? '' : txt).replace(/^\uFEFF/, '').trim();
   let o = JSON.parse(txt);
@@ -1209,10 +1357,79 @@ function imp(txt) {
   let o;
   try { o = parseBackup(txt !== undefined && typeof txt === 'string' ? txt : $('bk').value); }
   catch (e) { showMsg('JSON inválido: ' + (e && e.message || e)); return; }
-  try {
-    S = mig(o); save(); draw();
+  let n;
+  try { n = mig(o); } catch (e) { console.error(e); showMsg('Erro ao importar: ' + (e && e.message || e)); return; }
+  const cnt = x => (x && x.wrestlers && x.wrestlers.length) || 0;
+  const msg = 'ATENÇÃO: importar vai SUBSTITUIR todos os dados atuais.\n\nAtual: ' + cnt(S) + ' lutadores\nBackup: ' + cnt(n) + ' lutadores\n\nUma cópia de segurança dos dados atuais será guardada (aba Backup > cópias automáticas).\n\nContinuar?';
+  if (!window.confirm(msg)) { showMsg('Importação cancelada.'); return; }
+  takeSnap('import').then(() => {
+    S = n; save(); draw();
     showMsg('Importado com sucesso!');
-  } catch (e) { console.error(e); showMsg('Erro ao importar: ' + (e && e.message || e)); }
+  }).catch(e => { console.error(e); showMsg('Erro ao importar: ' + (e && e.message || e)); });
+}
+
+/* ===== Cópias automáticas locais (IndexedDB) ===== */
+const SNAP_DB = 'universedesk_bk', SNAP_ST = 'snaps', SNAP_AUTO = 3, SNAP_OTHER = 2;
+function snapDB() {
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open(SNAP_DB, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(SNAP_ST, { keyPath: 'ts' });
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+async function snapAll() {
+  const db = await snapDB();
+  return new Promise((res, rej) => { const q = db.transaction(SNAP_ST).objectStore(SNAP_ST).getAll(); q.onsuccess = () => res((q.result || []).sort((a, b) => b.ts - a.ts)); q.onerror = () => rej(q.error); });
+}
+async function pruneSnaps() {
+  const all = await snapAll(), db = await snapDB();
+  const drop = [...all.filter(x => x.kind === 'auto').slice(SNAP_AUTO), ...all.filter(x => x.kind !== 'auto').slice(SNAP_OTHER)];
+  if (!drop.length) return;
+  await new Promise(res => { const tx = db.transaction(SNAP_ST, 'readwrite'); drop.forEach(x => tx.objectStore(SNAP_ST).delete(x.ts)); tx.oncomplete = res; tx.onerror = res; });
+}
+async function takeSnap(kind) {
+  try {
+    const data = JSON.stringify(S), db = await snapDB(), ts = Date.now();
+    await new Promise((res, rej) => { const tx = db.transaction(SNAP_ST, 'readwrite'); tx.objectStore(SNAP_ST).put({ ts, kind, data, n: (S.wrestlers || []).length }); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    await pruneSnaps();
+  } catch (e) { console.warn('snapshot falhou', e); }
+}
+let _snapBusy = false;
+async function autoSnap() {
+  if (_snapBusy) return;
+  try {
+    const last = +localStorage.getItem('universedesk_lastsnap') || 0;
+    if (Date.now() - last < 30 * 60 * 1000) return;
+    _snapBusy = true;
+    const all = await snapAll(), cur = JSON.stringify(S);
+    const la = all.find(x => x.kind === 'auto');
+    if (!la || la.data !== cur) await takeSnap('auto');
+    localStorage.setItem('universedesk_lastsnap', String(Date.now()));
+  } catch (e) {} finally { _snapBusy = false; }
+}
+function fmtSnap(ts) { const d = new Date(ts); return fmtBR(dstr(d)) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+async function renderSnapList() {
+  const el = $('snapList'); if (!el) return;
+  try {
+    const all = await snapAll();
+    el.innerHTML = all.length ? all.map(x => `<div class="row" style="justify-content:space-between;align-items:center;margin:4px 0"><span class="m">${fmtSnap(x.ts)} · ${x.kind === 'auto' ? 'automática' : x.kind === 'import' ? 'antes de importar' : 'antes de restaurar'} · ${x.n} lutadores</span><button class="add" onclick="restoreSnap(${x.ts})">Restaurar</button></div>`).join('') : '<span class="m">Nenhuma cópia automática ainda. A primeira é criada ao salvar alterações.</span>';
+  } catch (e) { el.innerHTML = '<span class="m">Cópias automáticas indisponíveis neste navegador.</span>'; }
+}
+async function restoreSnap(ts) {
+  try {
+    const all = await snapAll(), x = all.find(z => z.ts === ts);
+    if (!x) { showMsg('Cópia não encontrada.'); return; }
+    if (!window.confirm('Restaurar a cópia de ' + fmtSnap(x.ts) + ' (' + x.n + ' lutadores)?\nOs dados atuais serão substituídos (uma cópia deles será guardada antes).')) return;
+    const n = mig(JSON.parse(x.data));
+    await takeSnap('restore');
+    S = n; save(); draw(); showMsg('Cópia restaurada.');
+  } catch (e) { console.error(e); showMsg('Erro ao restaurar: ' + (e && e.message || e)); }
+}
+async function restoreLatestAuto() {
+  try { const a = (await snapAll()).find(x => x.kind === 'auto'); if (!a) { showMsg('Nenhum backup automático disponível.'); return; } await restoreSnap(a.ts); }
+  catch (e) { showMsg('Erro: ' + (e && e.message || e)); }
 }
 function impFile(inp) {
   const f = inp && inp.files && inp.files[0]; if (!f) return;
@@ -1278,7 +1495,7 @@ const V = {
     const fs = (k,a,p) => `<select onchange="F.${k}=this.value;draw()"><option value="">${p}: todos</option>${a.map(x => `<option ${F[k]==x?'selected':''}>${x}</option>`).join('')}</select>`;
     const brands=[B];
     const groups=brands.map(br=>{
-      const l=S.roster.filter(r=>r.brand===br&&(!F.r||r.role===F.r)&&(!F.d||r.division===F.d)).sort((a,b)=>(a.role>b.role)-(a.role<b.role)||cmp(a,b));
+      const l=S.roster.filter(r=>r.brand===br&&(!F.r||r.role===F.r)&&(!F.d||r.division===F.d)).sort((a,b)=>(a.role>b.role)-(a.role<b.role)||sorter(F.o)(a,b));
       return `<section class="sec" style="--c:${COL[br]}"><div class="sh">${br.toUpperCase()} <span class="m">· ${l.length} personagens</span></div>${l.length?l.map(r=>{
         return profileCard(r);
       }).join(''):em('Nenhum personagem nesta brand.')}</section>`;
@@ -1290,7 +1507,7 @@ const V = {
     const wrestlers=S.roster.filter(r=>r.role==='Lutador'&&(!G.d||r.division===G.d)), managers=S.roster.filter(r=>r.role==='Manager'&&(!G.d||r.division===G.d));
     const teamsF=S.teams.filter(t=>!G.d||(t.members||[]).some(id=>(S.roster.find(r=>r.id===id)||{}).division===G.d)), facsF=S.factions.filter(f=>!G.d||S.roster.some(r=>r.faction===f.id&&r.division===G.d));
     const card=r=>{const title=carry(r.id).map(t=>t.name).join(', ')||'Sem título';const teams=teamFor(r.id).map(t=>t.name).join(', ')||'—';const faction=S.factions.find(f=>f.id===r.faction);return `<div class="rw">${avHtml(r,false)}<div style="flex:1;min-width:0"><span class="t">${esc(r.name)}</span><div class="m">${esc(r.brand)} · ${esc(title)}</div><div class="m">Tag Team: ${esc(teams)} · Facção: ${esc(faction?faction.name:'—')}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`;};
-    return `<div class="card"><div class="sh">ROSTER GLOBAL · VISÃO GERAL</div><div class="m">Todos os personagens por divisão. Toque em um personagem para abrir o perfil completo e editar (nome, brand, status, foto, etc.).</div><div class="g" style="margin-top:12px"><div><b>${wrestlers.length}</b><div class="m">Wrestlers</div></div><div><b>${managers.length}</b><div class="m">Managers</div></div><div><b>${teamsF.length}</b><div class="m">Tag Teams</div></div><div><b>${facsF.length}</b><div class="m">Facções</div></div></div></div>${G.r==='Manager'||G.d==='Feminino'?'':`<section class="sec" style="--c:#e11d2e"><div class="sh">HOMENS</div>${wrestlers.filter(r=>r.division==='Masculino').length?wrestlers.filter(r=>r.division==='Masculino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(r=>profileCard(r,true)).join(''):em('Nenhum wrestler masculino cadastrado.')}</section>`}${G.r==='Manager'||G.d==='Masculino'?'':`<section class="sec" style="--c:#d94f9b"><div class="sh">MULHERES</div>${wrestlers.filter(r=>r.division==='Feminino').length?wrestlers.filter(r=>r.division==='Feminino').sort((a,b)=>a.brand.localeCompare(b.brand)||byN(a,b)).map(r=>profileCard(r,true)).join(''):em('Nenhuma wrestler feminina cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">TAG TEAMS</div>${teamsF.length?teamsF.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">Brand da equipe: ${esc(t.brand)} · ${(t.members||[]).map(nm).map(esc).join(' / ')||'Sem membros'}</div></div></div>`).join(''):em('Nenhuma tag team cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">FACÇÕES</div>${facsF.length?facsF.map(f=>`<div class="rw"><div><span class="t">${esc(f.name)}</span><div class="m">Brand: ${esc(f.brand)} · ${esc(f.tipo||'Stable')} · ${esc(S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(', ')||'Sem membros')}</div></div></div>`).join(''):em('Nenhuma facção cadastrada.')}</section>`}${G.r==='Lutador'?'':`<section class="sec"><div class="sh">MANAGERS</div>${managers.length?managers.map(r=>profileCard(r,true)).join(''):em('Nenhum manager cadastrado.')}</section>`}${filterMenu('g','#35c9a5')}`;
+    return `<div class="card"><div class="sh">ROSTER GLOBAL · VISÃO GERAL</div><div class="m">Todos os personagens por divisão. Toque em um personagem para abrir o perfil completo e editar (nome, brand, status, foto, etc.).</div><div class="g" style="margin-top:12px"><div><b>${wrestlers.length}</b><div class="m">Wrestlers</div></div><div><b>${managers.length}</b><div class="m">Managers</div></div><div><b>${teamsF.length}</b><div class="m">Tag Teams</div></div><div><b>${facsF.length}</b><div class="m">Facções</div></div></div></div>${G.r==='Manager'||G.d==='Feminino'?'':`<section class="sec" style="--c:#e11d2e"><div class="sh">HOMENS</div>${wrestlers.filter(r=>r.division==='Masculino').length?wrestlers.filter(r=>r.division==='Masculino').sort(sorter(G.o)).map(r=>profileCard(r,true)).join(''):em('Nenhum wrestler masculino cadastrado.')}</section>`}${G.r==='Manager'||G.d==='Masculino'?'':`<section class="sec" style="--c:#d94f9b"><div class="sh">MULHERES</div>${wrestlers.filter(r=>r.division==='Feminino').length?wrestlers.filter(r=>r.division==='Feminino').sort(sorter(G.o)).map(r=>profileCard(r,true)).join(''):em('Nenhuma wrestler feminina cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">TAG TEAMS</div>${teamsF.length?teamsF.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">Brand da equipe: ${esc(t.brand)} · ${(t.members||[]).map(nm).map(esc).join(' / ')||'Sem membros'}</div></div></div>`).join(''):em('Nenhuma tag team cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">FACÇÕES</div>${facsF.length?facsF.map(f=>`<div class="rw"><div><span class="t">${esc(f.name)}</span><div class="m">Brand: ${esc(f.brand)} · ${esc(f.tipo||'Stable')} · ${esc(S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(', ')||'Sem membros')}</div></div></div>`).join(''):em('Nenhuma facção cadastrada.')}</section>`}${G.r==='Lutador'?'':`<section class="sec"><div class="sh">MANAGERS</div>${managers.length?managers.slice().sort(sorter(G.o)).map(r=>profileCard(r,true)).join(''):em('Nenhum manager cadastrado.')}</section>`}${filterMenu('g','#35c9a5')}`;
   },
   titles() {
     const ts = S.titles.filter(t => t.brand == B), t = ts.find(x => x.id == SEL[B]) || ts[0];ts.forEach(x=>{x.rank=(x.rank||[]).filter(id=>id!==x.champ&&!!person(id));x.rank.sort((a,b)=>popularity(b)-popularity(a));});
@@ -1406,6 +1623,7 @@ const V = {
       const titleName = f.hasTitle && f.titleId ? (S.titles.find(t=>t.id===f.titleId)||{}).name : '';
       return `<div class="card">
       <div class="row"><span class="t">${feudLabel(f)}</span><span class="sp"></span>${tag(kindTag(f.kind||'lutador'))}${tag(f.division||'Masculino')}${f.hasTitle?tag('🏆 '+(titleName||'Título'),'face'):''}${tag(f.status||'Ativa',f.status==='Encerrada'?'face':'')}<button class="x" onclick="del('feuds','${f.id}')">✕</button></div>
+      ${feudPosters(f)}
       ${f.notes ? `<div class="m" style="margin:6px 0 10px">${esc(f.notes)}</div>` : ''}
       <div class="g" style="margin-top:10px">${fld('Próximo passo / objetivo',`<input value="${esc(f.goal||'')}" placeholder="Ex.: confronto no PPV" onchange="feudEdit('${f.id}','goal',this.value)">`)}${fld('História / momentos importantes',`<textarea rows="3" placeholder="Promo, traição, interferência, estipulação..." onchange="feudEdit('${f.id}','story',this.value)">${esc(f.story||'')}</textarea>`)}</div>
       <div class="row" style="margin-top:10px;gap:10px;flex-wrap:wrap">
@@ -1423,8 +1641,8 @@ const V = {
     <div class="card"><div class="sh">ROYAL RUMBLE</div><div class="m">Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.</div><div class="row" style="margin-top:10px"><input id="rumbleDate" type="date"><button class="add" onclick="createRumble()">Criar Royal Rumble</button></div></div>
     <div class="card"><div class="sh">TIPOS DE LUTA</div><div class="row"><input id="newType" class="f" placeholder="Novo tipo de luta"><button class="add" onclick="addMatchType()">Adicionar tipo</button></div><div class="chips" style="margin-top:10px">${S.matchTypes.map(t=>`<span class="tag">${esc(t)} <button class="x" onclick="delMatchType(${JSON.stringify(t).replace(/"/g,'&quot;')})">×</button></span>`).join('')}</div></div>`+
     (l.length?`<div class="row" style="gap:8px;margin:4px 0 8px"><button class="add" onclick="minAllShows(true)">▾ Minimizar todos</button><button class="add" onclick="minAllShows(false)">▸ Expandir todos</button></div>`+l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}${s.completed&&showAvg(s)?tag('Média do show: '+starAvgTxt(showAvg(s).avg)+' ('+showAvg(s).n+(showAvg(s).n===1?' luta':' lutas')+')','face'):''}<button class="add" type="button" onclick="toggleMinShow('${s.id}')" style="padding:6px 10px">${MINS.has(s.id)?'▸ Expandir':'▾ Minimizar'}</button><button class="x" onclick="del('shows','${s.id}')">✕</button></div>
-      ${MINS.has(s.id)?miniShow(s):`<div>${s.matches.map((m,i)=>`<div class="card" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${m.matchType==='Promo'?'':fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
-      ${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`}</div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
+      ${MINS.has(s.id)?miniShow(s):`<div>${s.matches.map((m,i)=>`<div class="card mcard" data-sid="${s.id}" data-mi="${i}" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="dh" title="Arraste para reordenar" onpointerdown="dragStart(event,'${s.id}',${i})">⠿</span><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x mv" title="Subir" onclick="moveMatch('${s.id}',${i},${i-1})">▲</button><button class="x mv" title="Descer" onclick="moveMatch('${s.id}',${i},${i+1})">▼</button>${m.feudId&&S.feuds.some(f=>f.id===m.feudId)?`<span class="tag">🔥 Rivalidade criada</span>`:`<button class="x" onclick="feudFromMatch('${s.id}',${i})">🔥 Criar rivalidade</button>`}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${m.matchType==='Promo'?'':fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
+      <div class="card" style="margin-top:12px"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="sh" style="margin:0">PRÉ-VISUALIZAÇÃO DO CARD</div><span class="sp"></span><button class="add pvbtn" data-m="poster" onclick="setPrev('poster')">🖼 Pôster</button><button class="add pvbtn" data-m="lista" onclick="setPrev('lista')">☰ Lista</button></div><div id="prev${s.id}">${cardPreviewHtml(s,null)}</div></div>${s.rumble?'':`<div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px"><button class="add" onclick="suggestMatch('${s.id}')">💡 Sugerir luta</button><span class="m" id="sugg${s.id}"></span></div>`}${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`}</div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
   },
 
 
@@ -1513,8 +1731,9 @@ const V = {
       <div class="t">Backup do Universe</div>
       <div class="m" style="margin:6px 0 12px">SIM, salva automaticamente neste navegador (localStorage). Não some ao fechar a aba. Cuidado: limpar dados do site, outro navegador ou modo anônimo apaga tudo. Faça backup JSON com frequência. Copie abaixo ou baixe o arquivo; para restaurar, cole e toque em Importar.</div>
       <textarea id="bk" rows="9">${esc(JSON.stringify(S))}</textarea>
-      <div class="row" style="margin-top:10px"><button class="add" onclick="exportJSON()">Baixar backup (.json)</button><button class="add" onclick="imp()">Importar backup (texto colado)</button><button class="add" onclick="pickImport()">Importar arquivo (.json)</button><input id="impf" type="file" accept="*/*" style="display:none" onchange="impFile(this)"><span class="m" id="msg"></span></div>
-    </div>`;
+      <div class="row" style="margin-top:10px"><button class="add" onclick="exportBackup()">Baixar backup (.json)</button><button class="add" onclick="imp()">Importar backup (texto colado)</button><button class="add" onclick="pickImport()">Importar arquivo (.json)</button><input id="impf" type="file" accept="*/*" style="display:none" onchange="impFile(this)"><span class="m" id="msg"></span></div>
+    </div>
+    <div class="card"><div class="t">Cópias automáticas (neste aparelho)</div><div class="m" style="margin:6px 0 10px">O app guarda sozinho as últimas 3 versões (no máx. 1 a cada 30 min) + cópias de segurança feitas antes de importar/restaurar.</div><div class="row" style="margin-bottom:8px"><button class="add" onclick="restoreLatestAuto()">Restaurar último backup automático</button></div><div id="snapList"></div></div>`;
   }
 };
 
@@ -1537,6 +1756,10 @@ function draw() {
   const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
   $('app').innerHTML=back('')+V[tab]()+back('bottom');
   window.scrollTo(0,y);
+  if(tab==='bk')renderSnapList();
+  if(tab==='shows')S.shows.forEach(x=>refreshPreview(x.id));
+  document.querySelectorAll('.pvbtn').forEach(b=>b.style.outline=b.dataset.m===PREVMODE?'2px solid var(--ac)':'');
+  updSaveWarn();
 }
 
 draw();
@@ -1623,8 +1846,8 @@ if ('serviceWorker' in navigator) {
 .fm-chip.on{background:var(--c);border-color:var(--c);color:#fff;text-shadow:0 1px 2px #0006}
 
 /* Fotos de lutadores */
-.av{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bd);background:#1a1a22;flex-shrink:0}
-.av-lg{width:120px;height:120px;border-radius:14px;object-fit:cover;border:2px solid var(--bd);background:#1a1a22;display:block}
+.av{width:36px;height:54px;border-radius:7px;object-fit:cover;border:2px solid var(--bd);background:#1a1a22;flex-shrink:0}
+.av-lg{width:110px;height:165px;border-radius:10px;object-fit:cover;border:2px solid var(--bd);background:#1a1a22;display:block}
 .av-ph{display:grid;place-items:center;font-weight:900;font-size:14px;color:var(--mu);background:linear-gradient(145deg,#1a1e28,#12151c)}
 .av-ph.av-lg{font-size:36px;letter-spacing:-1px}
 .photo-box{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
@@ -1633,20 +1856,40 @@ if ('serviceWorker' in navigator) {
 .photo-actions label.add{display:inline-flex;align-items:center;cursor:pointer;margin:0}
 .photo-actions input[type=file]{display:none}
 
-.champ-photo{width:88px;height:88px;border-radius:12px;object-fit:cover;border:2px solid var(--ac);background:#1a1a22;display:block;box-shadow:0 6px 18px color-mix(in srgb,var(--ac) 25%,transparent)}
+.champ-photo{width:80px;height:120px;border-radius:10px;object-fit:cover;border:2px solid var(--ac);background:#1a1a22;display:block;box-shadow:0 6px 18px color-mix(in srgb,var(--ac) 25%,transparent)}
 .champ-photo.av-ph{font-size:28px;display:grid;place-items:center}
 .champ-row{display:flex;gap:14px;align-items:center;margin:8px 0 12px}
-.rank-av{width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid var(--bd);flex-shrink:0;background:#1a1a22}
+.rank-av{width:28px;height:42px;border-radius:6px;object-fit:cover;border:1px solid var(--bd);flex-shrink:0;background:#1a1a22}
 .rank-av.av-ph{font-size:11px;display:grid;place-items:center;border-radius:6px}
 .wsel{position:relative;width:100%}
 .wsel-btn{width:100%;display:flex;align-items:center;gap:8px;background:var(--in);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;color:var(--tx);font:inherit;cursor:pointer;text-align:left;min-height:44px}
-.wsel-btn .av{width:28px;height:28px}
+.wsel-btn .av{width:28px;height:42px}
 .wsel-menu{display:none;position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);max-height:240px;overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;box-shadow:0 12px 28px #000a}
 .wsel.open .wsel-menu{display:block}
 .wsel-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:0;background:transparent;color:var(--tx);font:inherit;cursor:pointer;text-align:left}
 .wsel-item:hover,.wsel-item.on{background:color-mix(in srgb,var(--ac) 14%,transparent)}
-.wsel-item .av{width:28px;height:28px}
+.wsel-item .av{width:28px;height:42px}
 .av-sq{border-radius:8px!important}
+.pv{display:flex;gap:12px;overflow-x:auto;padding:6px 2px}
+.pvm{flex:0 0 auto;border:1px solid var(--bd);border-radius:10px;padding:8px 10px;background:#12151c}
+.pvm.draft,.pvl.draft{border:1px dashed var(--ac)}
+.pvh{font-size:11px;font-weight:800;color:var(--mu);margin-bottom:2px;text-transform:uppercase}
+.pvl{padding:6px 8px;border-radius:8px;margin:4px 0;background:#12151c}
+.dh{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-size:20px;padding:2px 8px;color:var(--mu)}
+.mcard.drag{opacity:.55;outline:2px dashed var(--ac)}
+.mcard.over{box-shadow:0 -4px 0 var(--ac)}
+.mv{padding:2px 7px!important;min-width:0}
 </style>
 
-
+<style>
+/* Pôsteres (rivalidades) */
+.poster{position:relative;width:62px;height:93px;border-radius:7px;overflow:hidden;border:1px solid var(--bd);background:linear-gradient(160deg,#1a1e28,#0e1016);flex:0 0 auto;display:grid;place-items:center;font-weight:900;font-size:22px;color:var(--mu)}
+.poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.poster .pn{position:absolute;left:0;right:0;bottom:0;padding:16px 3px 3px;font-size:8.5px;line-height:1.1;font-weight:800;text-align:center;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.88));text-transform:uppercase;word-break:break-word}
+.vsrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.vsgrp{display:flex;gap:6px;flex-wrap:wrap}
+.vs{font-weight:900;font-size:13px;letter-spacing:.08em;color:var(--ac)}
+#feudSides .wsel-btn{min-height:80px;height:auto}
+#feudSides .wsel-btn .av,#feudSides .wsel-item .av,#feudSides .wsel-btn .av-ph,#feudSides .wsel-item .av-ph{width:46px;height:69px;border-radius:7px;font-size:16px}
+#feudSides .wsel-item{align-items:center}
+</style>
