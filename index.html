@@ -572,7 +572,7 @@ const sel = (a,v,at) => `<select ${at}>` + a.map(x => `<option ${x==v?'selected'
 const fld = (l,h) => `<label class="fl"><span class="m">${l}</span>${h}</label>`;
 const byN = (a,b) => a.name.localeCompare(b.name,'pt-BR',{sensitivity:'base'});
 // ordem escolhida no menu: A–Z (padrão), Nível de card, Popularidade ou Estrelas
-const sorter = o => o==='card' ? ((a,b)=>cmp(a,b)) : o==='pop' ? ((a,b)=>popularity(b.id)-popularity(a.id)||byN(a,b)) : o==='stars' ? ((a,b)=>starsInfo(b.id).adj-starsInfo(a.id).adj||byN(a,b)) : o==='brand' ? ((a,b)=>(a.brand||'').localeCompare(b.brand||'')||byN(a,b)) : byN;
+const sorter = o => o==='card' ? ((a,b)=>cmp(a,b)) : o==='pop' ? ((a,b)=>popularity(b.id)-popularity(a.id)||byN(a,b)) : o==='stars' ? ((a,b)=>starsInfo(b.id).adj-starsInfo(a.id).adj||byN(a,b)) : o==='idle' ? ((a,b)=>idleDays(b.id)-idleDays(a.id)||byN(a,b)) : o==='brand' ? ((a,b)=>(a.brand||'').localeCompare(b.brand||'')||byN(a,b)) : byN;
 const cmp = (a,b) => CARD.indexOf(a.card) - CARD.indexOf(b.card) || b.push - a.push || byN(a,b);
 const person = id => S.roster.find(r => r.id == id) || S.teams.find(t => t.id == id);
 const nm = id => (person(id) || {name:'Vago'}).name;
@@ -623,7 +623,7 @@ function wselInput(list, name, value, ph, inputId){
   const sel = list.find(x=>x.id===value);
   const label = (r)=> r ? avHtml(r,false)+`<span>${esc(r.name)}</span>` : `<span class="m">${esc(ph||'Selecionar wrestler…')}</span>`;
   const items = [`<button type="button" class="wsel-item" data-clear="1"><span class="m">${esc(ph||'—')}</span></button>`]
-    .concat(list.slice().sort(byN).map(r=>`<button type="button" class="wsel-item ${r.id===value?'on':''}" data-id="${r.id}">${avHtml(r,false)}<span>${esc(r.name)} <span class="m">· ${esc(r.brand||'')}</span></span></button>`));
+    .concat(list.slice().sort(byN).map(r=>`<button type="button" class="wsel-item ${r.id===value?'on':''}" data-id="${r.id}">${avHtml(r,false)}<span>${esc(r.name)} <span class="m">· ${esc(r.brand||'')}${r.role==='Lutador'?' · ⏱ '+idleShort(r.id):''}</span></span></button>`));
   return `<div class="wsel" onclick="event.stopPropagation()" data-wsel-input="1">
     <button type="button" class="wsel-btn" onclick="event.stopPropagation();const w=this.parentElement;const o=w.classList.contains('open');closeAllWsel();if(!o)w.classList.add('open');">${label(sel)}</button>
     <div class="wsel-menu">${items.join('')}</div>
@@ -687,7 +687,7 @@ function sb(b) { B = b; tab = b==='Free Agency'?'freeAgency':'all'; draw(); wind
 function go(t) { tab = t; draw(); window.scrollTo(0,0); }
 function setF(scope,k,v){(scope==='g'?G:F)[k]=v;draw();}
 function filterMenu(scope,color){const f=scope==='g'?G:F;const row=(k,label,opts,all)=>`<div class="fm-row"><span class="fm-l">${label}</span>${[['',all]].concat(opts.map(o=>[o,o])).map(([v,l])=>`<button class="fm-chip ${f[k]===v?'on':''}" onclick="setF('${scope}','${k}','${v}')">${l}</button>`).join('')}</div>`;return `<div class="filter-menu" style="--c:${color}">${row('r','PAPEL',['Lutador','Manager'],'Todos')}${row('d','DIVISÃO',DIV,'Todas')}${ordRow(scope,f)}</div>`;}
-function ordRow(scope,f){const opts=[['az','A–Z'],['card','Nível de card'],['pop','Popularidade'],['stars','Estrelas']].concat(scope==='g'?[['brand','Brand']]:[]);return `<div class="fm-row"><span class="fm-l">ORDEM</span>${opts.map(([v,l])=>`<button class="fm-chip ${(f.o||'az')===v?'on':''}" onclick="setF('${scope}','o','${v}')">${l}</button>`).join('')}</div>`;}
+function ordRow(scope,f){const opts=[['az','A–Z'],['card','Nível de card'],['pop','Popularidade'],['stars','Estrelas'],['idle','Mais tempo sem lutar']].concat(scope==='g'?[['brand','Brand']]:[]);return `<div class="fm-row"><span class="fm-l">ORDEM</span>${opts.map(([v,l])=>`<button class="fm-chip ${(f.o||'az')===v?'on':''}" onclick="setF('${scope}','o','${v}')">${l}</button>`).join('')}</div>`;}
 function st(k,id,f,v,rd) { const x=S[k].find(x=>x.id==id); if(x)x[f]=v; save(); if(rd)draw(); }
 function statsFor(id){let wins=0,losses=0,draws=0;S.shows.forEach(s=>(s.matches||[]).forEach(m=>{if(m.matchType==='Promo'||!(m.participants||[]).includes(id))return;const o=(m.outcomes||{})[id];if(o==='Vitoria')wins++;else if(o==='Derrota')losses++;else if(o==='Empate')draws++;}));const total=wins+losses+draws;return{wins,losses,draws,total,pct:total?Math.round(wins/total*100):0};}
 
@@ -754,7 +754,7 @@ function buildBooking(r,bump){
   const al=r.alignment||'Tweener';
   const opp=al==='Face'?'Heel':al==='Heel'?'Face':null;
   const rivals=byClose(same.filter(x=>!opp||x.alignment===opp));
-  const rival=pickR(rnd,rivals.length?rivals:byClose(same)),rival2=pickR(rnd,byClose(same).filter(x=>!rival||x.id!==rival.id));
+  const _op=bookingOpps(r,3).map(o=>o.r),rival=pickR(rnd,_op.length?_op:(rivals.length?rivals:byClose(same))),rival2=pickR(rnd,(_op.length?_op:byClose(same)).filter(x=>!rival||x.id!==rival.id));
   const free=same.filter(x=>!S.teams.some(t=>(t.members||[]).includes(x.id)&&t.status!=='Dissolvido'));
   const partner=(r.brand!=='Free Agency'&&!teamFor(r.id).length)?pickR(rnd,byClose(free.filter(x=>x.alignment===al||!x.alignment))):null;
   const facPool=same.filter(x=>!x.faction&&(!partner||x.id!==partner.id)&&x.alignment===al);
@@ -815,7 +815,7 @@ function bookingBlock(r,held){
   const col=b.tier==='reduzido'?'heel':'face';
   return `<div class="card" style="margin-top:10px"><div class="row" style="flex-wrap:wrap"><div class="m">SUGESTÃO DE BOOKING · renovada a cada 3 meses</div><span class="sp"></span>${tag(b.head,col)}</div>
   <div class="m" style="margin:8px 0">${esc(b.why)}${held?' Campeão atual: fora das sugestões de push.':''}</div>
-  <ul style="margin:0 0 8px 18px;padding:0">${b.plan.map(x=>`<li class="m" style="margin:4px 0">${esc(x)}</li>`).join('')}</ul>
+  <ul style="margin:0 0 8px 18px;padding:0">${b.plan.map(x=>`<li class="m" style="margin:4px 0">${esc(x)}</li>`).join('')}</ul>${oppsHtml(r)}
   <div class="row" style="flex-wrap:wrap;gap:6px">${b.act.turn?`<button class="add" onclick="bookingTurn('${r.id}')">Aplicar: virar ${b.act.turn}</button>`:''}${b.act.partner?`<button class="add" onclick="bookingTeam('${r.id}')">Criar tag team sugerida</button>`:''}${b.act.facIds&&b.act.facIds.length?`<button class="add" onclick="bookingFaction('${r.id}')">Criar facção sugerida</button>`:''}<button class="add" onclick="regenBooking('${r.id}')">Outra sugestão</button></div>
   <div class="m" style="margin-top:6px">Gerada em ${fmtBR(b.date)} · próxima renovação em ${fmtBR(b.next)} (data do universo).</div></div>`;
 }
@@ -1117,7 +1117,7 @@ function suggestCandidates(s){
     if(!tagLike&&gs.length>10)return;
     const pop=flat.reduce((a,id)=>a+popularity(id),0)/flat.length,st=flat.reduce((a,id)=>a+starsInfo(id).adj,0)/flat.length;
     const past=(S.shows||[]).reduce((n,sh)=>n+(sh.matches||[]).filter(m=>flat.every(id=>(m.participants||[]).includes(id))).length,0);
-    const score=pop+st*2+(f.hasTitle?8:0)-past*1.5;
+    const idleW=flat.reduce((a,id)=>a+Math.min(idleDays(id),60),0)/flat.length/7,score=pop+st*2+(f.hasTitle?8:0)-past*1.5+Math.min(6,idleW);
     const tt=f.hasTitle&&f.titleId?S.titles.find(t=>t.id===f.titleId):null;
     out.push({score,groups:gs,tagLike,division:f.division||'Masculino',title:tt?tt.name:'',why:`Rivalidade ativa: ${gs.map(g=>g.map(nm).join(' & ')).join(' vs ')} · popularidade média ${pop.toFixed(0)}${f.hasTitle?' · valendo título':''}`});});
   out.sort((a,b)=>b.score-a.score);
@@ -1159,8 +1159,787 @@ function feudFromMatch(sid,i){
   const tt=m.title?S.titles.find(t=>t.name===m.title&&br.includes(t.brand)):null;
   const f={id:uid(),brand,kind,division:m.division||'Masculino',hasTitle:!!tt,titleId:tt?tt.id:'',sideA,sideB,participants,a:sideA[0]||participants[0]||'',b:sideB[0]||participants[1]||'',status:'Ativa',
     notes:`Criada a partir da luta ${i+1} de ${s.name}${s.date?' ('+fmtBR(s.date)+')':''}: ${matchLine(m)}${m.result?' — resultado: '+m.result:''}.`,goal:'',story:'',resolved:false,groups};
-  S.feuds.push(f);m.feudId=f.id;save();draw();
+  f.progress=0;f.timeline=[{id:uid(),date:s.date||universeDate(),text:'Origem: '+matchLine(m)+(m.result?' → '+m.result:''),ref:s.id+'|'+i}];f.touched=universeDate();S.feuds.push(f);m.feudId=f.id;save();draw();
   alert('Rivalidade criada! Veja na aba Rivalidades da brand.');}
+
+/* ===== v2.0 ===== */
+const dayDiff=(a,b)=>Math.round((pd(a)-pd(b))/864e5);
+function lastMatchDate(id){let d='';S.shows.forEach(sh=>{if(!sh.completed||!sh.date||sh.date<=d)return;if((sh.matches||[]).some(m=>(m.participants||[]).includes(id)))d=sh.date;});return d;}
+function idleDays(id){const d=lastMatchDate(id);return d?Math.max(0,dayDiff(universeDate(),d)):9999;}
+function idleShort(id){const n=idleDays(id);if(n===9999)return 'nunca lutou';if(n<7)return n+(n===1?' dia':' dias');const w=Math.floor(n/7);return w+(w===1?' sem':' sem');}
+function lossStreak(id){const l=S.shows.filter(sh=>sh.completed&&sh.date&&(sh.matches||[]).some(m=>(m.participants||[]).includes(id))).sort((a,b)=>b.date.localeCompare(a.date));let n=0;for(const sh of l){const ms=sh.matches.filter(m=>m.matchType!=='Promo'&&(m.participants||[]).includes(id));let lost=false,other=false;ms.forEach(m=>{const o=(m.outcomes||{})[id];if(o==='Derrota')lost=true;else if(o)other=true;});if(other)break;if(lost)n++;else if(ms.length)break;}return n;}
+function idleTag(id){const n=idleDays(id),cls=n===9999?'bad':n<=14?'ok':n<=28?'warn':'bad';
+  const txt=n===9999?'⏱ Sem lutas registradas':'⏱ Última luta: há '+n+(n===1?' dia':' dias')+(n>=7?' ('+Math.floor(n/7)+' sem)':'');
+  const ls=lossStreak(id);return `<span class="idle ${cls}" title="Dias desde a última luta (data do universo)">${txt}</span>`+(ls>=3?`<span class="idle bad" title="Cuidado com o jobber eterno">📉 ${ls} derrotas seguidas</span>`:'');}
+
+/* feedback de popularidade / estrelas */
+let CHG={};
+const fnum=v=>(v>0?'+':'')+(Math.round(v*10)/10).toFixed(1).replace('.',',');
+function popSnap(){const o={};S.roster.forEach(r=>{if(r.role==='Lutador')o[r.id]={p:popularity(r.id),s:starsInfo(r.id).adj};});return o;}
+function chgChip(id){const c=CHG[id];if(!c||Date.now()-c.t>15*60*1000)return '';let h='';
+  if(Math.abs(c.dp)>=.05)h+=`<span class="chg ${c.dp>0?'up':'dn'}">${c.dp>0?'▲':'▼'} pop ${fnum(c.dp)}</span>`;
+  if(Math.abs(c.ds)>=.05)h+=`<span class="chg ${c.ds>0?'up':'dn'}">${c.ds>0?'▲':'▼'} ★ ${fnum(c.ds)}</span>`;return h;}
+function toastImpact(before){
+  const after=popSnap(),rows=[];
+  Object.keys(after).forEach(id=>{const b=before[id];if(!b)return;const dp=after[id].p-b.p,ds=after[id].s-b.s;if(Math.abs(dp)>=.05||Math.abs(ds)>=.05)rows.push({id,dp,ds,p0:b.p,p1:after[id].p,s0:b.s,s1:after[id].s});});
+  if(!rows.length)return;
+  rows.forEach(x=>CHG[x.id]={dp:x.dp,ds:x.ds,t:Date.now()});
+  rows.sort((a,b)=>(Math.abs(b.dp)+Math.abs(b.ds)*3)-(Math.abs(a.dp)+Math.abs(a.ds)*3));
+  let el=$('impactToast');if(el)el.remove();el=document.createElement('div');el.id='impactToast';
+  const f1=v=>v.toFixed(1).replace('.',',');
+  el.innerHTML=`<b>📊 Impacto da alteração</b>`+rows.slice(0,6).map(x=>`<div class="ir"><span>${esc(nm(x.id))}</span><span>${Math.abs(x.dp)>=.05?`pop ${f1(x.p0)} → ${f1(x.p1)} <b class="${x.dp>0?'up':'dn'}">${x.dp>0?'▲':'▼'} ${fnum(x.dp)}</b>`:''}${Math.abs(x.ds)>=.05?` · ★ ${f1(x.s0)} → ${f1(x.s1)} <b class="${x.ds>0?'up':'dn'}">${x.ds>0?'▲':'▼'} ${fnum(x.ds)}</b>`:''}</span></div>`).join('')+(rows.length>6?`<div class="m">+${rows.length-6} outros</div>`:'')+`<div class="m" style="margin-top:4px">toque para fechar</div>`;
+  el.onclick=()=>el.remove();document.body.appendChild(el);setTimeout(()=>{if(el.parentNode)el.remove();},10000);
+  draw();}
+function withImpact(fn){return function(){const b=popSnap();const r=fn.apply(this,arguments);toastImpact(b);return r;};}
+setMatchResult=withImpact(setMatchResult);setMatchStars=withImpact(setMatchStars);delMatch=withImpact(delMatch);completeShow=withImpact(completeShow);
+function popWithout(id,sh){const keep=S.shows;S.shows=keep.filter(x=>x!==sh);try{return {p:popularity(id),s:starsInfo(id).adj};}finally{S.shows=keep;}}
+function showImpactCard(sh){
+  const ids=[...new Set((sh.matches||[]).flatMap(m=>m.participants||[]))].filter(id=>{const r=S.roster.find(x=>x.id===id);return r&&r.role==='Lutador';});
+  if(!ids.length)return '';
+  const rows=ids.map(id=>{const b=popWithout(id,sh),a={p:popularity(id),s:starsInfo(id).adj};return {id,dp:a.p-b.p,ds:a.s-b.s,p1:a.p,s1:a.s};}).sort((a,b)=>Math.abs(b.dp)-Math.abs(a.dp));
+  const f1=v=>v.toFixed(1).replace('.',',');
+  return `<div class="card" style="margin-top:12px"><div class="sh">IMPACTO DESTE SHOW</div><div class="m" style="margin-bottom:6px">Quanto cada lutador ganhou ou perdeu de popularidade e estrelas só com as lutas deste show.</div>${rows.slice(0,14).map(x=>`<div class="row" style="justify-content:space-between;margin:3px 0"><span>${esc(nm(x.id))}</span><span class="m">pop ${f1(x.p1)}% <b class="${x.dp>0?'up':x.dp<0?'dn':''}">${Math.abs(x.dp)<.05?'=':(x.dp>0?'▲ ':'▼ ')+fnum(x.dp)}</b> · ★ ${f1(x.s1)} <b class="${x.ds>0?'up':x.ds<0?'dn':''}">${Math.abs(x.ds)<.05?'=':(x.ds>0?'▲ ':'▼ ')+fnum(x.ds)}</b></span></div>`).join('')}${rows.length>14?`<div class="m">+${rows.length-14} outros</div>`:''}</div>`;}
+
+/* navegação / destaque */
+function scrollToSel(sel){setTimeout(()=>{const el=document.querySelector(sel);if(!el)return;if(el.tagName==='DETAILS')el.open=true;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('flash');},60);}
+function scrollToText(key){setTimeout(()=>{const k=norm(key);const el=[...document.querySelectorAll('#app .card,#app .rw')].find(c=>norm(c.textContent).includes(k));if(!el)return;if(el.tagName==='DETAILS')el.open=true;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('flash');},60);}
+function openWrestler(id){const r=S.roster.find(x=>x.id===id);if(!r)return;if(r.brand&&r.brand!=='Free Agency')B=r.brand;else B='Free Agency';tab=B==='Free Agency'?'freeAgency':'roster';tg('profile-'+id,true);draw();window.scrollTo(0,0);scrollToSel(`details[ontoggle*="profile-${id}"]`);}
+function openTab(brand,t,key){if(brand&&brand!=='Free Agency')B=brand;tab=t;draw();window.scrollTo(0,0);if(key)scrollToText(key);}
+function openShow(id){const sh=S.shows.find(x=>x.id===id);if(!sh)return;B=brandsFor(sh)[0];tab='shows';if(sh.archived)tg('archive-'+B,true);MINS.delete(id);try{localStorage.setItem('universedesk_min',JSON.stringify([...MINS]));}catch(e){}draw();window.scrollTo(0,0);scrollToSel('#show-'+id);}
+
+/* card destaque: próxima sugestão de booking */
+const HERO_I={};
+function heroPick(b){
+  const l=lut(b).map(r=>{const bk=ensureBooking(r);if(!bk)return null;const idle=Math.min(idleDays(r.id),120)/7;
+    const sc=({reduzido:4,forte:3,subindo:2,estavel:0})[bk.tier]+idle*.5+(universeDate()>=addDays(bk.next,-14)?2:0);return {r,bk,sc};}).filter(Boolean).sort((a,c)=>c.sc-a.sc);return l;}
+function heroBooking(b){
+  const l=heroPick(b);if(!l.length)return '';
+  const i=(HERO_I[b]||0)%l.length,{r,bk}=l[i],held=carry(r.id).length>0,col=bk.tier==='reduzido'?'heel':'face';
+  return `<div class="card hero" style="--ac:${COL[b]||'var(--ac)'}"><div class="m" style="font-weight:800;letter-spacing:.08em">⭐ PRÓXIMA SUGESTÃO DE BOOKING</div>
+  <div class="hh" style="margin-top:8px"><div class="poster" style="width:84px;height:126px;cursor:pointer" onclick="openWrestler('${r.id}')">${esc(initials(r.name))}${r.photo?`<img src="${esc(r.photo)}" alt="" onerror="this.style.display='none'">`:''}</div>
+  <div style="flex:1;min-width:200px"><div class="hn">${esc(r.name)}</div><div style="margin:4px 0">${tag(bk.head,col)}${tag(Math.round(popularity(r.id))+'% pop')}${tag(starLine(r.id))}</div><div>${idleTag(r.id)}${chgChip(r.id)}</div><div class="m" style="margin-top:6px">${esc(bk.why)}${held?' Campeão atual.':''}</div></div></div>
+  <ul>${bk.plan.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${oppsHtml(r)}
+  <div class="row" style="flex-wrap:wrap;gap:6px">${bk.act.turn?`<button class="add" onclick="bookingTurn('${r.id}')">Aplicar: virar ${bk.act.turn}</button>`:''}${bk.act.partner?`<button class="add" onclick="bookingTeam('${r.id}')">Criar tag team sugerida</button>`:''}${bk.act.facIds&&bk.act.facIds.length?`<button class="add" onclick="bookingFaction('${r.id}')">Criar facção sugerida</button>`:''}<button class="add" onclick="openWrestler('${r.id}')">Abrir ficha</button><button class="add" onclick="regenBooking('${r.id}')">Outra história</button>${l.length>1?`<button class="add" onclick="HERO_I['${b}']=${i+1};draw()">Próximo lutador (${i+1}/${l.length}) →</button>`:''}</div>
+  <div class="m" style="margin-top:8px">Prioriza quem precisa de atenção (popularidade/estrelas, tempo sem lutar e renovação próxima). Renovação: ${fmtBR(bk.next)}.</div></div>`;}
+
+/* busca global */
+let GQ='';
+function norm(x){return String(x==null?'':x).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
+function gSearch(v){GQ=v;const el=$('gres');if(el)el.innerHTML=gResults(v);}
+function gMatch(hay,terms){const h=norm(hay);return terms.every(t=>h.includes(t));}
+function gResults(q){
+  const terms=norm(q).split(/\s+/).filter(Boolean);
+  if(!terms.length)return '<div class="m" style="padding:10px">Digite para buscar. Dica: use várias palavras (ex.: "raw campeão", "backlash 2026", "heel smackdown").</div>';
+  const sec=(t,arr)=>arr.length?`<div class="card"><div class="sh">${t} · ${arr.length}</div>${arr.slice(0,25).join('')}${arr.length>25?`<div class="m">+${arr.length-25} resultados — refine a busca.</div>`:''}</div>`:'';
+  const W=S.roster.filter(r=>gMatch([r.name,r.brand,r.role,r.card,r.alignment,r.division,r.status,r.origin,(S.factions.find(f=>f.id===r.faction)||{}).name,teamFor(r.id).map(t=>t.name).join(' '),carry(r.id).map(t=>t.name).join(' ')].join(' '),terms)).map(r=>`<div class="sr" onclick="openWrestler('${r.id}')">${avHtml(r,false)}<div style="flex:1;min-width:0"><b>${esc(r.name)}</b><div class="m">${esc(r.brand||'')} · ${esc(r.role==='Manager'?'Manager':r.card||'')} · ${esc(r.division||'')}</div>${r.role==='Lutador'?idleTag(r.id):''}</div>${r.role==='Lutador'?tag(Math.round(popularity(r.id))+'%'):''}</div>`);
+  const T=S.titles.filter(t=>gMatch([t.name,t.brand,t.lv,nm(t.champ)].join(' ')+' '+(t.champ?'campeao':'vago'),terms)).map(t=>`<div class="sr" onclick="openTab('${t.brand}','titles','${esc(t.name).replace(/'/g,"\\'")}')"><div style="flex:1"><b>🏆 ${esc(t.name)}</b><div class="m">${esc(t.brand||'')} · Campeão: ${t.champ?esc(nm(t.champ)):'vago'}</div></div></div>`);
+  const F=S.feuds.filter(f=>{const gs=feudGroups(f);const tt=f.titleId?S.titles.find(x=>x.id===f.titleId):null;return gMatch([gs.map(g=>g.map(nm).join(' ')).join(' '),f.notes,f.goal,f.story,f.brand,f.status,tt&&tt.name,f.kind].join(' '),terms);}).map(f=>{const gs=feudGroups(f).filter(g=>g.length),first=gs[0]?nm(gs[0][0]):'';return `<div class="sr" onclick="openTab('${f.brand||B}','feuds','${esc(first).replace(/'/g,"\\'")}')"><div style="flex:1"><b>🔥 ${esc(gs.map(g=>g.map(nm).join(' & ')).join(' vs '))}</b><div class="m">${esc(f.brand||'')} · ${esc(f.status||'Ativa')}${f.resolved?' · resolvida':''}</div></div></div>`;});
+  const SH=S.shows.filter(sh=>gMatch([sh.name,sh.type,sh.date,sh.date&&fmtBR(sh.date),brandsFor(sh).join(' '),sh.notes,(sh.matches||[]).map(m=>matchLine(m)+' '+(m.title||'')+' '+(m.matchType||'')).join(' ')].join(' '),terms)).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(sh=>{const hits=(sh.matches||[]).filter(m=>gMatch(matchLine(m)+' '+(m.title||'')+' '+(m.matchType||''),terms)).slice(0,3);return `<div class="sr" onclick="openShow('${sh.id}')"><div style="flex:1"><b>📅 ${esc(sh.name)}</b><div class="m">${esc(sh.type)}${sh.date?' · '+fmtBR(sh.date):''} · ${esc(brandsFor(sh).join(' / '))}${sh.completed?' · concluído':''}</div>${hits.map(m=>`<div class="m">• ${esc(matchLine(m))}${m.result?' → '+esc(m.result):''}</div>`).join('')}</div></div>`;});
+  const TM=S.teams.filter(t=>gMatch([t.name,t.brand,(t.members||[]).map(nm).join(' ')].join(' '),terms)).map(t=>`<div class="sr" onclick="openTab('${t.brand||B}','teams','${esc(t.name).replace(/'/g,"\\'")}')"><div style="flex:1"><b>🤝 ${esc(t.name)}</b><div class="m">${esc(t.brand||'')} · ${esc((t.members||[]).map(nm).join(' / '))}</div></div></div>`);
+  const FC=S.factions.filter(f=>gMatch([f.name,f.brand,f.tipo,nm(f.leader),S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(' ')].join(' '),terms)).map(f=>`<div class="sr" onclick="openTab('${f.brand||B}','teams','${esc(f.name).replace(/'/g,"\\'")}')"><div style="flex:1"><b>🏴 ${esc(f.name)}</b><div class="m">${esc(f.brand||'')} · ${esc(f.tipo||'')}</div></div></div>`);
+  const out=sec('LUTADORES / PERSONAGENS',W)+sec('TÍTULOS',T)+sec('RIVALIDADES',F)+sec('SHOWS E LUTAS',SH)+sec('TAG TEAMS',TM)+sec('FACÇÕES',FC);
+  return out||'<div class="m" style="padding:10px">Nada encontrado.</div>';}
+
+/* ===== v2.1: progresso/timeline de rivalidade + arquivo de shows ===== */
+function feudIds(f){return feudGroups(f).flat();}
+function feudStale(f){if((f.status&&f.status!=='Ativa')||(f.progress||0)>=100)return 0;const last=f.touched||((f.timeline||[]).map(x=>x.date).sort().pop())||'';if(!last)return 0;const d=dayDiff(universeDate(),last);return d>=28?d:0;}
+function feudProgressHtml(f){
+  const pr=f.progress||0,st=feudStale(f),tl=(f.timeline||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const chips=[[0,'Início'],[25,'25%'],[50,'50%'],[75,'75%'],[100,'Final']].map(([v,l])=>`<button class="fm-chip ${pr===v?'on':''}" onclick="feudProgress('${f.id}',${v})">${l}</button>`).join('');
+  return `<div style="margin-top:12px"><div class="m" style="font-weight:800;letter-spacing:.06em">PROGRESSO DA RIVALIDADE · ${pr>=100?'FINAL':pr+'%'}</div><div class="pbar"><i style="width:${pr}%"></i></div><div class="row" style="gap:6px;flex-wrap:wrap">${chips}</div>
+  ${st?`<div class="m" style="margin-top:6px;color:#f4c95d">⚠ Sem avanço há ${st} dias (${Math.floor(st/7)} sem) — não esqueça este ângulo.</div>`:''}
+  <div class="m" style="font-weight:800;letter-spacing:.06em;margin-top:12px">TIMELINE DE MOMENTOS</div>
+  ${tl.length?`<div class="tl">${tl.map(e=>`<div class="te"><span class="m">${e.date?fmtBR(e.date):'sem data'}</span> <button class="x" style="float:right" onclick="feudTlDel('${f.id}','${e.id}')">✕</button><div>${esc(e.text)}</div></div>`).join('')}</div>`:'<div class="m" style="margin:6px 0">Nenhum momento registrado ainda.</div>'}
+  <div class="row" style="gap:6px;flex-wrap:wrap"><input type="date" id="tlD${f.id}" value="${universeDate()}"><input class="f" id="tlT${f.id}" style="flex:1;min-width:160px" placeholder="Ex.: promo de ataque nos bastidores"><button class="add" onclick="feudTlAdd('${f.id}')">+ Momento</button><button class="add" onclick="feudTlSync('${f.id}')" title="Adiciona as lutas já realizadas entre estes lutadores">↻ Importar lutas</button></div></div>`;}
+function feudTouch(f){f.touched=universeDate();}
+function feudProgress(id,v){const f=S.feuds.find(x=>x.id==id);if(!f)return;f.progress=v;feudTouch(f);(f.timeline=f.timeline||[]).push({id:uid(),date:universeDate(),text:'Progresso → '+(v>=100?'Final':v===0?'Início':v+'%')});save();draw();}
+function feudTlAdd(id){const f=S.feuds.find(x=>x.id==id),t=$('tlT'+id),d=$('tlD'+id);if(!f||!t||!t.value.trim())return;(f.timeline=f.timeline||[]).push({id:uid(),date:d&&d.value||universeDate(),text:t.value.trim()});feudTouch(f);save();draw();}
+function feudTlDel(id,eid){const f=S.feuds.find(x=>x.id==id);if(!f)return;f.timeline=(f.timeline||[]).filter(e=>e.id!==eid);save();draw();}
+function feudTlSync(id){const f=S.feuds.find(x=>x.id==id);if(!f)return;const ids=feudIds(f);if(ids.length<2)return;f.timeline=f.timeline||[];let n=0;
+  S.shows.forEach(sh=>(sh.matches||[]).forEach((m,i)=>{const ref=sh.id+'|'+i;if(f.timeline.some(e=>e.ref===ref))return;if(!ids.every(x=>(m.participants||[]).includes(x)))return;
+    f.timeline.push({id:uid(),date:sh.date||'',text:`${sh.name}: ${matchLine(m)}${m.result?' → '+m.result:''}${typeof m.stars==='number'?' ('+starTxt(m.stars)+')':''}`,ref});n++;}));
+  if(n){feudTouch(f);save();draw();}else alert('Nenhuma luta nova encontrada para esta rivalidade.');}
+
+function showSummary(sh){const ms=sh.matches||[],a=showAvg(sh);return {n:ms.length,avg:a?a.avg:null,lines:ms.map(m=>`${matchLine(m)}${m.result?' → '+m.result:' (sem resultado)'}${typeof m.stars==='number'?' · '+starTxt(m.stars):''}`)};}
+function archiveShow(id){const sh=S.shows.find(x=>x.id==id);if(!sh)return;if(!sh.completed){alert('Só é possível arquivar shows concluídos.');return;}sh.archived=true;save();draw();}
+function unarchiveShow(id){const sh=S.shows.find(x=>x.id==id);if(!sh)return;sh.archived=false;save();draw();}
+function archiveOld(){const n=+($('archM')||{}).value||6,lim=addMonths(universeDate(),-n);const l=S.shows.filter(sh=>sh.completed&&!sh.archived&&sh.date&&sh.date<lim&&brandsFor(sh).includes(B));
+  if(!l.length){alert('Nenhum show concluído com mais de '+n+' meses para arquivar em '+B+'.');return;}
+  if(!confirm('Arquivar '+l.length+' show(s) concluídos anteriores a '+fmtBR(lim)+'?\nPopularidade, estrelas e histórico continuam iguais; só saem da lista principal.'))return;
+  l.forEach(sh=>sh.archived=true);save();draw();}
+function archiveSection(b){
+  const arc=S.shows.filter(sh=>sh.archived&&brandsFor(sh).includes(b)).sort((x,y)=>(y.date||'').localeCompare(x.date||''));
+  const tools=`<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:6px"><span class="m">Arquivar shows concluídos com mais de</span><select id="archM"><option value="6">6 meses</option><option value="9">9 meses</option><option value="12">12 meses</option></select><button class="add" onclick="archiveOld()">📦 Arquivar antigos</button></div>`;
+  const body=arc.length?arc.map(sh=>{const sm=showSummary(sh);return `<details class="card" id="show-${sh.id}"><summary><b>${esc(sh.name)}</b> <span class="m">· ${sh.date?fmtBR(sh.date):'sem data'} · ${sm.n} lutas${sm.avg!=null?' · média '+starAvgTxt(sm.avg):''}</span></summary><div style="margin-top:8px">${sm.lines.map(x=>`<div class="m">• ${esc(x)}</div>`).join('')||'<div class="m">Sem lutas.</div>'}${sh.notes?`<div class="m" style="margin-top:6px">Notas: ${esc(sh.notes)}</div>`:''}<div class="row" style="margin-top:8px"><button class="add" onclick="unarchiveShow('${sh.id}')">↩ Desarquivar</button></div></div></details>`;}).join(''):'<div class="m">Nenhum show arquivado.</div>';
+  return dt('archive-'+b,`<span class="sh" style="margin:0">📦 ARQUIVO DE SHOWS · ${arc.length}</span>`,`<div class="m" style="margin:6px 0">Shows arquivados saem da lista principal e ficam só com resumo e resultados (abra para ver detalhes). Popularidade, estrelas e histórico continuam contando normalmente.</div>${tools}<div style="margin-top:8px">${body}</div>`);}
+
+/* ===== v2.2: mover vários (draft light) + oponentes sugeridos ===== */
+const MSEL=new Set();
+function selCb(id){return `<input type="checkbox" class="selcb" data-id="${id}" title="Selecionar" ${MSEL.has(id)?'checked':''} onclick="event.stopPropagation()" onchange="selTog('${id}',this.checked)">`;}
+function selTog(id,on){on?MSEL.add(id):MSEL.delete(id);updSelBar();}
+function selAllVisible(){document.querySelectorAll('.selcb').forEach(c=>{c.checked=true;MSEL.add(c.dataset.id);});updSelBar();}
+function selClear(){MSEL.clear();document.querySelectorAll('.selcb').forEach(c=>c.checked=false);updSelBar();}
+function updSelBar(){
+  let el=$('selBar');const ok=['roster','freeAgency','globalRoster'].includes(tab);
+  if(!MSEL.size||!ok){if(el)el.remove();return;}
+  if(!el){el=document.createElement('div');el.id='selBar';document.body.appendChild(el);}
+  const keep=el.querySelector('select')?el.querySelector('select').value:'';
+  el.innerHTML=`<b>${MSEL.size} selecionado${MSEL.size>1?'s':''}</b><select id="selTo">${BRS.map(b=>`<option value="${b}" ${b===keep?'selected':''}>${b==='Free Agency'?'🚪 Free Agency (dispensar)':'➡ '+b}</option>`).join('')}</select><button class="add" onclick="moveMany()">Mover</button><button class="add" onclick="selAllVisible()">Selecionar todos da tela</button><button class="add" onclick="selClear()">Limpar</button>`;}
+function moveMany(){
+  const to=($('selTo')||{}).value;if(!to)return;
+  const all=[...MSEL].map(id=>S.roster.find(r=>r.id===id)).filter(Boolean);
+  const champs=all.filter(r=>carry(r.id).length),skipSame=all.filter(r=>r.brand===to&&!carry(r.id).length);
+  const mv=all.filter(r=>r.brand!==to&&!carry(r.id).length);
+  if(!mv.length){alert('Nada para mover: os selecionados já estão em '+to+(champs.length?' ou são campeões atuais.':'.'));return;}
+  const inTeam=mv.filter(r=>teamFor(r.id).length||r.faction).length;
+  if(!confirm((to==='Free Agency'?'Dispensar para a Free Agency':'Mover para '+to)+' ('+mv.length+'):\n'+mv.map(r=>'• '+r.name+' ('+r.brand+')').join('\n')+(champs.length?'\n\nNão serão movidos (campeões atuais): '+champs.map(r=>r.name).join(', ')+'.':'')+(inTeam?'\n\nAtenção: '+inTeam+' deles fazem parte de time/facção da brand antiga.':'')))return;
+  const d=universeDate();
+  mv.forEach(r=>{(S.moves=S.moves||[]).unshift({date:d,id:r.id,name:r.name,from:r.brand,to,kind:to==='Free Agency'?'cut':'draft'});r.brand=to;});
+  MSEL.clear();save();draw();
+  const n=document.createElement('div');n.id='impactToast';n.textContent='✅ '+mv.length+' movido(s) para '+to+(champs.length?' · '+champs.length+' campeão(ões) ignorado(s)':'');n.onclick=()=>n.remove();document.body.appendChild(n);setTimeout(()=>n.remove(),5000);}
+
+function lastFaced(a,b){let d='';S.shows.forEach(sh=>{if(!sh.completed||!sh.date||sh.date<=d)return;if((sh.matches||[]).some(m=>(m.participants||[]).includes(a)&&(m.participants||[]).includes(b)))d=sh.date;});return d;}
+function bookingOpps(r,n){
+  if(!r||r.role!=='Lutador'||r.brand==='Free Agency')return [];
+  const pop=popularity(r.id),al=r.alignment||'Tweener',u=universeDate();
+  const busy=new Set();S.feuds.forEach(f=>{if(f.resolved||(f.status&&f.status!=='Ativa'))return;const ids=feudIds(f);if(ids.includes(r.id))ids.forEach(x=>busy.add(x));});
+  return S.roster.filter(x=>x.id!==r.id&&x.role==='Lutador'&&x.brand===r.brand&&x.division===r.division&&x.status!=='Lesionado'&&x.status!=='Ausente'&&!busy.has(x.id)).map(x=>{
+    const xp=popularity(x.id),dp=Math.abs(xp-pop),xa=x.alignment||'Tweener';
+    const opposite=(al==='Face'&&xa==='Heel')||(al==='Heel'&&xa==='Face'),tw=(al==='Tweener')!==(xa==='Tweener');
+    const lf=lastFaced(r.id,x.id),days=lf?dayDiff(u,lf):null;
+    let sc=Math.max(0,100-dp*3)+(opposite?25:tw?10:0)+(days==null?20:Math.min(days,120)/6-(days<14?15:0))+(starsInfo(x.id).adj-3)*3;
+    const why=`pop ${xp.toFixed(0)}% vs ${pop.toFixed(0)}% (dif. ${dp.toFixed(0)}) · ${xa} × ${al}${opposite?' (alinhamento oposto)':''} · ${days==null?'nunca se enfrentaram':'última luta entre eles há '+days+(days===1?' dia':' dias')}`;
+    return {r:x,score:sc,why};}).sort((a,b)=>b.score-a.score).slice(0,n||3);}
+function oppsHtml(r){const o=bookingOpps(r,3);if(!o.length)return '';
+  return `<div style="margin:8px 0"><div class="m" style="font-weight:800;letter-spacing:.06em">OPONENTES POSSÍVEIS</div>${o.map(x=>`<div class="opp"><div style="min-width:0"><b>${esc(x.r.name)}</b><div class="m">${esc(x.why)}</div></div><button class="add" onclick="bookingFeud('${r.id}','${x.r.id}')">🔥 Criar rivalidade</button></div>`).join('')}</div>`;}
+function bookingFeud(rid,oid){
+  const a=S.roster.find(x=>x.id===rid),b=S.roster.find(x=>x.id===oid);if(!a||!b)return;
+  const o=bookingOpps(a,10).find(x=>x.r.id===oid),sig=[rid,oid].sort().join('|');
+  if(S.feuds.some(f=>!f.resolved&&(!f.status||f.status==='Ativa')&&feudIds(f).slice().sort().join('|')===sig)){alert('Já existe uma rivalidade ativa entre eles.');return;}
+  if(!confirm('Criar rivalidade '+a.name+' vs '+b.name+'?'))return;
+  S.feuds.push({id:uid(),brand:a.brand,kind:'lutador',division:a.division||'Masculino',hasTitle:false,titleId:'',sideA:[rid],sideB:[oid],participants:[],a:rid,b:oid,status:'Ativa',notes:'Sugerida pelo booking: '+(o?o.why:'')+'.',goal:'',story:'',resolved:false,groups:{},progress:0,touched:universeDate(),timeline:[{id:uid(),date:universeDate(),text:'Rivalidade criada a partir da sugestão de booking.'}]});
+  save();draw();alert('Rivalidade criada! Veja na aba Rivalidades da '+a.brand+'.');}
+
+/* ===== v2.3: idioma (PT / EN) — tradução da interface sem alterar os dados ===== */
+let LANG=(()=>{try{return localStorage.getItem('universedesk_lang')==='en'?'en':'pt';}catch(e){return 'pt';}})();
+const I18N_RAW=`Seu universo. Seu booking. Sua história.|Your universe. Your booking. Your story.
+Escolha onde deseja continuar seu Universe Mode.|Choose where to continue your Universe Mode.
+ABRIR BRAND|OPEN BRAND
+Entrar na Home →|Enter Home →
+personagens sem contrato|characters without a contract
+Ver agentes livres →|View free agents →
+Elenco completo, equipes e facções|Full roster, teams and factions
+Abrir roster global →|Open global roster →
+CAMPEÕES & RANKINGS|CHAMPIONS & RANKINGS
+Todos os títulos e desafiantes|All titles and contenders
+Consultar →|Browse →
+Exportar e importar seus dados (.json)|Export and import your data (.json)
+Abrir backup →|Open backup →
+POPULARIDADE|POPULARITY
+Ranking geral do roster|Overall roster ranking
+Brand ativa · booking em andamento|Active brand · booking in progress
+HOME DA BRAND|BRAND HOME
+Home da brand|Brand home
+Home da|Home of
+Roster da brand|Brand roster
+Títulos|Titles
+Rivalidades|Feuds
+Tag Teams & Facções|Tag Teams & Factions
+Push pós-PPV|Post-PPV push
+Resumo|Summary
+Histórico|History
+ABRIR →|OPEN →
+Campeões|Champions
+Eventos no histórico|Events in history
+Rivalidades ativas|Active feuds
+PRÓXIMA SUGESTÃO DE BOOKING|NEXT BOOKING SUGGESTION
+Participação reduzida até melhorar|Reduced role until improved
+Destaque · booking de topo de card|Standout · top-of-card booking
+Em ascensão · meio de card em alta|Rising · hot mid-card
+Estável · manter no meio de card|Stable · keep in the mid-card
+Sem contrato · baixa demanda|No contract · low demand
+Sem contrato · bom candidato à contratação|No contract · good signing candidate
+Popularidade e estrelas abaixo da média do elenco.|Popularity and stars below the roster average.
+Estatísticas acima ou na média do elenco: vale contratar.|Stats at or above the roster average: worth signing.
+Contratar para|Sign for
+Raw ou SmackDown|Raw or SmackDown
+Raw, SmackDown ou NXT|Raw, SmackDown or NXT
+conforme a vaga e iniciar com 2–3 vitórias em TV para recuperar o momentum.|depending on the opening and start with 2–3 TV wins to regain momentum.
+Abaixo da média do elenco (|Below the roster average (
+Acima da média recente (|Above the recent average (
+Desempenho na média do elenco (|Performance at the roster average (
+de popularidade|popularity
+de aproveitamento|win rate
+Está com momentum.|Has momentum.
+Merece subir de degrau.|Deserves to move up a step.
+estrelas|stars
+e campeão atual|and current champion
+Campeão atual: fora das sugestões de push.|Current champion: excluded from push suggestions.
+Campeão atual.|Current champion.
+Aparições curtas: segmentos, promos e lutas de TV sem destaque; fora de títulos e de lutas principais de PPV.|Short appearances: segments, promos and low-key TV matches; out of titles and PPV main events.
+Reconstrução: vitória clara sobre|Rebuild: a clean win over
+um lutador de nível menor|a lower-level wrestler
+para reabrir a história.|to reopen the story.
+Meta para voltar a ter destaque: popularidade ≥|Goal to get back in the spotlight: popularity ≥
+e estrelas ≥|and stars ≥
+Mudança de alinhamento (|Alignment change (
+) para renovar o personagem:|) to refresh the character:
+abandona o público que "não o apoiou o suficiente"|abandons the crowd that "didn't support him enough"
+passa a ser o azarão que o público volta a abraçar|becomes the underdog the crowd embraces again
+Defesas de título em PPV contra|Title defenses at PPV against
+ e | and 
+, com reinado longo e vitórias limpas.|, with a long reign and clean wins.
+Disputa pelo|Challenge for the
+(campeão:|(champion:
+), construída em 3 shows com promos e luta em PPV.|), built over 3 shows with promos and a PPV match.
+Rivalidade principal com|Main feud with
+ao longo dos próximos 3 meses, fechando em luta de PPV.|over the next 3 months, closing with a PPV match.
+Espaço no main event de TV e promo de abertura ao menos 1 vez por mês.|Room in the TV main event and an opening promo at least once a month.
+Virada heel: traição a|Heel turn: betrayal of
+um aliado|an ally
+no auge do apoio do público — história de "quem te fez grande agora te abandona".|at the peak of crowd support — a story of "the one who made you big now abandons you".
+Virada face: o público já torce por ele; deixe os fãs "adotarem"|Face turn: the crowd already cheers for him; let the fans "adopt"
+após uma derrota injusta por interferência.|after an unfair loss by interference.
+Definir alinhamento (|Set alignment (
+) para dar direção clara ao personagem no topo.|) to give the character clear direction at the top.
+Rivalidade com|Feud with
+: dois confrontos em TV (um de cada lado vencendo) e luta decisiva em PPV.|: two TV encounters (one win for each side) and a decisive PPV match.
+Sequência de 2–3 vitórias em TV para firmar o nome e sustentar o crescimento.|A run of 2–3 TV wins to establish the name and sustain growth.
+Se mantiver o ritmo, disputar o|If the pace holds, challenge for the
+no próximo ciclo.|in the next cycle.
+Luta de TV regular e uma história curta com|A regular TV match and a short story with
+para testar a reação do público.|to test the crowd's reaction.
+Subir só se emendar boas lutas (≥ 3,5★) e vitórias nos próximos shows.|Move up only if he strings together good matches (≥ 3.5★) and wins in the next shows.
+Tag team com|Tag team with
+dividir o holofote ajuda a recuperar fôlego e a estar em lutas de PPV.|sharing the spotlight helps recover and get into PPV matches.
+abre a disputa pelos títulos de duplas.|opens the chase for the tag titles.
+Facção|Faction
+Facções|Factions
+BUSCA|SEARCH
+Busca|Search
+média do elenco|roster average
+como líder, dominando o meio de card.|as leader, dominating the mid-card.
+História sugerida:|Suggested story:
+passa a desprezar|starts to despise
+depois de roubar uma vitória;|after stealing a win;
+busca revanche limpa.|seeks a clean rematch.
+ataca|attacks
+nos bastidores para provar quem manda;|backstage to prove who is boss;
+a revanche vira o evento principal da semana.|the rematch becomes the main event of the week.
+disputam o respeito do vestiário — o vencedor decide de que lado vai ficar.|fight for the locker room's respect — the winner decides which side to be on.
+um rival da brand|a rival from the brand
+um rival da brand|a rival from the brand
+Gerada em|Generated on
+próxima renovação em|next renewal on
+(data do universo).|(universe date).
+Renovação:|Renewal:
+SUGESTÃO DE BOOKING · renovada a cada 3 meses|BOOKING SUGGESTION · renewed every 3 months
+OPONENTES POSSÍVEIS|POSSIBLE OPPONENTS
+(dif. |(diff. 
+alinhamento oposto|opposite alignment
+nunca se enfrentaram|have never faced each other
+última luta entre eles|last match between them:
+Aplicar: virar|Apply: turn
+Abrir ficha|Open profile
+Outra história|Another story
+Outra sugestão|Another suggestion
+Próximo lutador|Next wrestler
+Criar tag team sugerida|Create suggested tag team
+Criar facção sugerida|Create suggested faction
+Prioriza quem precisa de atenção (popularidade/estrelas, tempo sem lutar e renovação próxima).|Prioritizes who needs attention (popularity/stars, time without a match and upcoming renewal).
+SUGESTÕES DE PUSH|PUSH SUGGESTIONS
+Consideram popularidade e a média de estrelas das lutas; campeões atuais são excluídos.|They consider popularity and the average match stars; current champions are excluded.
+Construir momentum|Build momentum
+vitórias|wins
+vitória|win
+lutas|matches
+luta|match
+sem notas|no ratings
+CAMPEÕES DA BRAND|BRAND CHAMPIONS
+Nenhum campeão registrado.|No champion recorded.
+ÚLTIMOS SHOWS E PPVS|LATEST SHOWS AND PPVS
+Em booking|Being booked
+Concluído|Completed
+concluído|completed
+TAG TEAMS & FACÇÕES|TAG TEAMS & FACTIONS
+Abrir equipes e facções →|Open teams and factions →
+Dias desde a última luta (data do universo)|Days since the last match (universe date)
+Voltar à Home da|Back to the Home of
+Voltar à Home|Back to Home
+Voltar ao seletor Home →|Back to Home selector →
+Esta tela mostra apenas os personagens contratados pela brand selecionada. Popularidade começa em 50% (neutro), varia conforme resultados e títulos, e fica limitada entre 0% e 100%.|This screen shows only the characters signed to the selected brand. Popularity starts at 50% (neutral), changes with results and titles, and is capped between 0% and 100%.
+Total de personagens|Total characters
+Oficial WWE|Official WWE
+Oficial|Official
+Não definido|Not set
+Masculino|Male
+Feminino|Female
+Main Eventer|Main Eventer
+Midcard|Midcard
+Lowcard|Lowcard
+Adicionar|Add
+Use as fichas expansíveis para abrir o perfil completo. Filtre por papel e divisão no submenu no final da página.|Use the expandable cards to open the full profile. Filter by role and division in the submenu at the bottom of the page.
+personagens|characters
+popularidade|popularity
+FOTO DO PERSONAGEM|CHARACTER PHOTO
+📤 Enviar foto|📤 Upload photo
+URL ou envio do celular. A imagem é redimensionada automaticamente.|URL or upload from your phone. The image is resized automatically.
+Nome|Name
+Papel|Role
+Origem|Origin
+Divisão|Division
+Nível de card|Card level
+Alinhamento|Alignment
+Status|Status
+Ativo|Active
+Lesionado|Injured
+Ausente|Absent
+Em Desenvolvimento|In Development
+Estrelas do lutador (0–5, manual)|Wrestler stars (0–5, manual)
+Sem nota (automático)|No rating (automatic)
+Push manual (1-10)|Manual push (1-10)
+Sem manager|No manager
+ESTATÍSTICAS DE CARREIRA|CAREER STATS
+Lutas|Matches
+Vitórias|Wins
+Derrotas|Losses
+Empates|Draws
+Aproveitamento|Win rate
+Estrelas|Stars
+Reinados|Reigns
+Popularidade|Popularity
+Origem pendente|Origin pending
+HISTÓRICO DE TÍTULOS|TITLE HISTORY
+Ainda não há reinados registrados para este wrestler.|There are no reigns recorded for this wrestler yet.
+História atual|Current story
+Notas do booker|Booker's notes
+🗑 Remover|🗑 Remove
+Gerencia: ninguém ainda|Manages: nobody yet
+PAPEL|ROLE
+DIVISÃO|DIVISION
+ORDEM|ORDER
+Todos|All
+Todas|All
+Nível de card|Card level
+Popularidade|Popularity
+Mais tempo sem lutar|Longest without a match
+Nome do wrestler / manager|Wrestler / manager name
+Selecionar wrestler…|Select wrestler…
+Cole a URL da imagem|Paste the image URL
+Criar título|Create title
+CAMPEÃO ATUAL|CURRENT CHAMPION
+Vago|Vacant
+vago|vacant
+Campeão|Champion
+Campeã|Champion
+— vago / nenhum —|— vacant / none —
+Desde (data/ep.)|Since (date/ep.)
+Defesas|Defenses
+Ranking ·|Ranking ·
+Ninguém no ranking ainda.|Nobody in the ranking yet.
+HISTÓRICO DO TÍTULO · REINADOS|TITLE HISTORY · REIGNS
+Nenhum reinado registrado ainda.|No reign recorded yet.
+Novo título em|New title in
+Observações do título|Title notes
+NOVA RIVALIDADE|NEW FEUD
+Tipo|Type
+Lutador 1v1|1v1 Wrestler
+Triple / Four — Singles|Triple / Four — Singles
+Tag Team vs Tag Team|Tag Team vs Tag Team
+Triple / Four — Tag Teams|Triple / Four — Tag Teams
+Facção vs Facção|Faction vs Faction
+Envolve título?|Involves a title?
+Sim|Yes
+Não|No
+Título em jogo|Title at stake
+— escolher título|— choose title
+Resumo / storyline|Summary / storyline
+Objetivo / próximo passo|Goal / next step
+Pop: Singles (1v1 ou Triple/Four) vencedor +3.5 / cada perdedor −2. Tag ou Facção: cada membro da tag/facção vencedora +1.5 / perdedores −1.|Pop: Singles (1v1 or Triple/Four) winner +3.5 / each loser −2. Tag or Faction: each member of the winning tag/faction +1.5 / losers −1.
+Próximo passo / objetivo|Next step / goal
+História / momentos importantes|Story / key moments
+PROGRESSO DA RIVALIDADE|FEUD PROGRESS
+TIMELINE DE MOMENTOS|MOMENTS TIMELINE
+Início|Start
+Pausada|Paused
+Encerrada|Ended
+Ativa|Active
+Gancho da rivalidade|Feud hook
+Ex.: luta pelo título no PPV|E.g.: title match at the PPV
+Ex.: confronto no PPV|E.g.: showdown at the PPV
+Promo, traição, interferência, estipulação...|Promo, betrayal, interference, stipulation...
+Ex.: promo de ataque nos bastidores|E.g.: backstage attack promo
++ Momento|+ Moment
+↻ Importar lutas|↻ Import matches
+Adiciona as lutas já realizadas entre estes lutadores|Adds the matches already held between these wrestlers
+Nenhum momento registrado ainda.|No moments recorded yet.
+Sem avanço há|No progress for
+dias|days
+Progresso →|Progress →
+Origem:|Origin:
+não esqueça este ângulo.|don't forget this angle.
+resolvida|resolved
+CALENDÁRIO & EVENTOS|CALENDAR & EVENTS
+Nome do show / PPV|Show / PPV name
+Show semanal|Weekly show
+Data (opcional no show semanal)|Date (optional for weekly show)
+Show semanal sem data: usa automaticamente a mesma data da semana seguinte ao último show dessa brand (|Weekly show without a date: automatically uses the same date the week after that brand's last show (
+). Se você escolher uma data, ela vale e as próximas contam a partir dela.|). If you pick a date, it applies and the next ones count from it.
+Brands participantes|Participating brands
+Criar evento / card|Create event / card
+SHOWS SEMANAIS · DATAS AUTOMÁTICAS|WEEKLY SHOWS · AUTOMATIC DATES
+O próximo show de cada brand cai sempre 1 semana depois do último. Só preencha a data (calendário) se quiser uma data diferente.|Each brand's next show always falls 1 week after the last one. Only fill in the date (calendar) if you want a different date.
+Último:|Last:
+Próximo automático|Automatic next
+Sugestão|Suggestion
+Sem show ainda|No show yet
+Criar próximo|Create next
+Criar os três próximos|Create the next three
+Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.|Creates the special event for both Rumbles (men's and women's), each with 30 participants; then add each match by selecting the matching division. The winners are the WrestleMania challengers.
+Criar Royal Rumble|Create Royal Rumble
+TIPOS DE LUTA|MATCH TYPES
+Adicionar tipo|Add type
+Novo tipo de luta|New match type
+▾ Minimizar todos|▾ Minimize all
+▸ Expandir todos|▸ Expand all
+▾ Minimizar|▾ Minimize
+Média do show:|Show average:
+Resultado oficial|Official result
+Não registrado|Not recorded
+Vitória:|Win:
+Empate|Draw
+Estrelas da luta (0–5)|Match stars (0–5)
+Sem nota|No rating
+Notas da luta|Match notes
+Finalização, interferência, momento-chave...|Finish, interference, key moment...
+IMPACTO DESTE SHOW|IMPACT OF THIS SHOW
+Quanto cada lutador ganhou ou perdeu de popularidade e estrelas só com as lutas deste show.|How much popularity and stars each wrestler gained or lost from this show's matches alone.
+PRÉ-VISUALIZAÇÃO DO CARD|CARD PREVIEW
+🖼 Pôster|🖼 Poster
+☰ Lista|☰ List
+(montando…)|(building…)
+💡 Sugerir luta|💡 Suggest match
+Participantes|Participants
+Participante|Participant
+Sem título|No title
++ Adicionar luta|+ Add match
+Adicionar luta|Add match
+Notas do show / plano do booker|Show notes / booker's plan
+Promos, segmentos, decisões para as histórias...|Promos, segments, decisions for the stories...
+Reabrir show|Reopen show
+Marcar show concluído|Mark show completed
+📦 Arquivar este show|📦 Archive this show
+Ex.: Backlash|E.g.: Backlash
+Data manual (opcional)|Manual date (optional)
+Alterar a data deste show|Change this show's date
+Arraste para reordenar|Drag to reorder
+Subir|Move up
+Descer|Move down
+Criar rivalidade a partir desta luta?|Create a feud from this match?
+Rivalidade criada|Feud created
+🔥 Criar rivalidade|🔥 Create feud
+Nenhuma luta no card ainda.|No matches on the card yet.
+ARQUIVO DE SHOWS|SHOW ARCHIVE
+Shows arquivados saem da lista principal e ficam só com resumo e resultados (abra para ver detalhes). Popularidade, estrelas e histórico continuam contando normalmente.|Archived shows leave the main list and keep only a summary and results (open for details). Popularity, stars and history keep counting normally.
+Arquivar shows concluídos com mais de|Archive completed shows older than
+meses|months
+📦 Arquivar antigos|📦 Archive old
+Nenhum show arquivado.|No archived shows.
+↩ Desarquivar|↩ Unarchive
+sem resultado|no result
+média|average
+Notas:|Notes:
+Sem lutas.|No matches.
+Nenhum evento ainda. Crie um card ou gere a semana padrão.|No events yet. Create a card or generate the standard week.
+Nenhum evento no histórico.|No events in history.
+Ainda não há shows para esta brand.|There are no shows for this brand yet.
+Criar time|Create team
+Brand da equipe|Team brand
+Brand da facção|Faction brand
+Dissolvido|Disbanded
+Dissolvida|Disbanded
+Em formação|Forming
+Desde quando|Since when
+Membros|Members
+remover|remove
++ adicionar membro|+ add member
+🗑 Remover time|🗑 Remove team
+🗑 Remover faction|🗑 Remove faction
+FACÇÕES ·|FACTIONS ·
+Aliança|Alliance
+Criar|Create
+sem membros|no members
+Sem membros|No members
+Líder|Leader
+Inimigos principais|Main enemies
+Objetivo / história|Goal / story
+Nome do tag team em|Tag team name in
+Nome da faction em|Faction name in
+Nenhum tag team em|No tag team in
+Nenhuma faction em|No faction in
+Nenhuma rivalidade em|No feud in
+PUSH PÓS-PPV|POST-PPV PUSH
+Depois de marcar um PPV como concluído, o sistema sugere 2 homens + 2 mulheres (singles) e 2 tags masculinas + 2 tags femininas. Você escolhe quem recebe o push. O selecionado ganha multiplicador ×1.5 na popularidade até o próximo PPV.|After a PPV is marked as completed, the system suggests 2 men + 2 women (singles) and 2 men's tags + 2 women's tags. You choose who gets the push. The selected one gets a ×1.5 popularity multiplier until the next PPV.
+Gerar sugestões agora|Generate suggestions now
+Singles · Homens|Singles · Men
+Singles · Mulheres|Singles · Women
+Tag Team · Masculino|Tag Team · Male
+Tag Team · Feminino|Tag Team · Female
+sugestões|suggestions
+Sem sugestões. Conclua um PPV ou gere manualmente.|No suggestions. Complete a PPV or generate manually.
+Sem sugestões.|No suggestions.
+Cadastre tag teams masculinas para sugerir.|Register men's tag teams to get suggestions.
+Cadastre tag teams femininas para sugerir.|Register women's tag teams to get suggestions.
+Push ativo agora:|Active push now:
+Push ativo (×1.5 até próximo PPV)|Active push (×1.5 until next PPV)
+RESUMO HISTÓRICO|HISTORICAL SUMMARY
+Shows e PPVs|Shows and PPVs
+Concluídos|Completed
+RIVALIDADES|FEUDS
+RESULTADOS DE SHOWS E PPVS|SHOW AND PPV RESULTS
+Resultado:|Result:
+Janeiro|January
+Fevereiro|February
+Março|March
+Abril|April
+Maio|May
+Junho|June
+Julho|July
+Agosto|August
+Setembro|September
+Outubro|October
+Novembro|November
+Dezembro|December
+eventos|events
+EVENTOS:|EVENTS:
+Principais acontecimentos|Main events
+Mudanças de título / campeões|Title changes / champions
+Notas / impacto na história|Notes / impact on the story
+Sem rivalidades registradas.|No feuds recorded.
+DOWNGRADE PARA A NXT|DOWNGRADE TO NXT
+Sugere 1 homem e 1 mulher de Raw/SmackDown com o pior desempenho: poucas vitórias, estrelas baixas nas lutas e popularidade baixa (35% popularidade · 35% estrelas · 30% vitórias). Campeões atuais e lesionados não entram. Wrestlers sem lutas avaliadas contam como nota neutra (3,0).|Suggests 1 man and 1 woman from Raw/SmackDown with the worst performance: few wins, low match stars and low popularity (35% popularity · 35% stars · 30% wins). Current champions and injured wrestlers are excluded. Wrestlers without rated matches count as a neutral score (3.0).
+HOMEM SUGERIDO|SUGGESTED MAN
+MULHER SUGERIDA|SUGGESTED WOMAN
+SUGESTÃO|SUGGESTION
+Mandar para a NXT|Send to NXT
+Outros candidatos|Other candidates
+pior nota|worst score
+REVISÃO DA NXT · A CADA 6 MESES|NXT REVIEW · EVERY 6 MONTHS
+Revisão da NXT|NXT Review
+A cada 6 meses (pela data dos shows do universo) sugere dispensar os 2 piores homens e as 2 piores mulheres da NXT, pela pior combinação de popularidade, estrelas das lutas e vitórias. Campeões e lesionados ficam de fora. "Demitir" envia o lutador para a Free Agency.|Every 6 months (by the universe's show dates) it suggests releasing the 2 worst men and 2 worst women on NXT, by the worst combination of popularity, match stars and wins. Champions and injured wrestlers are excluded. "Fire" sends the wrestler to Free Agency.
+REVISÃO DISPONÍVEL|REVIEW AVAILABLE
+desde|since
+(data do universo:|(universe date:
+Concluir revisão (reinicia 6 meses)|Finish review (restarts 6 months)
+HOMENS · PIORES DA NXT|MEN · WORST ON NXT
+MULHERES · PIORES DA NXT|WOMEN · WORST ON NXT
+Demitir|Fire
+Manter|Keep
+ROSTER GLOBAL · VISÃO GERAL|GLOBAL ROSTER · OVERVIEW
+Todos os personagens por divisão. Toque em um personagem para abrir o perfil completo e editar (nome, brand, status, foto, etc.).|All characters by division. Tap a character to open the full profile and edit (name, brand, status, photo, etc.).
+HOMENS|MEN
+MULHERES|WOMEN
+FACÇÕES|FACTIONS
+Brand da equipe:|Team brand:
+Brand:|Brand:
+Visão completa de todos os personagens|Complete view of all characters
+Agentes livres e contratos|Free agents and contracts
+SEM CONTRATO|NO CONTRACT
+PERSONAGENS SEM CONTRATO|CHARACTERS WITHOUT A CONTRACT
+Toque em um personagem para abrir o perfil, editar, trocar de brand (contratar) ou remover.|Tap a character to open the profile, edit, change brand (sign) or remove.
+Roster global →|Global roster →
+Backup do Universe|Universe Backup
+SIM, salva automaticamente neste navegador (localStorage). Não some ao fechar a aba. Cuidado: limpar dados do site, outro navegador ou modo anônimo apaga tudo. Faça backup JSON com frequência. Copie abaixo ou baixe o arquivo; para restaurar, cole e toque em Importar.|YES, it saves automatically in this browser (localStorage). It doesn't disappear when you close the tab. Careful: clearing site data, another browser or incognito mode erases everything. Make JSON backups often. Copy below or download the file; to restore, paste and tap Import.
+Baixar backup (.json)|Download backup (.json)
+Importar backup (texto colado)|Import backup (pasted text)
+Importar arquivo (.json)|Import file (.json)
+Cópias automáticas (neste aparelho)|Automatic copies (on this device)
+O app guarda sozinho as últimas 3 versões (no máx. 1 a cada 30 min) + cópias de segurança feitas antes de importar/restaurar.|The app automatically keeps the last 3 versions (at most 1 every 30 min) + safety copies made before importing/restoring.
+Restaurar último backup automático|Restore last automatic backup
+Restaurar|Restore
+automática|automatic
+antes de importar|before import
+antes de restaurar|before restore
+lutadores|wrestlers
+BUSCA GLOBAL|GLOBAL SEARCH
+Procura em todas as brands: roster (inclui Free Agency), títulos, rivalidades, shows e lutas, tag teams e facções.|Searches all brands: roster (includes Free Agency), titles, feuds, shows and matches, tag teams and factions.
+Digite para buscar. Dica: use várias palavras (ex.: "raw campeão", "backlash 2026", "heel smackdown").|Type to search. Tip: use several words (e.g.: "raw champion", "backlash 2026", "heel smackdown").
+Lutador, título, rivalidade, show, time, facção…|Wrestler, title, feud, show, team, faction…
+LUTADORES / PERSONAGENS|WRESTLERS / CHARACTERS
+TÍTULOS|TITLES
+SHOWS E LUTAS|SHOWS AND MATCHES
+Nada encontrado.|Nothing found.
+resultados — refine a busca.|results — refine your search.
+· Campeão:|· Champion:
+Últimas|Latest
+⏱ Última luta:|⏱ Last match:
+⏱ Sem lutas registradas|⏱ No matches recorded
+⏱ nunca lutou|⏱ never fought
+nunca lutou|never fought
+Sem lutas registradas|No matches recorded
+derrotas seguidas|losses in a row
+Cuidado com o jobber eterno|Beware of the eternal jobber
+Dias desde a última luta|Days since the last match
+📊 Impacto da alteração|📊 Change impact
+toque para fechar|tap to close
+outros|others
+movido(s) para|moved to
+campeão(ões) ignorado(s)|champion(s) ignored
+selecionado|selected
+selecionados|selected
+Mover|Move
+Selecionar todos da tela|Select all on screen
+Limpar|Clear
+🚪 Free Agency (dispensar)|🚪 Free Agency (release)
+⚠ O salvamento automático FALHOU (armazenamento cheio ou bloqueado). Suas alterações recentes podem ser perdidas — baixe um backup agora na aba 💾 BACKUP.|⚠ Automatic saving FAILED (storage full or blocked). Your recent changes may be lost — download a backup now in the 💾 BACKUP tab.
+⚠️ O salvamento automático FALHOU (armazenamento cheio ou bloqueado). Suas alterações recentes podem ser perdidas — baixe um backup agora na aba 💾 BACKUP.|⚠️ Automatic saving FAILED (storage full or blocked). Your recent changes may be lost — download a backup now in the 💾 BACKUP tab.
+Baixar backup|Download backup
+Nenhuma cópia automática ainda. A primeira é criada ao salvar alterações.|No automatic copy yet. The first one is created when changes are saved.
+Cópias automáticas indisponíveis neste navegador.|Automatic copies unavailable in this browser.
+Preencher com time cadastrado (opcional)|Fill with a registered team (optional)
+Escolher time|Choose team
+Time cadastrado (opcional)|Registered team (optional)
+Time|Team
+GRUPO|GROUP
+Nº de times|No. of teams
+Lutadores por time|Wrestlers per team
+Pessoas na promo (1–3)|People in the promo (1–3)
+Royal Rumble: 30 participantes obrigatórios|Royal Rumble: 30 participants required
+Entrada|Entry
+30 PARTICIPANTES|30 PARTICIPANTS
+Vitória: Time|Win: Team
+Promo:|Promo:
+Remover o tipo de luta|Remove the match type
+Remover o título|Remove the title
+Vencedor da Royal Rumble|Royal Rumble winner
+Vencedor ganha uma oportunidade pelo título na WrestleMania.|Winner gets a title opportunity at WrestleMania.
+Vencedores recebem uma oportunidade pelo título na WrestleMania.|Winners get a title opportunity at WrestleMania.
+— oportunidade pelo título na WrestleMania.|— title opportunity at WrestleMania.
+Triple Threat ou Fatal 4-Way —|Triple Threat or Fatal 4-Way —
+Triple Threat ou Fatal 4-Way de|Triple Threat or Fatal 4-Way of
+Criada a partir da luta|Created from match
+Criada pela sugestão de booking.|Created by the booking suggestion.
+Rivalidade criada a partir da sugestão de booking.|Feud created from the booking suggestion.
+Sugerida pelo booking:|Suggested by booking:
+resultado:|result:
+Criar a facção|Create the faction
+Criar a tag team|Create the tag team
+Mudar o alinhamento de|Change the alignment of
+Mover para|Move to
+Dispensar para a Free Agency|Release to Free Agency
+Cópia restaurada.|Copy restored.
+Cópia não encontrada.|Copy not found.
+Nenhum backup automático disponível.|No automatic backup available.
+Restaurar a cópia de|Restore the copy from
+Os dados atuais serão substituídos (uma cópia deles será guardada antes).|Current data will be replaced (a copy of it will be kept first).
+ATENÇÃO: importar vai SUBSTITUIR todos os dados atuais.|WARNING: importing will REPLACE all current data.
+Atual:|Current:
+Importado com sucesso!|Imported successfully!
+Importação cancelada.|Import cancelled.
+JSON inválido:|Invalid JSON:
+Erro ao importar:|Error importing:
+Erro ao restaurar:|Error restoring:
+Não consegui ler o arquivo.|Could not read the file.
+o arquivo não é um backup do Universe Desk|the file is not a Universe Desk backup
+Continuar?|Continue?
+Concluir a revisão de hoje? A próxima será daqui a 6 meses.|Finish today's review? The next one will be in 6 months.
+Escolha 3 ou 4 duplas.|Choose 3 or 4 teams.
+Escolha 3 ou 4 lutadores. Não é tag team — cada um luta por si.|Choose 3 or 4 wrestlers. It's not a tag team — everyone fights for themselves.
+Escolha duas facções diferentes.|Choose two different factions.
+Escolha os lutadores (ou um time) de cada lado.|Choose the wrestlers (or a team) for each side.
+Escolha os lutadores de cada dupla — com ou sem time cadastrado.|Choose the wrestlers of each team — with or without a registered team.
+Escolha uma imagem.|Choose an image.
+Escolha dois lutadores diferentes.|Choose two different wrestlers.
+Cada dupla precisa de pelo menos 2 lutadores.|Each team needs at least 2 wrestlers.
+Já existe um Royal Rumble nessa data.|A Royal Rumble already exists on that date.
+Já existe uma rivalidade ativa com esses lutadores.|There is already an active feud with those wrestlers.
+Já existe uma rivalidade ativa entre eles.|There is already an active feud between them.
+Nada para mover: os selecionados já estão em|Nothing to move: the selected ones are already in
+ou são campeões atuais.|or are current champions.
+Nenhum show concluído com mais de|No completed show older than
+meses para arquivar em|months to archive in
+Nenhuma luta nova encontrada para esta rivalidade.|No new matches found for this feud.
+Preencha todos os lutadores de cada grupo, sem repetir ninguém.|Fill in all wrestlers of each group, without repeating anyone.
+Selecione pelo menos uma brand.|Select at least one brand.
+Selecione 30 wrestlers diferentes para a Rumble|Select 30 different wrestlers for the Rumble
+wrestlers diferentes para esta luta.|different wrestlers for this match.
+Selecione|Select
+Só é possível arquivar shows concluídos.|Only completed shows can be archived.
+O mesmo lutador não pode estar nos dois lados.|The same wrestler cannot be on both sides.
+O time vencedor não está cadastrado em Tag Teams. Cadastre o time para atribuir o título.|The winning team is not registered in Tag Teams. Register the team to assign the title.
+Triple/Four Singles precisa de 3 ou 4 lutadores.|Triple/Four Singles needs 3 or 4 wrestlers.
+Um lutador aparece em mais de uma dupla.|A wrestler appears in more than one team.
+Uma rivalidade precisa de pelo menos 2 lados.|A feud needs at least 2 sides.
+Rivalidades suportam até 4 lados; esta luta tem|Feuds support up to 4 sides; this match has
+Rivalidade criada! Veja na aba Rivalidades da|Feud created! See it in the Feuds tab of
+já foi adicionada. Remova a luta existente para recriá-la.|was already added. Remove the existing match to recreate it.
+já tem show semanal em|already has a weekly show on
+Sem rivalidade ativa disponível — sugestão por popularidade:|No active feud available — popularity-based suggestion:
+Sem sugestão: nenhuma rivalidade ativa livre (ou todos já estão no card).|No suggestion: no free active feud (or everyone is already on the card).
+Rivalidade ativa:|Active feud:
+popularidade média|average popularity
+valendo título|title on the line
+ — clique de novo para outra)| — click again for another)
+sugestão|suggestion
+Importado|Imported
+deles fazem parte de time/facção da brand antiga.|of them are part of a team/faction from the old brand.
+Atenção:|Attention:
+Não serão movidos (campeões atuais):|Will not be moved (current champions):
+Data não definida|Date not set
+Histórico anterior|Previous history
+Cancelar|Cancel
+Salvar|Save
+Editar|Edit
+Sem data|No date
+sem data|no date
+ninguém|nobody
+Tipo de luta|Match type
+Luta|Match
+dia|day
+Lutador|Wrestler
+Remover|Remove
+Selecionar|Select
+Criar rivalidade|Create feud`;
+const I18N=(()=>{
+  const m=new Map();
+  I18N_RAW.split('\n').forEach(l=>{const i=l.indexOf('|');if(i<1)return;const k=l.slice(0,i),v=l.slice(i+1);m.set(k,v);const ku=k.toUpperCase();if(ku!==k&&!m.has(ku))m.set(ku,v.toUpperCase());});
+  const keys=[...m.keys()].sort((a,b)=>b.length-a.length);
+  const esc=k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const L='\\p{L}';
+  const src=keys.map(k=>(/^\p{L}/u.test(k)?'(?<!['+L+'])':'')+esc(k)+(/\p{L}$/u.test(k)?'(?!['+L+'])':'')).join('|');
+  return {map:m,re:new RegExp(src,'gu')};
+})();
+const WKD={dom:'Sun',seg:'Mon',ter:'Tue',qua:'Wed',qui:'Thu',sex:'Fri','sáb':'Sat'};
+function trText(t){
+  if(!t||!/[A-Za-zÀ-ú0-9]/.test(t))return t;
+  let s=t.replace(/há (\d+) (dias?)\b/g,(x,n,u)=>n+' '+(+n===1?'day':'days')+' ago');
+  s=s.replace(I18N.re,x=>I18N.map.get(x)||x);
+  return s.replace(/(\d+) sem\b/g,'$1 wk')
+    .replace(/\((dom|seg|ter|qua|qui|sex|sáb)\)/g,(x,d)=>'('+WKD[d]+')')
+    .replace(/\bTime ([A-F])\b/g,'Team $1')
+    .replace(/(\d{2})\/(\d{2})\/(\d{4})/g,'$2/$1/$3')
+    .replace(/(\d),(\d)/g,'$1.$2');
+}
+const _otr=new WeakMap();
+function trNode(n){
+  const v=n.nodeValue,c=_otr.get(n);if(c&&c.en===v)return;
+  const en=trText(v);if(en===v)return;
+  const p=n.parentNode;if(p&&p.tagName==='OPTION'&&!p.hasAttribute('value'))p.setAttribute('value',v.trim().replace(/\s+/g,' '));
+  _otr.set(n,{pt:v,en});n.nodeValue=en;}
+function translateAll(root){
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentNode;return p&&/^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(p.tagName)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;}});
+  const l=[];let n;while(n=w.nextNode())l.push(n);l.forEach(trNode);
+  root.querySelectorAll('[placeholder],[title]').forEach(e=>['placeholder','title'].forEach(a=>{const v=e.getAttribute(a);if(!v)return;const k='data-pt-'+a;if(e.hasAttribute(k)&&e.getAttribute(a)===trText(e.getAttribute(k)))return;const en=trText(v);if(en!==v){e.setAttribute(k,v);e.setAttribute(a,en);}}));
+}
+let _mo=null,_raf=0;
+function trAll(){if(_mo)_mo.disconnect();try{translateAll(document.body);}finally{if(_mo)_mo.observe(document.body,{childList:true,subtree:true,characterData:true});}}
+function startTr(){if(_mo)return;_mo=new MutationObserver(()=>{if(_raf)return;_raf=requestAnimationFrame(()=>{_raf=0;trAll();});});_mo.observe(document.body,{childList:true,subtree:true,characterData:true});}
+function stopTr(){if(_mo){_mo.disconnect();_mo=null;}}
+function setLang(l){LANG=l==='en'?'en':'pt';try{localStorage.setItem('universedesk_lang',LANG);}catch(e){}
+  document.documentElement.lang=LANG==='en'?'en':'pt-BR';const sw=$('saveWarn');if(sw)sw.remove();
+  if(LANG==='en')startTr();else stopTr();draw();updSaveWarn();if(LANG==='en')trAll();}
+(function(){const a=window.alert.bind(window),c=window.confirm.bind(window);
+  window.alert=m=>a(LANG==='en'?trText(String(m)):m);window.confirm=m=>c(LANG==='en'?trText(String(m)):m);})();
 function matchLine(m){if(m.matchType==='Promo')return '🎤 Promo: '+(m.participants||[]).map(nm).join(' · ');return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
 function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
 function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
@@ -1443,7 +2222,7 @@ window.onNativeImport = function (txt) { imp(txt); };
 
 function profileCard(r,showBrand){
         const k="'roster','"+r.id+"'", fc=S.factions.find(f=>f.id==r.faction), cl=S.roster.filter(x=>x.manager==r.id), z=statsFor(r.id), pop=popularity(r.id), held=carry(r.id).length>0;
-        return dt('profile-'+r.id,`<div class="row">${avHtml(r,false)}<div style="flex:1;min-width:0"><div class="row"><span class="t">${r.role==='Manager'?'🎩 ':''}${esc(r.name)}</span><span class="sp"></span>${r.role==='Lutador'?tag(pop+'% popularidade',pop>=70?'face':''):''}</div><div class="row" style="margin-top:5px">${r.role==='Lutador'?tag(r.alignment||'Tweener',(r.alignment||'Tweener')==='Face'?'face':(r.alignment||'Tweener')==='Heel'?'heel':''):''}${tag(r.role==='Manager'?'Manager':r.card)}${r.role==='Lutador'?tag(r.origin==='CAW'?'CAW':r.origin==='Oficial WWE'?'Oficial':'Origem pendente'):''}${showBrand?tag('📍 '+r.brand):''}${tag(r.division)}${r.status!=='Ativo'?tag(r.status,'heel'):''}${fc?tag(fc.name):''}${teamFor(r.id).map(t=>tag('👥 '+t.name)).join('')}${r.manager?tag('🎩 '+nm(r.manager)):''}${trophies(r.id)}</div></div></div>`,
+        return dt('profile-'+r.id,`<div class="row">${selCb(r.id)}${avHtml(r,false)}<div style="flex:1;min-width:0"><div class="row"><span class="t">${r.role==='Manager'?'🎩 ':''}${esc(r.name)}</span><span class="sp"></span>${r.role==='Lutador'?tag(pop+'% popularidade',pop>=70?'face':''):''}</div><div class="row" style="margin-top:5px">${r.role==='Lutador'?idleTag(r.id)+chgChip(r.id)+tag(r.alignment||'Tweener',(r.alignment||'Tweener')==='Face'?'face':(r.alignment||'Tweener')==='Heel'?'heel':''):''}${tag(r.role==='Manager'?'Manager':r.card)}${r.role==='Lutador'?tag(r.origin==='CAW'?'CAW':r.origin==='Oficial WWE'?'Oficial':'Origem pendente'):''}${showBrand?tag('📍 '+r.brand):''}${tag(r.division)}${r.status!=='Ativo'?tag(r.status,'heel'):''}${fc?tag(fc.name):''}${teamFor(r.id).map(t=>tag('👥 '+t.name)).join('')}${r.manager?tag('🎩 '+nm(r.manager)):''}${trophies(r.id)}</div></div></div>`,
         `<div class="photo-box">${avHtml(r,true)}<div class="fl"><span class="m">FOTO DO PERSONAGEM</span>
         <input placeholder="Cole a URL da imagem" value="${r.photo&&String(r.photo).startsWith('data:')?'':esc(r.photo||'')}" onchange="setPhotoUrl('${r.id}',this.value)">
         <div class="photo-actions">
@@ -1457,6 +2236,9 @@ function profileCard(r,showBrand){
 }
 
 const V = {
+  search() {
+    return `<div class="card"><div class="sh">BUSCA GLOBAL</div><input class="f" id="gq" type="search" autocomplete="off" placeholder="Lutador, título, rivalidade, show, time, facção…" value="${esc(GQ)}" oninput="gSearch(this.value)"><div class="m" style="margin-top:6px">Procura em todas as brands: roster (inclui Free Agency), títulos, rivalidades, shows e lutas, tag teams e facções.</div></div><div id="gres">${gResults(GQ)}</div>`;
+  },
   landing() {
     const brands=BRS.filter(b=>b!=='Free Agency');
     const free=S.roster.filter(r=>r.brand==='Free Agency');
@@ -1487,6 +2269,7 @@ const V = {
     const suggestions=roster.filter(r=>!carry(r.id).length).sort((a,c)=>pushWeight(c)-pushWeight(a)).slice(0,5);
     return `<section class="sec" style="--c:${COL[b]}"><div class="sh">${b.toUpperCase()} · BRAND HQ</div><div class="g"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${champs.length}</b><div class="m">Campeões</div></div><div><b>${shows.length}</b><div class="m">Eventos no histórico</div></div><div><b>${feuds.filter(f=>f.status!=='Encerrada').length}</b><div class="m">Rivalidades ativas</div></div></div><div class="g" style="margin-top:14px"></div></section>
       
+      ${heroBooking(b)}
       <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Consideram popularidade e a média de estrelas das lutas; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias · ${starLine(r.id)}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
       <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas${s.completed&&showAvg(s)?' · média '+starAvgTxt(showAvg(s).avg):''}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
       <div class="card"><div class="sh">TAG TEAMS & FACÇÕES</div><div class="rw"><span>Tag Teams</span><span class="sp"></span><b>${teams.length}</b></div><div class="rw"><span>Facções</span><span class="sp"></span><b>${facs.length}</b></div><button class="add" style="margin-top:10px" onclick="go('teams')">Abrir equipes e facções →</button></div>${b==='Free Agency'?`<div class="card"><div class="sh">MEMBROS EM OUTRAS BRANDS</div>${S.teams.map(t=>{const members=(t.members||[]).map(id=>S.roster.find(r=>r.id==id)).filter(Boolean);return members.length?`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${members.map(r=>esc(r.name)+' · '+esc(r.brand)).join(' / ')}</div></div><span class="sp"></span>${tag(members.some(r=>r.brand==='Free Agency')?'Parte na Free Agency':'Todos alocados')}</div>`:''}).join('')||em('Nenhuma equipe cadastrada.')}</div>`:''}`;
@@ -1506,7 +2289,7 @@ const V = {
   globalRoster() {
     const wrestlers=S.roster.filter(r=>r.role==='Lutador'&&(!G.d||r.division===G.d)), managers=S.roster.filter(r=>r.role==='Manager'&&(!G.d||r.division===G.d));
     const teamsF=S.teams.filter(t=>!G.d||(t.members||[]).some(id=>(S.roster.find(r=>r.id===id)||{}).division===G.d)), facsF=S.factions.filter(f=>!G.d||S.roster.some(r=>r.faction===f.id&&r.division===G.d));
-    const card=r=>{const title=carry(r.id).map(t=>t.name).join(', ')||'Sem título';const teams=teamFor(r.id).map(t=>t.name).join(', ')||'—';const faction=S.factions.find(f=>f.id===r.faction);return `<div class="rw">${avHtml(r,false)}<div style="flex:1;min-width:0"><span class="t">${esc(r.name)}</span><div class="m">${esc(r.brand)} · ${esc(title)}</div><div class="m">Tag Team: ${esc(teams)} · Facção: ${esc(faction?faction.name:'—')}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`;};
+    const card=r=>{const title=carry(r.id).map(t=>t.name).join(', ')||'Sem título';const teams=teamFor(r.id).map(t=>t.name).join(', ')||'—';const faction=S.factions.find(f=>f.id===r.faction);return `<div class="rw">${selCb(r.id)}${avHtml(r,false)}<div style="flex:1;min-width:0"><span class="t">${esc(r.name)}</span><div class="m">${esc(r.brand)} · ${esc(title)}</div>${r.role==='Lutador'?idleTag(r.id)+chgChip(r.id):''}<div class="m">Tag Team: ${esc(teams)} · Facção: ${esc(faction?faction.name:'—')}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`;};
     return `<div class="card"><div class="sh">ROSTER GLOBAL · VISÃO GERAL</div><div class="m">Todos os personagens por divisão. Toque em um personagem para abrir o perfil completo e editar (nome, brand, status, foto, etc.).</div><div class="g" style="margin-top:12px"><div><b>${wrestlers.length}</b><div class="m">Wrestlers</div></div><div><b>${managers.length}</b><div class="m">Managers</div></div><div><b>${teamsF.length}</b><div class="m">Tag Teams</div></div><div><b>${facsF.length}</b><div class="m">Facções</div></div></div></div>${G.r==='Manager'||G.d==='Feminino'?'':`<section class="sec" style="--c:#e11d2e"><div class="sh">HOMENS</div>${wrestlers.filter(r=>r.division==='Masculino').length?wrestlers.filter(r=>r.division==='Masculino').sort(sorter(G.o)).map(r=>profileCard(r,true)).join(''):em('Nenhum wrestler masculino cadastrado.')}</section>`}${G.r==='Manager'||G.d==='Masculino'?'':`<section class="sec" style="--c:#d94f9b"><div class="sh">MULHERES</div>${wrestlers.filter(r=>r.division==='Feminino').length?wrestlers.filter(r=>r.division==='Feminino').sort(sorter(G.o)).map(r=>profileCard(r,true)).join(''):em('Nenhuma wrestler feminina cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">TAG TEAMS</div>${teamsF.length?teamsF.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">Brand da equipe: ${esc(t.brand)} · ${(t.members||[]).map(nm).map(esc).join(' / ')||'Sem membros'}</div></div></div>`).join(''):em('Nenhuma tag team cadastrada.')}</section>`}${G.r==='Manager'?'':`<section class="sec"><div class="sh">FACÇÕES</div>${facsF.length?facsF.map(f=>`<div class="rw"><div><span class="t">${esc(f.name)}</span><div class="m">Brand: ${esc(f.brand)} · ${esc(f.tipo||'Stable')} · ${esc(S.roster.filter(r=>r.faction===f.id).map(r=>r.name).join(', ')||'Sem membros')}</div></div></div>`).join(''):em('Nenhuma facção cadastrada.')}</section>`}${G.r==='Lutador'?'':`<section class="sec"><div class="sh">MANAGERS</div>${managers.length?managers.slice().sort(sorter(G.o)).map(r=>profileCard(r,true)).join(''):em('Nenhum manager cadastrado.')}</section>`}${filterMenu('g','#35c9a5')}`;
   },
   titles() {
@@ -1622,10 +2405,11 @@ const V = {
     (l.length ? l.map(f => {
       const titleName = f.hasTitle && f.titleId ? (S.titles.find(t=>t.id===f.titleId)||{}).name : '';
       return `<div class="card">
-      <div class="row"><span class="t">${feudLabel(f)}</span><span class="sp"></span>${tag(kindTag(f.kind||'lutador'))}${tag(f.division||'Masculino')}${f.hasTitle?tag('🏆 '+(titleName||'Título'),'face'):''}${tag(f.status||'Ativa',f.status==='Encerrada'?'face':'')}<button class="x" onclick="del('feuds','${f.id}')">✕</button></div>
+      <div class="row"><span class="t">${feudLabel(f)}</span><span class="sp"></span>${tag(kindTag(f.kind||'lutador'))}${tag(f.division||'Masculino')}${f.hasTitle?tag('🏆 '+(titleName||'Título'),'face'):''}${tag((f.progress||0)>=100?'Final':(f.progress||0)+'%')}${tag(f.status||'Ativa',f.status==='Encerrada'?'face':'')}<button class="x" onclick="del('feuds','${f.id}')">✕</button></div>
       ${feudPosters(f)}
       ${f.notes ? `<div class="m" style="margin:6px 0 10px">${esc(f.notes)}</div>` : ''}
       <div class="g" style="margin-top:10px">${fld('Próximo passo / objetivo',`<input value="${esc(f.goal||'')}" placeholder="Ex.: confronto no PPV" onchange="feudEdit('${f.id}','goal',this.value)">`)}${fld('História / momentos importantes',`<textarea rows="3" placeholder="Promo, traição, interferência, estipulação..." onchange="feudEdit('${f.id}','story',this.value)">${esc(f.story||'')}</textarea>`)}</div>
+      ${feudProgressHtml(f)}
       <div class="row" style="margin-top:10px;gap:10px;flex-wrap:wrap">
         ${sel(['Ativa','Pausada','Encerrada'],f.status,`onchange="st('feuds','${f.id}','status',this.value,1)"`)}
         ${resolveButtons(f)}
@@ -1635,14 +2419,14 @@ const V = {
   },
 
   shows() {
-    const l=S.shows.filter(s=>brandsFor(s).includes(B));
+    const l=S.shows.filter(s=>brandsFor(s).includes(B)&&!s.archived);
     return `<div class="card"><div class="sh">CALENDÁRIO & EVENTOS</div><div class="g">${fld('Nome do show / PPV',`<input class="f" id="sn" placeholder="Ex.: Backlash">`)}${fld('Tipo',`<select id="st" onchange="document.getElementById('ppvBrands').style.display=this.value==='PPV'?'grid':'none'"><option>Show semanal</option><option>PPV</option></select>`)}${fld('Data (opcional no show semanal)',`<input id="sd" type="date">`)}</div><div class="m" style="margin-top:6px">Show semanal sem data: usa automaticamente a mesma data da semana seguinte ao último show dessa brand (${esc(B)}: ${nextWeekly(B).date?fmtBR(nextWeekly(B).date)+' ('+dow(nextWeekly(B).date)+')':'—'}). Se você escolher uma data, ela vale e as próximas contam a partir dela.</div><div id="ppvBrands" class="g" style="display:none;margin-top:10px">${fld('Brands participantes',BRS.slice(0,3).map(b=>`<label><input type="checkbox" name="ppvbrand" value="${b}" ${b===B?'checked':''}> ${b}</label>`).join(''))}</div><button class="add" style="margin-top:10px" onclick="addShow()">Criar evento / card</button></div>
     <div class="card"><div class="sh">SHOWS SEMANAIS · DATAS AUTOMÁTICAS</div><div class="m" style="margin-bottom:10px">O próximo show de cada brand cai sempre 1 semana depois do último. Só preencha a data (calendário) se quiser uma data diferente.</div>${['Raw','SmackDown','NXT'].map(b=>{const n=nextWeekly(b);return `<div class="row" style="margin-bottom:8px;flex-wrap:wrap"><div style="min-width:170px"><div class="t">${b}</div><div class="m">${n.last?'Último: '+fmtBR(n.last)+' ('+dow(n.last)+') · ':'Sem show ainda · '}${n.auto?'Próximo automático':'Sugestão'}: ${fmtBR(n.date)} (${dow(n.date)})</div></div><span class="sp"></span><input id="wk${b}" type="date" title="Data manual (opcional)"><button class="add" onclick="addWeeklyOne('${b}')">Criar próximo ${b}</button></div>`;}).join('')}<button class="add" style="margin-top:6px" onclick="addWeeklyPack()">Criar os três próximos (Raw · SmackDown · NXT)</button></div>
     <div class="card"><div class="sh">ROYAL RUMBLE</div><div class="m">Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.</div><div class="row" style="margin-top:10px"><input id="rumbleDate" type="date"><button class="add" onclick="createRumble()">Criar Royal Rumble</button></div></div>
     <div class="card"><div class="sh">TIPOS DE LUTA</div><div class="row"><input id="newType" class="f" placeholder="Novo tipo de luta"><button class="add" onclick="addMatchType()">Adicionar tipo</button></div><div class="chips" style="margin-top:10px">${S.matchTypes.map(t=>`<span class="tag">${esc(t)} <button class="x" onclick="delMatchType(${JSON.stringify(t).replace(/"/g,'&quot;')})">×</button></span>`).join('')}</div></div>`+
-    (l.length?`<div class="row" style="gap:8px;margin:4px 0 8px"><button class="add" onclick="minAllShows(true)">▾ Minimizar todos</button><button class="add" onclick="minAllShows(false)">▸ Expandir todos</button></div>`+l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}${s.completed&&showAvg(s)?tag('Média do show: '+starAvgTxt(showAvg(s).avg)+' ('+showAvg(s).n+(showAvg(s).n===1?' luta':' lutas')+')','face'):''}<button class="add" type="button" onclick="toggleMinShow('${s.id}')" style="padding:6px 10px">${MINS.has(s.id)?'▸ Expandir':'▾ Minimizar'}</button><button class="x" onclick="del('shows','${s.id}')">✕</button></div>
+    (l.length?`<div class="row" style="gap:8px;margin:4px 0 8px"><button class="add" onclick="minAllShows(true)">▾ Minimizar todos</button><button class="add" onclick="minAllShows(false)">▸ Expandir todos</button></div>`+l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card" id="show-${s.id}"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}${s.completed&&showAvg(s)?tag('Média do show: '+starAvgTxt(showAvg(s).avg)+' ('+showAvg(s).n+(showAvg(s).n===1?' luta':' lutas')+')','face'):''}<button class="add" type="button" onclick="toggleMinShow('${s.id}')" style="padding:6px 10px">${MINS.has(s.id)?'▸ Expandir':'▾ Minimizar'}</button><button class="x" onclick="del('shows','${s.id}')">✕</button></div>
       ${MINS.has(s.id)?miniShow(s):`<div>${s.matches.map((m,i)=>`<div class="card mcard" data-sid="${s.id}" data-mi="${i}" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="dh" title="Arraste para reordenar" onpointerdown="dragStart(event,'${s.id}',${i})">⠿</span><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x mv" title="Subir" onclick="moveMatch('${s.id}',${i},${i-1})">▲</button><button class="x mv" title="Descer" onclick="moveMatch('${s.id}',${i},${i+1})">▼</button>${m.feudId&&S.feuds.some(f=>f.id===m.feudId)?`<span class="tag">🔥 Rivalidade criada</span>`:`<button class="x" onclick="feudFromMatch('${s.id}',${i})">🔥 Criar rivalidade</button>`}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${m.matchType==='Promo'?'':fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
-      <div class="card" style="margin-top:12px"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="sh" style="margin:0">PRÉ-VISUALIZAÇÃO DO CARD</div><span class="sp"></span><button class="add pvbtn" data-m="poster" onclick="setPrev('poster')">🖼 Pôster</button><button class="add pvbtn" data-m="lista" onclick="setPrev('lista')">☰ Lista</button></div><div id="prev${s.id}">${cardPreviewHtml(s,null)}</div></div>${s.rumble?'':`<div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px"><button class="add" onclick="suggestMatch('${s.id}')">💡 Sugerir luta</button><span class="m" id="sugg${s.id}"></span></div>`}${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button></div></div>`}</div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'));
+      ${s.completed?showImpactCard(s):''}<div class="card" style="margin-top:12px"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="sh" style="margin:0">PRÉ-VISUALIZAÇÃO DO CARD</div><span class="sp"></span><button class="add pvbtn" data-m="poster" onclick="setPrev('poster')">🖼 Pôster</button><button class="add pvbtn" data-m="lista" onclick="setPrev('lista')">☰ Lista</button></div><div id="prev${s.id}">${cardPreviewHtml(s,null)}</div></div>${s.rumble?'':`<div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px"><button class="add" onclick="suggestMatch('${s.id}')">💡 Sugerir luta</button><span class="m" id="sugg${s.id}"></span></div>`}${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button>${s.completed?`<button class="add" onclick="archiveShow('${s.id}')">📦 Arquivar este show</button>`:''}</div></div>`}</div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'))+archiveSection(B);
   },
 
 
@@ -1741,7 +2525,7 @@ function draw() {
   const y=window.scrollY;
   const theme = tab==='globalRoster' ? 'Global' : B;
   document.documentElement.dataset.b = theme;
-  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk'].includes(tab))tab='freeAgency';
+  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk','search'].includes(tab))tab='freeAgency';
   // Título do header: Universe Desk na home; nome da brand quando selecionada; Roster Global / Free Agency
   const h1 = document.querySelector('header.masthead h1');
   const sub = document.querySelector('header.masthead .sub');
@@ -1752,14 +2536,17 @@ function draw() {
     else { h1.innerHTML=B.toUpperCase()+' <span>DESK</span>'; if(sub)sub.textContent='Brand ativa · booking em andamento'; }
   }
   const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k)||(k==='downgrade'&&B!=='NXT')||(k==='nxtcut'&&B==='NXT'));
-  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
+  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button><button style="--c:#8ab4ff" class="nav-wide ${tab==='search'?'on':''}" onclick="go('search')">🔍 BUSCA</button><button style="--c:#ffd166" class="nav-wide" onclick="setLang('${LANG==='en'?'pt':'en'}')">🌐 ${LANG==='en'?'PORTUGUÊS':'ENGLISH'}</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
   const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
   $('app').innerHTML=back('')+V[tab]()+back('bottom');
   window.scrollTo(0,y);
   if(tab==='bk')renderSnapList();
+  if(tab==='search'){const q=$('gq');if(q&&!GQ)q.focus();}
+  updSelBar();
   if(tab==='shows')S.shows.forEach(x=>refreshPreview(x.id));
   document.querySelectorAll('.pvbtn').forEach(b=>b.style.outline=b.dataset.m===PREVMODE?'2px solid var(--ac)':'');
   updSaveWarn();
+  if(LANG==='en'){startTr();trAll();}
 }
 
 draw();
@@ -1879,6 +2666,28 @@ if ('serviceWorker' in navigator) {
 .mcard.drag{opacity:.55;outline:2px dashed var(--ac)}
 .mcard.over{box-shadow:0 -4px 0 var(--ac)}
 .mv{padding:2px 7px!important;min-width:0}
+.idle{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--bd);margin:2px 4px 2px 0}
+.idle.ok{color:#5fd68a;border-color:#2f7a4c}.idle.warn{color:#f4c95d;border-color:#8a6d1f}.idle.bad{color:#ff7a7a;border-color:#8a2f2f}
+.chg{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;margin:2px 4px 2px 0}
+.chg.up{background:#143d25;color:#6ff0a0}.chg.dn{background:#451a1a;color:#ff8a8a}
+#impactToast{position:fixed;right:12px;bottom:12px;z-index:99990;max-width:min(420px,calc(100vw - 24px));background:#12151c;border:1px solid var(--ac);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.6);font-size:13px;animation:tin .25s ease-out}
+@keyframes tin{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+#impactToast .ir{display:flex;gap:8px;justify-content:space-between;align-items:baseline;margin:4px 0;border-top:1px solid var(--bd);padding-top:4px}
+.up{color:#6ff0a0}.dn{color:#ff8a8a}
+.hero{border:2px solid var(--ac)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 16%,#12151c),#12151c 70%);padding:16px!important}
+.hero .hh{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.hero .hn{font-size:22px;font-weight:900;letter-spacing:.01em}
+.hero ul{margin:8px 0 10px 20px;padding:0}.hero li{margin:5px 0;font-size:14px}
+.flash{animation:fl 1.6s ease-out}
+@keyframes fl{0%,40%{box-shadow:0 0 0 3px var(--ac)}100%{box-shadow:none}}
+.sr{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--bd);border-radius:10px;margin:6px 0;cursor:pointer;background:#12151c}
+.sr:hover{border-color:var(--ac)}
+.selcb{width:20px;height:20px;flex:0 0 auto;accent-color:var(--ac);cursor:pointer}
+#selBar{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:99980;background:#12151c;border:1px solid var(--ac);border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.65);display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 20px);justify-content:center}
+.opp{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;border-top:1px solid var(--bd);padding:6px 0}
+.pbar{height:8px;border-radius:99px;background:#1c2029;overflow:hidden;margin:6px 0}.pbar i{display:block;height:100%;background:var(--ac)}
+.tl{border-left:2px solid var(--bd);margin:8px 0 8px 6px;padding-left:12px}
+.tl .te{position:relative;margin:8px 0}.tl .te:before{content:'';position:absolute;left:-18px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--ac)}
 </style>
 
 <style>
