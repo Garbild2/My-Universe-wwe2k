@@ -825,7 +825,7 @@ function bookingBlock(r,held){
   const col=b.tier==='reduzido'?'heel':'face';
   return `<div class="card" style="margin-top:10px"><div class="row" style="flex-wrap:wrap"><div class="m">SUGESTÃO DE BOOKING · renovada a cada 3 meses</div><span class="sp"></span>${tag(b.head,col)}</div>
   <div class="m" style="margin:8px 0">${esc(b.why)}${held?' Campeão atual: fora das sugestões de push.':''}</div>
-  <ul style="margin:0 0 8px 18px;padding:0">${b.plan.map(x=>`<li class="m" style="margin:4px 0">${esc(x)}</li>`).join('')}</ul>${oppsHtml(r)}
+  <ul style="margin:0 0 8px 18px;padding:0">${b.plan.map(x=>planLi(r,x,'m')).join('')}</ul>${oppsHtml(r)}
   <div class="row" style="flex-wrap:wrap;gap:6px">${b.act.turn?`<button class="add" onclick="bookingTurn('${r.id}')">Aplicar: virar ${b.act.turn}</button>`:''}${b.act.partner?`<button class="add" onclick="bookingTeam('${r.id}')">Criar tag team sugerida</button>`:''}${b.act.facIds&&b.act.facIds.length?`<button class="add" onclick="bookingFaction('${r.id}')">Criar facção sugerida</button>`:''}<button class="add" onclick="regenBooking('${r.id}')">Outra sugestão</button></div>
   <div class="m" style="margin-top:6px">Gerada em ${fmtBR(b.date)} · próxima renovação em ${fmtBR(b.next)} (data do universo).</div></div>`;
 }
@@ -1215,7 +1215,7 @@ function scrollToSel(sel){setTimeout(()=>{const el=document.querySelector(sel);i
 function scrollToText(key){setTimeout(()=>{const k=norm(key);const el=[...document.querySelectorAll('#app .card,#app .rw')].find(c=>norm(c.textContent).includes(k));if(!el)return;if(el.tagName==='DETAILS')el.open=true;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('flash');},60);}
 function openWrestler(id){const r=S.roster.find(x=>x.id===id);if(!r)return;if(r.brand&&r.brand!=='Free Agency')B=r.brand;else B='Free Agency';tab=B==='Free Agency'?'freeAgency':'roster';tg('profile-'+id,true);draw();window.scrollTo(0,0);scrollToSel(`details[ontoggle*="profile-${id}"]`);}
 function openTab(brand,t,key){if(brand&&brand!=='Free Agency')B=brand;tab=t;draw();window.scrollTo(0,0);if(key)scrollToText(key);}
-function openShow(id){const sh=S.shows.find(x=>x.id===id);if(!sh)return;B=brandsFor(sh)[0];tab='shows';if(sh.archived)tg('archive-'+B,true);MINS.delete(id);try{localStorage.setItem('universedesk_min',JSON.stringify([...MINS]));}catch(e){}draw();window.scrollTo(0,0);scrollToSel('#show-'+id);}
+function openShow(id){const sh=S.shows.find(x=>x.id===id);if(!sh)return;B=brandsFor(sh).includes(B)?B:brandsFor(sh)[0];tab='shows';if(sh.archived)tg('archive-'+B,true);MINS.delete(id);try{localStorage.setItem('universedesk_min',JSON.stringify([...MINS]));}catch(e){}draw();window.scrollTo(0,0);scrollToSel('#show-'+id);}
 
 /* card destaque: próxima sugestão de booking */
 const HERO_I={};
@@ -1228,7 +1228,7 @@ function heroBooking(b){
   return `<div class="card hero" style="--ac:${COL[b]||'var(--ac)'}"><div class="m" style="font-weight:800;letter-spacing:.08em">⭐ PRÓXIMA SUGESTÃO DE BOOKING</div>
   <div class="hh" style="margin-top:8px"><div class="poster" style="width:84px;height:126px;cursor:pointer" onclick="openWrestler('${r.id}')">${esc(initials(r.name))}${r.photo?`<img src="${esc(r.photo)}" alt="" onerror="this.style.display='none'">`:''}</div>
   <div style="flex:1;min-width:200px"><div class="hn">${esc(r.name)}</div><div style="margin:4px 0">${tag(bk.head,col)}${tag(Math.round(popularity(r.id))+'% pop')}${tag(starLine(r.id))}</div><div>${idleTag(r.id)}${chgChip(r.id)}</div><div class="m" style="margin-top:6px">${esc(bk.why)}${held?' Campeão atual.':''}</div></div></div>
-  <ul>${bk.plan.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>${oppsHtml(r)}
+  <ul>${bk.plan.map(x=>planLi(r,x,'')).join('')}</ul>${oppsHtml(r)}
   <div class="row" style="flex-wrap:wrap;gap:6px">${bk.act.turn?`<button class="add" onclick="bookingTurn('${r.id}')">Aplicar: virar ${bk.act.turn}</button>`:''}${bk.act.partner?`<button class="add" onclick="bookingTeam('${r.id}')">Criar tag team sugerida</button>`:''}${bk.act.facIds&&bk.act.facIds.length?`<button class="add" onclick="bookingFaction('${r.id}')">Criar facção sugerida</button>`:''}<button class="add" onclick="openWrestler('${r.id}')">Abrir ficha</button><button class="add" onclick="regenBooking('${r.id}')">Outra história</button>${l.length>1?`<button class="add" onclick="HERO_I['${b}']=${i+1};draw()">Próximo lutador (${i+1}/${l.length}) →</button>`:''}</div>
   <div class="m" style="margin-top:8px">Prioriza quem precisa de atenção (popularidade/estrelas, tempo sem lutar e renovação próxima). Renovação: ${fmtBR(bk.next)}.</div></div>`;}
 
@@ -1427,6 +1427,14 @@ Facção|Faction
 Facções|Factions
 BUSCA|SEARCH
 Busca|Search
+🔥 Criar rivalidade com esta história|🔥 Create feud with this story
+Não encontrei o rival desta história no elenco da brand.|Could not find this story's rival in the brand roster.
+Rivalidade criada com a história sugerida! Veja na aba Rivalidades da|Feud created with the suggested story! See it in the Feuds tab of
+História:|Story:
+Abrir →|Open →
+Abrir este show|Open this show
+ERRO AO ABRIR ESTA TELA|ERROR OPENING THIS SCREEN
+Algo nos dados desta tela causou um erro. Seus dados estão salvos e não foram alterados. Envie esta mensagem para corrigirmos:|Something in this screen's data caused an error. Your data is saved and unchanged. Send this message so we can fix it:
 CONTA|ACCOUNT
 ENTRAR|SIGN IN
 Entrar|Sign in
@@ -2030,11 +2038,11 @@ async function refreshSession(){
   let r;try{r=await fetch(CLOUD.url.replace(/\/+$/,'')+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:CLOUD.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:SESSION.refresh_token})});}catch(e){throw new Error('Sem conexão com a nuvem.');}
   if(!r.ok)throw new Error('Sessão expirada. Entre novamente.');
   setSession(await r.json());}
-async function sb(path,opt){opt=opt||{};
+async function sbq(path,opt){opt=opt||{};
   const h=Object.assign({apikey:CLOUD.key,'Content-Type':'application/json'},opt.headers||{});
   if(opt.auth!==false&&SESSION){if(SESSION.expires_at*1000-Date.now()<60000)await refreshSession();h.Authorization='Bearer '+SESSION.access_token;}
   let r;try{r=await fetch(CLOUD.url.replace(/\/+$/,'')+path,{method:opt.method||'GET',headers:h,body:opt.body});}catch(e){throw new Error('Sem conexão com a nuvem.');}
-  if(r.status===401&&opt.auth!==false&&SESSION&&!opt._retry){await refreshSession();return sb(path,Object.assign({},opt,{_retry:1}));}
+  if(r.status===401&&opt.auth!==false&&SESSION&&!opt._retry){await refreshSession();return sbq(path,Object.assign({},opt,{_retry:1}));}
   return r;}
 const rowUrl=()=>'/rest/v1/universes?select=data,updated_at&user_id=eq.'+SESSION.user.id;
 
@@ -2044,14 +2052,14 @@ async function doAuth(kind){
   if(!em||!pw){authMsg('Preencha e-mail e senha.',1);return;}
   authMsg('Aguarde…');
   try{
-    const r=await sb(kind==='up'?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:JSON.stringify({email:em,password:pw})});
+    const r=await sbq(kind==='up'?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:JSON.stringify({email:em,password:pw})});
     if(!r.ok){authMsg(await errOf(r),1);return;}
     const j=await r.json();
     if(!j.access_token){authMsg('Conta criada! Confirme seu e-mail (veja a caixa de entrada) e depois toque em Entrar.');return;}
     const guestS=SESSION?null:S;setSession(j);await onLoggedIn(guestS);
   }catch(e){authMsg(e.message,1);}}
 async function doReset(){const em=(($('au_em')||{}).value||'').trim();if(!em){authMsg('Digite seu e-mail primeiro.',1);return;}
-  try{await sb('/auth/v1/recover',{method:'POST',auth:false,body:JSON.stringify({email:em})});authMsg('Enviamos um e-mail para redefinir a senha (se a conta existir).');}catch(e){authMsg(e.message,1);}}
+  try{await sbq('/auth/v1/recover',{method:'POST',auth:false,body:JSON.stringify({email:em})});authMsg('Enviamos um e-mail para redefinir a senha (se a conta existir).');}catch(e){authMsg(e.message,1);}}
 function hideGate(){const g=$('authGate');if(g)g.remove();}
 function continueGuest(){lsSet('universedesk_guest','1');hideGate();}
 function showGate(){
@@ -2066,7 +2074,7 @@ function applyCloud(row,note){
 async function onLoggedIn(guestS){
   KEY=BASE_KEY+':u:'+SESSION.user.id;try{localStorage.removeItem('universedesk_guest');}catch(e){}
   const meta=getMeta(),loc=lsGet(KEY);
-  const r=await sb(rowUrl());if(!r.ok)throw new Error(await errOf(r));
+  const r=await sbq(rowUrl());if(!r.ok)throw new Error(await errOf(r));
   const row=(await r.json())[0]||null;
   if(row){
     if(loc&&meta.dirty&&confirm('Há alterações neste aparelho que ainda não foram enviadas. OK = manter as deste aparelho e enviar. Cancelar = usar a versão da nuvem.')){
@@ -2094,18 +2102,18 @@ async function pushNow(){
       if(body.length>4.5e6)throw new Error('Universo grande demais para a nuvem ('+(body.length/1e6).toFixed(1)+' MB). Remova fotos pesadas.');
       let r,rows;
       if(meta.rev){
-        r=await sb('/rest/v1/universes?user_id=eq.'+id+'&updated_at=eq.'+encodeURIComponent(meta.rev),{method:'PATCH',headers:{Prefer:'return=representation'},body});
+        r=await sbq('/rest/v1/universes?user_id=eq.'+id+'&updated_at=eq.'+encodeURIComponent(meta.rev),{method:'PATCH',headers:{Prefer:'return=representation'},body});
         if(!r.ok)throw new Error(await errOf(r));
         rows=await r.json();
         if(!rows.length){
-          const g=await sb(rowUrl());if(!g.ok)throw new Error(await errOf(g));
+          const g=await sbq(rowUrl());if(!g.ok)throw new Error(await errOf(g));
           const cur=(await g.json())[0];
           if(!cur){setMeta({rev:''});continue;}
           if(confirm('Outro aparelho alterou seu universo na nuvem. OK = sobrescrever a nuvem com os dados deste aparelho. Cancelar = baixar a versão da nuvem (as alterações deste aparelho serão substituídas).')){setMeta({rev:cur.updated_at});continue;}
           applyCloud(cur,true);return;
         }
       }else{
-        r=await sb('/rest/v1/universes',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,data:S,updated_at:now})});
+        r=await sbq('/rest/v1/universes',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,data:S,updated_at:now})});
         if(!r.ok)throw new Error(await errOf(r));
         rows=await r.json();
       }
@@ -2115,14 +2123,14 @@ async function pushNow(){
   finally{_pushing=false;if(_again){_again=false;schedulePush();}}}
 async function pullCheck(){
   if(!SESSION||_pushing)return;
-  try{const r=await sb(rowUrl());if(!r.ok)return;const row=(await r.json())[0];if(!row)return;
+  try{const r=await sbq(rowUrl());if(!r.ok)return;const row=(await r.json())[0];if(!row)return;
     const meta=getMeta();if(row.updated_at===meta.rev){if(!meta.dirty)setSync('ok');return;}
     if(meta.dirty){pushNow();return;}
     applyCloud(row,true);
   }catch(e){setSync('err',e.message);}}
 async function forcePull(){
   if(!SESSION)return;if(!confirm('Baixar a versão da nuvem e substituir os dados deste aparelho?'))return;
-  try{const r=await sb(rowUrl());if(!r.ok)throw new Error(await errOf(r));const row=(await r.json())[0];if(row)applyCloud(row,true);}catch(e){setSync('err',e.message);}}
+  try{const r=await sbq(rowUrl());if(!r.ok)throw new Error(await errOf(r));const row=(await r.json())[0];if(row)applyCloud(row,true);}catch(e){setSync('err',e.message);}}
 async function doLogout(){
   if(!SESSION||!confirm('Sair da conta? Seus dados continuam salvos na nuvem.'))return;
   let wipe=!!($('lo_wipe')&&$('lo_wipe').checked);
@@ -2161,6 +2169,29 @@ function accountHtml(){
   if(SESSION)return `<div class="card"><div class="sh">CONTA E NUVEM</div><div style="margin:8px 0"><b>Conectado como</b> ${esc(SESSION.user.email)}</div><div id="syncInfo" class="m">${syncInfoHtml()}</div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="add" onclick="pushNow()">Sincronizar agora</button><button class="add" onclick="forcePull()">Baixar da nuvem</button></div><label class="m" style="display:flex;gap:8px;align-items:center;margin-top:14px"><input type="checkbox" id="lo_wipe"> Apagar a cópia local deste aparelho ao sair</label><div class="row" style="margin-top:8px"><button class="x" onclick="doLogout()">Sair da conta</button></div><div class="m" style="margin-top:10px">Tudo que você faz é salvo neste aparelho na hora e enviado para sua conta em seguida. Ao entrar em outro aparelho com o mesmo e-mail, seu universo aparece lá.</div></div>`;
   if(cloudOn())return `<div class="card"><div class="sh">CONTA E NUVEM</div><div class="m" style="margin:8px 0">Você não está conectado. Entre para salvar seu universo na nuvem.</div><div class="row" style="gap:8px;flex-wrap:wrap"><button class="add" onclick="showGate()">Abrir tela de login</button><button class="x" onclick="clearCloudCfg()">Remover configuração</button></div></div>`;
   return `<div class="card"><div class="sh">CONTA E NUVEM</div><div class="m" style="margin:8px 0 12px">Login na nuvem: sua conta guarda o universo online e você abre em qualquer aparelho. Precisa de um projeto gratuito no Supabase:</div><ol class="m" style="margin:0 0 12px 18px;padding:0;line-height:1.6"><li>Crie uma conta em supabase.com e um projeto novo.</li><li>No menu SQL Editor, cole o SQL abaixo e execute (Run).</li><li>Em Authentication → Sign In / Providers → Email, desligue "Confirm email" se quiser entrar logo após criar a conta.</li><li>Em Project Settings → API, copie a Project URL e a chave pública (anon ou publishable) e cole aqui.</li></ol><div class="m" style="font-weight:800;letter-spacing:.06em">SQL</div><textarea id="cf_sql" readonly rows="9" style="width:100%;font-family:monospace;font-size:12px">${esc(SETUP_SQL)}</textarea><div class="row" style="margin:6px 0 12px"><button class="add" onclick="copySql()">Copiar SQL</button></div><div class="m" style="font-weight:800;letter-spacing:.06em">Configuração da nuvem</div><input class="f" id="cf_url" placeholder="URL do projeto Supabase" style="width:100%;margin-top:6px"><input class="f" id="cf_key" placeholder="Chave pública (anon / publishable)" style="width:100%;margin-top:6px"><div class="row" style="margin-top:10px"><button class="add" onclick="saveCloudCfg()">Salvar configuração</button></div></div>`;}
+
+/* ===== v3.1: criar rivalidade com a história sugerida ===== */
+const STORY_PFX='História sugerida: ';
+function storyRival(r,text){
+  return S.roster.filter(x=>x.id!==r.id&&x.role==='Lutador'&&x.brand===r.brand&&x.name&&text.includes(x.name)).sort((a,b)=>b.name.length-a.name.length)[0]||null;}
+function planLi(r,x,cls){
+  const st=x.startsWith(STORY_PFX)?x.slice(STORY_PFX.length):'';
+  const riv=st?storyRival(r,st):null;
+  return `<li ${cls?`class="${cls}" style="margin:4px 0"`:''}>${esc(x)}${riv?`<div style="margin-top:6px"><button class="add" onclick="bookingStoryFeud('${r.id}')">🔥 Criar rivalidade com esta história</button></div>`:''}</li>`;}
+function bookingStoryFeud(rid){
+  const r=S.roster.find(x=>x.id===rid);if(!r||!r.bookingSug)return;
+  const plan=r.bookingSug.plan||[],line=plan.find(x=>x.startsWith(STORY_PFX));if(!line)return;
+  const story=line.slice(STORY_PFX.length),riv=storyRival(r,story);
+  if(!riv){alert('Não encontrei o rival desta história no elenco da brand.');return;}
+  const sig=[r.id,riv.id].sort().join('|');
+  if(S.feuds.some(f=>!f.resolved&&(!f.status||f.status==='Ativa')&&feudIds(f).slice().sort().join('|')===sig)){alert('Já existe uma rivalidade ativa entre eles.');return;}
+  const goal=plan.find(x=>x!==line&&x.includes(riv.name))||'';
+  const tt=S.titles.find(t=>plan.some(x=>x.startsWith('Disputa pelo '+t.name))&&t.brand===r.brand);
+  if(!confirm('Criar a rivalidade '+r.name+' vs '+riv.name+' com esta história?\n\n'+story))return;
+  S.feuds.push({id:uid(),brand:r.brand,kind:'lutador',division:r.division||'Masculino',hasTitle:!!tt,titleId:tt?tt.id:'',sideA:[r.id],sideB:[riv.id],participants:[],a:r.id,b:riv.id,status:'Ativa',
+    notes:'Criada pela sugestão de booking.',goal,story,resolved:false,groups:{},progress:0,touched:universeDate(),
+    timeline:[{id:uid(),date:universeDate(),text:'História: '+story}]});
+  save();draw();alert('Rivalidade criada com a história sugerida! Veja na aba Rivalidades da '+r.brand+'.');}
 function matchLine(m){if(m.matchType==='Promo')return '🎤 Promo: '+(m.participants||[]).map(nm).join(' · ');return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
 function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
 function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
@@ -2493,7 +2524,7 @@ const V = {
       
       ${heroBooking(b)}
       <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Consideram popularidade e a média de estrelas das lutas; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias · ${starLine(r.id)}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
-      <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas${s.completed&&showAvg(s)?' · média '+starAvgTxt(showAvg(s).avg):''}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
+      <div class="card"><div class="sh">ÚLTIMOS SHOWS E PPVS</div>${shows.slice(0,5).length?shows.slice(0,5).map(s=>`<div class="rw" style="cursor:pointer" title="Abrir este show" onclick="openShow('${s.id}')"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.type)} · ${esc(s.date||'Data não definida')} · ${(s.matches||[]).length} lutas${s.completed&&showAvg(s)?' · média '+starAvgTxt(showAvg(s).avg):''}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}<span class="m" style="margin-left:8px">Abrir →</span></div>`).join(''):em('Ainda não há shows para esta brand.')}</div>
       <div class="card"><div class="sh">TAG TEAMS & FACÇÕES</div><div class="rw"><span>Tag Teams</span><span class="sp"></span><b>${teams.length}</b></div><div class="rw"><span>Facções</span><span class="sp"></span><b>${facs.length}</b></div><button class="add" style="margin-top:10px" onclick="go('teams')">Abrir equipes e facções →</button></div>${b==='Free Agency'?`<div class="card"><div class="sh">MEMBROS EM OUTRAS BRANDS</div>${S.teams.map(t=>{const members=(t.members||[]).map(id=>S.roster.find(r=>r.id==id)).filter(Boolean);return members.length?`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${members.map(r=>esc(r.name)+' · '+esc(r.brand)).join(' / ')}</div></div><span class="sp"></span>${tag(members.some(r=>r.brand==='Free Agency')?'Parte na Free Agency':'Todos alocados')}</div>`:''}).join('')||em('Nenhuma equipe cadastrada.')}</div>`:''}`;
   },
   roster() {
@@ -2720,14 +2751,14 @@ const V = {
   summary() {
     const shows=S.shows.filter(s=>brandsFor(s).includes(B)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     const feuds=S.feuds.filter(f=>!f.brand||f.brand===B);
-    return `<div class="card"><div class="sh">RESUMO HISTÓRICO · ${B.toUpperCase()}</div><div class="g"><div><b>${shows.length}</b><div class="m">Shows e PPVs</div></div><div><b>${shows.filter(s=>s.completed).length}</b><div class="m">Concluídos</div></div><div><b>${feuds.length}</b><div class="m">Rivalidades</div></div></div></div><div class="card"><div class="sh">RIVALIDADES</div>${feuds.length?feuds.map(f=>`<div class="rw"><div><span class="t">${feudLabel(f)}</span><div class="m">${esc(f.goal||f.story||f.notes||'Sem resumo registrado')} · ${kindTag(f.kind||'lutador')}</div></div><span class="sp"></span>${tag(f.status||'Ativa')}</div>`).join(''):em('Sem rivalidades registradas.')}</div><div class="card"><div class="sh">RESULTADOS DE SHOWS E PPVS</div>${shows.length?shows.map(s=>`<div class="card"><div class="row"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.date||'Data não definida')} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}</div>${(s.matches||[]).length?(s.matches||[]).map((m,i)=>`<div class="rw"><div><span>${i+1}. ${esc(m.matchType||'Luta')} · ${esc(matchLine(m))}</span><div class="m">Resultado: ${esc(m.result||'Não registrado')}${m.title?' · '+esc(m.title):''}</div></div></div>`).join(''):em('Card ainda não montado.')}</div>`).join(''):em('Nenhum evento no histórico.')}</div>`;
+    return `<div class="card"><div class="sh">RESUMO HISTÓRICO · ${B.toUpperCase()}</div><div class="g"><div><b>${shows.length}</b><div class="m">Shows e PPVs</div></div><div><b>${shows.filter(s=>s.completed).length}</b><div class="m">Concluídos</div></div><div><b>${feuds.length}</b><div class="m">Rivalidades</div></div></div></div><div class="card"><div class="sh">RIVALIDADES</div>${feuds.length?feuds.map(f=>`<div class="rw"><div><span class="t">${feudLabel(f)}</span><div class="m">${esc(f.goal||f.story||f.notes||'Sem resumo registrado')} · ${kindTag(f.kind||'lutador')}</div></div><span class="sp"></span>${tag(f.status||'Ativa')}</div>`).join(''):em('Sem rivalidades registradas.')}</div><div class="card"><div class="sh">RESULTADOS DE SHOWS E PPVS</div>${shows.length?shows.map(s=>`<div class="card"><div class="row" style="cursor:pointer" title="Abrir este show" onclick="openShow('${s.id}')"><div><span class="t">${esc(s.name)}</span><div class="m">${esc(s.date||'Data não definida')} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span>${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}<span class="m" style="margin-left:8px">Abrir →</span></div>${(s.matches||[]).length?(s.matches||[]).map((m,i)=>`<div class="rw"><div><span>${i+1}. ${esc(m.matchType||'Luta')} · ${esc(matchLine(m))}</span><div class="m">Resultado: ${esc(m.result||'Não registrado')}${m.title?' · '+esc(m.title):''}</div></div></div>`).join(''):em('Card ainda não montado.')}</div>`).join(''):em('Nenhum evento no histórico.')}</div>`;
   },
 
   year() {
     return MS.map((m,i) => {
       const y = S.year[i+'-'+B] || {};
       const events=S.shows.filter(s=>s.date&&Number(s.date.slice(5,7))===i+1&&brandsFor(s).includes(B)); return dt('y'+i, `<span class="t">${m}</span><span class="m"> · ${events.length} eventos</span>`,
-        (events.length?`<div class="m" style="margin-bottom:10px">EVENTOS: ${events.map(s=>esc(s.name)).join(' · ')}</div>`:'') + [['e','Principais acontecimentos'],['t','Mudanças de título / campeões'],['n','Notas / impacto na história']]
+        (events.length?`<div class="m" style="margin-bottom:10px">EVENTOS: ${events.map(s=>`<a href="javascript:void(0)" style="color:var(--ac)" onclick="openShow('${s.id}')">${esc(s.name)}</a>`).join(' · ')}</div>`:'') + [['e','Principais acontecimentos'],['t','Mudanças de título / campeões'],['n','Notas / impacto na história']]
           .map(([f,p]) => `<textarea rows="2" placeholder="${p}" onchange="sy('${i}-${B}','${f}',this.value)">${esc(y[f])}</textarea>`).join(''));
     }).join('');
   },
@@ -2760,7 +2791,9 @@ function draw() {
   const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k)||(k==='downgrade'&&B!=='NXT')||(k==='nxtcut'&&B==='NXT'));
   $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button><button style="--c:#8ab4ff" class="nav-wide ${tab==='search'?'on':''}" onclick="go('search')">🔍 BUSCA</button><button style="--c:#ffd166" class="nav-wide" onclick="setLang('${LANG==='en'?'pt':'en'}')">🌐 ${LANG==='en'?'PORTUGUÊS':'ENGLISH'}</button><button id="acctBtn" style="--c:#7ee0a1" class="nav-wide ${tab==='account'?'on':''}" onclick="go('account')">${acctLabel()}</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
   const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
-  $('app').innerHTML=back('')+V[tab]()+back('bottom');
+  let _body;
+  try{_body=V[tab]();}catch(e){console.error(e);_body=`<div class="card"><div class="sh">⚠ ERRO AO ABRIR ESTA TELA</div><div class="m" style="margin:8px 0">Algo nos dados desta tela causou um erro. Seus dados estão salvos e não foram alterados. Envie esta mensagem para corrigirmos:</div><textarea readonly rows="5" style="width:100%;font-family:monospace;font-size:12px">${esc('Tela: '+tab+' · Brand: '+B+'\n'+(e&&e.message||e)+'\n'+String(e&&e.stack||'').split('\n').slice(0,4).join('\n'))}</textarea></div>`;}
+  $('app').innerHTML=back('')+_body+back('bottom');
   window.scrollTo(0,y);
   if(tab==='bk')renderSnapList();
   if(tab==='search'){const q=$('gq');if(q&&!GQ)q.focus();}
