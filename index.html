@@ -486,7 +486,16 @@ hr { border:0;border-top:1px solid var(--bd); }
 <main id="app"></main>
 
 <script>
-const KEY = 'wwe-universe-v3', OLD = 'wwe-universe-v2';
+const BASE_KEY = 'wwe-universe-v3', OLD = 'wwe-universe-v2';
+let KEY = BASE_KEY;
+/* ===== v3.0: login na nuvem (Supabase) — estado inicial ===== */
+const CLOUD_DEFAULT_URL = '', CLOUD_DEFAULT_KEY = '';
+let CLOUD = {}, SESSION = null;
+try { CLOUD = JSON.parse(localStorage.getItem('universedesk_cloudcfg')) || {}; } catch(e) {}
+if (!CLOUD.url) CLOUD = { url: CLOUD_DEFAULT_URL, key: CLOUD_DEFAULT_KEY };
+try { SESSION = JSON.parse(localStorage.getItem('universedesk_auth')); } catch(e) {}
+if (SESSION && !(SESSION.user && SESSION.user.id && CLOUD.url && CLOUD.key)) SESSION = null;
+if (SESSION) KEY = BASE_KEY + ':u:' + SESSION.user.id;
 const BRS = ['Raw','SmackDown','NXT','Free Agency'], BR3 = BRS.slice(0,3);
 const COL = {Raw:'#e11d2e', SmackDown:'#2a7bf0', NXT:'#a0a6b4', 'Free Agency':'#9b5de5'};
 const DIV = ['Masculino','Feminino'], CARD = ['Main Eventer','Midcard','Lowcard'];
@@ -546,7 +555,7 @@ function mig(o) {
 }
 
 let S = null;
-try { S = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD)); } catch(e) {}
+try { S = JSON.parse(localStorage.getItem(KEY) || (SESSION ? null : localStorage.getItem(OLD))); } catch(e) {}
 S = mig(S);
 
 let SAVE_ERR = false;
@@ -564,6 +573,7 @@ function updSaveWarn() {
 const save = () => {
   try { localStorage.setItem(KEY, JSON.stringify(S)); if (SAVE_ERR) { SAVE_ERR = false; updSaveWarn(); } autoSnap(); }
   catch (e) { SAVE_ERR = true; updSaveWarn(); }
+  schedulePush();
 };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $ = id => document.getElementById(id);
@@ -1417,6 +1427,55 @@ Facção|Faction
 Facções|Factions
 BUSCA|SEARCH
 Busca|Search
+CONTA|ACCOUNT
+ENTRAR|SIGN IN
+Entrar|Sign in
+Criar conta|Create account
+Esqueci a senha|Forgot password
+Sair|Sign out
+E-mail|E-mail
+Senha (mín. 6 caracteres)|Password (min. 6 characters)
+Entre para salvar seu universo na nuvem e abri-lo em qualquer aparelho.|Sign in to save your universe in the cloud and open it on any device.
+Continuar sem conta (só neste aparelho)|Continue without an account (this device only)
+Preencha e-mail e senha.|Fill in e-mail and password.
+Aguarde…|Please wait…
+E-mail ou senha incorretos.|Wrong e-mail or password.
+Este e-mail já tem conta. Use Entrar.|This e-mail already has an account. Use Sign in.
+Confirme seu e-mail antes de entrar (veja sua caixa de entrada).|Confirm your e-mail before signing in (check your inbox).
+Senha muito curta ou fraca (mínimo 6 caracteres).|Password too short or weak (minimum 6 characters).
+Muitas tentativas. Aguarde um pouco e tente de novo.|Too many attempts. Wait a bit and try again.
+E-mail inválido.|Invalid e-mail.
+Sem conexão com a nuvem.|No connection to the cloud.
+Sessão expirada. Entre novamente.|Session expired. Sign in again.
+Conta criada! Confirme seu e-mail (veja a caixa de entrada) e depois toque em Entrar.|Account created! Confirm your e-mail (check your inbox) and then tap Sign in.
+Enviamos um e-mail para redefinir a senha (se a conta existir).|We sent an e-mail to reset the password (if the account exists).
+Digite seu e-mail primeiro.|Type your e-mail first.
+CONTA E NUVEM|ACCOUNT AND CLOUD
+Login na nuvem|Cloud login
+Sincronizado|Synced
+Pendente|Pending
+Erro de sincronização|Sync error
+Última sincronização:|Last sync:
+Sincronizar agora|Sync now
+Baixar da nuvem|Download from cloud
+Sair da conta|Sign out of account
+Apagar a cópia local deste aparelho ao sair|Delete this device's local copy when signing out
+Conectado como|Signed in as
+Universo atualizado a partir da nuvem.|Universe updated from the cloud.
+Há alterações neste aparelho que ainda não foram enviadas. OK = manter as deste aparelho e enviar. Cancelar = usar a versão da nuvem.|There are changes on this device that were not sent yet. OK = keep this device's changes and send them. Cancel = use the cloud version.
+Enviar o universo que está neste aparelho para a sua conta? OK = enviar. Cancelar = começar com um universo novo.|Send the universe on this device to your account? OK = send. Cancel = start with a new universe.
+Outro aparelho alterou seu universo na nuvem. OK = sobrescrever a nuvem com os dados deste aparelho. Cancelar = baixar a versão da nuvem (as alterações deste aparelho serão substituídas).|Another device changed your universe in the cloud. OK = overwrite the cloud with this device's data. Cancel = download the cloud version (this device's changes will be replaced).
+Sair da conta? Seus dados continuam salvos na nuvem.|Sign out? Your data stays saved in the cloud.
+Há alterações não sincronizadas; a cópia local não será apagada.|There are unsynced changes; the local copy will not be deleted.
+Baixar a versão da nuvem e substituir os dados deste aparelho?|Download the cloud version and replace this device's data?
+Configuração da nuvem|Cloud setup
+URL do projeto Supabase|Supabase project URL
+Chave pública (anon / publishable)|Public key (anon / publishable)
+Salvar configuração|Save setup
+Remover configuração|Remove setup
+Abrir tela de login|Open login screen
+Copiar SQL|Copy SQL
+SQL copiado.|SQL copied.
 média do elenco|roster average
 como líder, dominando o meio de card.|as leader, dominating the mid-card.
 História sugerida:|Suggested story:
@@ -1940,6 +1999,168 @@ function setLang(l){LANG=l==='en'?'en':'pt';try{localStorage.setItem('universede
   if(LANG==='en')startTr();else stopTr();draw();updSaveWarn();if(LANG==='en')trAll();}
 (function(){const a=window.alert.bind(window),c=window.confirm.bind(window);
   window.alert=m=>a(LANG==='en'?trText(String(m)):m);window.confirm=m=>c(LANG==='en'?trText(String(m)):m);})();
+
+/* ===== v3.0: login na nuvem (Supabase, sem bibliotecas) ===== */
+const cloudOn=()=>!!(CLOUD.url&&CLOUD.key);
+const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+const metaKey=()=>'universedesk_sync:'+(SESSION?SESSION.user.id:'');
+function getMeta(){try{return JSON.parse(lsGet(metaKey()))||{};}catch(e){return {};}}
+function setMeta(p){lsSet(metaKey(),JSON.stringify(Object.assign(getMeta(),p)));}
+var SYNC={state:SESSION?'ok':'off',at:0,msg:''};
+function setSync(state,msg){SYNC={state,msg:msg||'',at:state==='ok'?Date.now():SYNC.at};updAcctBtn();const el=$('syncInfo');if(el)el.innerHTML=syncInfoHtml();}
+function shortEmail(){const e=(SESSION&&SESSION.user.email)||'';return e.length>18?e.slice(0,16)+'…':e;}
+function acctLabel(){if(!SESSION)return '👤 ENTRAR';return '☁ '+esc(shortEmail())+' '+({ok:'✓',pending:'⏳',err:'⚠'}[SYNC.state]||'');}
+function updAcctBtn(){const b=$('acctBtn');if(b)b.innerHTML=acctLabel();}
+function cloudToast(msg){let el=$('cloudToast');if(el)el.remove();el=document.createElement('div');el.id='cloudToast';
+  el.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:14px;z-index:99996;background:#12151c;border:1px solid var(--ac);border-radius:12px;padding:10px 14px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.6);max-width:calc(100vw - 24px)';
+  el.textContent=msg;el.onclick=()=>el.remove();document.body.appendChild(el);setTimeout(()=>el.remove(),5000);}
+function friendly(m){const x=String(m);
+  if(/invalid login/i.test(x))return 'E-mail ou senha incorretos.';
+  if(/already registered|already been registered/i.test(x))return 'Este e-mail já tem conta. Use Entrar.';
+  if(/not confirmed/i.test(x))return 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).';
+  if(/password should be|weak password/i.test(x))return 'Senha muito curta ou fraca (mínimo 6 caracteres).';
+  if(/rate limit|too many/i.test(x))return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
+  if(/valid email|invalid.*email/i.test(x))return 'E-mail inválido.';
+  if(/universes|PGRST20|does not exist/i.test(x))return 'A tabela "universes" não existe no Supabase — rode o SQL de configuração (aba Conta).';
+  return x;}
+async function errOf(r){let j={};try{j=await r.json();}catch(e){}return friendly(j.error_description||j.msg||j.message||j.error||('Erro '+r.status));}
+function setSession(d){SESSION={access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),user:{id:d.user.id,email:d.user.email}};lsSet('universedesk_auth',JSON.stringify(SESSION));}
+async function refreshSession(){
+  let r;try{r=await fetch(CLOUD.url.replace(/\/+$/,'')+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:CLOUD.key,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:SESSION.refresh_token})});}catch(e){throw new Error('Sem conexão com a nuvem.');}
+  if(!r.ok)throw new Error('Sessão expirada. Entre novamente.');
+  setSession(await r.json());}
+async function sb(path,opt){opt=opt||{};
+  const h=Object.assign({apikey:CLOUD.key,'Content-Type':'application/json'},opt.headers||{});
+  if(opt.auth!==false&&SESSION){if(SESSION.expires_at*1000-Date.now()<60000)await refreshSession();h.Authorization='Bearer '+SESSION.access_token;}
+  let r;try{r=await fetch(CLOUD.url.replace(/\/+$/,'')+path,{method:opt.method||'GET',headers:h,body:opt.body});}catch(e){throw new Error('Sem conexão com a nuvem.');}
+  if(r.status===401&&opt.auth!==false&&SESSION&&!opt._retry){await refreshSession();return sb(path,Object.assign({},opt,{_retry:1}));}
+  return r;}
+const rowUrl=()=>'/rest/v1/universes?select=data,updated_at&user_id=eq.'+SESSION.user.id;
+
+function authMsg(t,bad){const e=$('au_msg');if(e){e.textContent=t;e.style.color=bad?'#ff8a8a':'';}}
+async function doAuth(kind){
+  const em=(($('au_em')||{}).value||'').trim(),pw=($('au_pw')||{}).value||'';
+  if(!em||!pw){authMsg('Preencha e-mail e senha.',1);return;}
+  authMsg('Aguarde…');
+  try{
+    const r=await sb(kind==='up'?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:JSON.stringify({email:em,password:pw})});
+    if(!r.ok){authMsg(await errOf(r),1);return;}
+    const j=await r.json();
+    if(!j.access_token){authMsg('Conta criada! Confirme seu e-mail (veja a caixa de entrada) e depois toque em Entrar.');return;}
+    const guestS=SESSION?null:S;setSession(j);await onLoggedIn(guestS);
+  }catch(e){authMsg(e.message,1);}}
+async function doReset(){const em=(($('au_em')||{}).value||'').trim();if(!em){authMsg('Digite seu e-mail primeiro.',1);return;}
+  try{await sb('/auth/v1/recover',{method:'POST',auth:false,body:JSON.stringify({email:em})});authMsg('Enviamos um e-mail para redefinir a senha (se a conta existir).');}catch(e){authMsg(e.message,1);}}
+function hideGate(){const g=$('authGate');if(g)g.remove();}
+function continueGuest(){lsSet('universedesk_guest','1');hideGate();}
+function showGate(){
+  if($('authGate')||!cloudOn())return;
+  const g=document.createElement('div');g.id='authGate';
+  g.style.cssText='position:fixed;inset:0;z-index:99997;background:rgba(5,7,12,.97);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  g.innerHTML=`<div class="card" style="max-width:420px;width:100%"><div class="sh">UNIVERSE DESK · LOGIN</div><div class="m" style="margin:6px 0 12px">Entre para salvar seu universo na nuvem e abri-lo em qualquer aparelho.</div><input class="f" id="au_em" type="email" autocomplete="username" placeholder="E-mail" style="width:100%"><input class="f" id="au_pw" type="password" autocomplete="current-password" placeholder="Senha (mín. 6 caracteres)" style="width:100%;margin-top:8px" onkeydown="if(event.key==='Enter')doAuth('in')"><div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="add" onclick="doAuth('in')">Entrar</button><button class="add" onclick="doAuth('up')">Criar conta</button><button class="add" onclick="doReset()">Esqueci a senha</button></div><div id="au_msg" class="m" style="margin-top:10px;min-height:18px"></div><div class="row" style="margin-top:8px"><button class="x" onclick="continueGuest()">Continuar sem conta (só neste aparelho)</button></div></div>`;
+  document.body.appendChild(g);}
+
+function applyCloud(row,note){
+  S=mig(row.data);lsSet(KEY,JSON.stringify(S));setMeta({rev:row.updated_at,dirty:false});setSync('ok');draw();if(note)cloudToast('☁ Universo atualizado a partir da nuvem.');}
+async function onLoggedIn(guestS){
+  KEY=BASE_KEY+':u:'+SESSION.user.id;try{localStorage.removeItem('universedesk_guest');}catch(e){}
+  const meta=getMeta(),loc=lsGet(KEY);
+  const r=await sb(rowUrl());if(!r.ok)throw new Error(await errOf(r));
+  const row=(await r.json())[0]||null;
+  if(row){
+    if(loc&&meta.dirty&&confirm('Há alterações neste aparelho que ainda não foram enviadas. OK = manter as deste aparelho e enviar. Cancelar = usar a versão da nuvem.')){
+      try{S=mig(JSON.parse(loc));}catch(e){S=mig(row.data);}
+      setMeta({rev:row.updated_at,dirty:true});
+    }else{S=mig(row.data);lsSet(KEY,JSON.stringify(S));setMeta({rev:row.updated_at,dirty:false});}
+  }else{
+    let base=null;
+    if(loc){try{base=mig(JSON.parse(loc));}catch(e){}}
+    if(!base&&guestS&&confirm('Enviar o universo que está neste aparelho para a sua conta? OK = enviar. Cancelar = começar com um universo novo.'))base=guestS;
+    S=base||mig(null);lsSet(KEY,JSON.stringify(S));setMeta({rev:'',dirty:true});
+  }
+  hideGate();setSync(getMeta().dirty?'pending':'ok');draw();cloudToast('☁ Conectado como '+SESSION.user.email);
+  if(getMeta().dirty)pushNow();}
+
+var _pushT=null,_pushing=false,_again=false;
+function schedulePush(){if(!SESSION||!cloudOn())return;setMeta({dirty:true});setSync('pending');clearTimeout(_pushT);_pushT=setTimeout(()=>pushNow(),2500);}
+async function pushNow(){
+  if(!SESSION||!cloudOn())return;if(_pushing){_again=true;return;}
+  _pushing=true;clearTimeout(_pushT);
+  try{
+    for(let tries=0;tries<2;tries++){
+      const meta=getMeta(),now=new Date().toISOString(),id=SESSION.user.id;
+      const body=JSON.stringify({data:S,updated_at:now});
+      if(body.length>4.5e6)throw new Error('Universo grande demais para a nuvem ('+(body.length/1e6).toFixed(1)+' MB). Remova fotos pesadas.');
+      let r,rows;
+      if(meta.rev){
+        r=await sb('/rest/v1/universes?user_id=eq.'+id+'&updated_at=eq.'+encodeURIComponent(meta.rev),{method:'PATCH',headers:{Prefer:'return=representation'},body});
+        if(!r.ok)throw new Error(await errOf(r));
+        rows=await r.json();
+        if(!rows.length){
+          const g=await sb(rowUrl());if(!g.ok)throw new Error(await errOf(g));
+          const cur=(await g.json())[0];
+          if(!cur){setMeta({rev:''});continue;}
+          if(confirm('Outro aparelho alterou seu universo na nuvem. OK = sobrescrever a nuvem com os dados deste aparelho. Cancelar = baixar a versão da nuvem (as alterações deste aparelho serão substituídas).')){setMeta({rev:cur.updated_at});continue;}
+          applyCloud(cur,true);return;
+        }
+      }else{
+        r=await sb('/rest/v1/universes',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:id,data:S,updated_at:now})});
+        if(!r.ok)throw new Error(await errOf(r));
+        rows=await r.json();
+      }
+      setMeta({rev:rows[0].updated_at,dirty:false});setSync('ok');break;
+    }
+  }catch(e){setSync('err',e.message);clearTimeout(_pushT);_pushT=setTimeout(()=>pushNow(),30000);}
+  finally{_pushing=false;if(_again){_again=false;schedulePush();}}}
+async function pullCheck(){
+  if(!SESSION||_pushing)return;
+  try{const r=await sb(rowUrl());if(!r.ok)return;const row=(await r.json())[0];if(!row)return;
+    const meta=getMeta();if(row.updated_at===meta.rev){if(!meta.dirty)setSync('ok');return;}
+    if(meta.dirty){pushNow();return;}
+    applyCloud(row,true);
+  }catch(e){setSync('err',e.message);}}
+async function forcePull(){
+  if(!SESSION)return;if(!confirm('Baixar a versão da nuvem e substituir os dados deste aparelho?'))return;
+  try{const r=await sb(rowUrl());if(!r.ok)throw new Error(await errOf(r));const row=(await r.json())[0];if(row)applyCloud(row,true);}catch(e){setSync('err',e.message);}}
+async function doLogout(){
+  if(!SESSION||!confirm('Sair da conta? Seus dados continuam salvos na nuvem.'))return;
+  let wipe=!!($('lo_wipe')&&$('lo_wipe').checked);
+  try{if(getMeta().dirty)await pushNow();}catch(e){}
+  if(wipe&&getMeta().dirty){alert('Há alterações não sincronizadas; a cópia local não será apagada.');wipe=false;}
+  const uid=SESSION.user.id;SESSION=null;try{localStorage.removeItem('universedesk_auth');}catch(e){}
+  if(wipe){try{localStorage.removeItem(BASE_KEY+':u:'+uid);localStorage.removeItem('universedesk_sync:'+uid);}catch(e){}}
+  KEY=BASE_KEY;let g=null;try{g=JSON.parse(lsGet(KEY)||lsGet(OLD));}catch(e){}
+  S=mig(g);setSync('off');draw();showGate();}
+function cloudStart(){
+  window.addEventListener('online',()=>{if(SESSION&&getMeta().dirty)pushNow();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden||!SESSION)return;getMeta().dirty?pushNow():pullCheck();});
+  if(SESSION){setSync(getMeta().dirty?'pending':'ok');getMeta().dirty?pushNow():pullCheck();}
+  else if(cloudOn()&&!lsGet('universedesk_guest'))showGate();}
+
+const SETUP_SQL=`create table if not exists public.universes (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.universes enable row level security;
+create policy "own select" on public.universes for select using (auth.uid() = user_id);
+create policy "own insert" on public.universes for insert with check (auth.uid() = user_id);
+create policy "own update" on public.universes for update using (auth.uid() = user_id) with check (auth.uid() = user_id);`;
+function syncInfoHtml(){
+  const m={ok:'✓ Sincronizado',pending:'⏳ Pendente',err:'⚠ Erro de sincronização',off:'—'}[SYNC.state];
+  const t=SYNC.at?' · Última sincronização: '+new Date(SYNC.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+  return esc(m)+esc(t)+(SYNC.msg?`<div class="m" style="color:#ff8a8a">${esc(SYNC.msg)}</div>`:'');}
+function saveCloudCfg(){const u=(($('cf_url')||{}).value||'').trim().replace(/\/+$/,''),k=(($('cf_key')||{}).value||'').trim();
+  if(!/^(https:\/\/|http:\/\/localhost).+/i.test(u)||!k){alert('Informe a URL (https://...supabase.co) e a chave pública.');return;}
+  CLOUD={url:u,key:k};lsSet('universedesk_cloudcfg',JSON.stringify(CLOUD));draw();showGate();}
+function clearCloudCfg(){if(!confirm('Remover a configuração da nuvem deste aparelho?'))return;if(SESSION)try{localStorage.removeItem('universedesk_auth');}catch(e){}
+  try{localStorage.removeItem('universedesk_cloudcfg');}catch(e){}CLOUD={url:CLOUD_DEFAULT_URL,key:CLOUD_DEFAULT_KEY};if(SESSION){SESSION=null;KEY=BASE_KEY;let g=null;try{g=JSON.parse(lsGet(KEY)||lsGet(OLD));}catch(e){}S=mig(g);}setSync('off');draw();}
+function copySql(){try{navigator.clipboard.writeText(SETUP_SQL);cloudToast('SQL copiado.');}catch(e){const t=$('cf_sql');if(t){t.select();document.execCommand('copy');}}}
+function accountHtml(){
+  if(SESSION)return `<div class="card"><div class="sh">CONTA E NUVEM</div><div style="margin:8px 0"><b>Conectado como</b> ${esc(SESSION.user.email)}</div><div id="syncInfo" class="m">${syncInfoHtml()}</div><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="add" onclick="pushNow()">Sincronizar agora</button><button class="add" onclick="forcePull()">Baixar da nuvem</button></div><label class="m" style="display:flex;gap:8px;align-items:center;margin-top:14px"><input type="checkbox" id="lo_wipe"> Apagar a cópia local deste aparelho ao sair</label><div class="row" style="margin-top:8px"><button class="x" onclick="doLogout()">Sair da conta</button></div><div class="m" style="margin-top:10px">Tudo que você faz é salvo neste aparelho na hora e enviado para sua conta em seguida. Ao entrar em outro aparelho com o mesmo e-mail, seu universo aparece lá.</div></div>`;
+  if(cloudOn())return `<div class="card"><div class="sh">CONTA E NUVEM</div><div class="m" style="margin:8px 0">Você não está conectado. Entre para salvar seu universo na nuvem.</div><div class="row" style="gap:8px;flex-wrap:wrap"><button class="add" onclick="showGate()">Abrir tela de login</button><button class="x" onclick="clearCloudCfg()">Remover configuração</button></div></div>`;
+  return `<div class="card"><div class="sh">CONTA E NUVEM</div><div class="m" style="margin:8px 0 12px">Login na nuvem: sua conta guarda o universo online e você abre em qualquer aparelho. Precisa de um projeto gratuito no Supabase:</div><ol class="m" style="margin:0 0 12px 18px;padding:0;line-height:1.6"><li>Crie uma conta em supabase.com e um projeto novo.</li><li>No menu SQL Editor, cole o SQL abaixo e execute (Run).</li><li>Em Authentication → Sign In / Providers → Email, desligue "Confirm email" se quiser entrar logo após criar a conta.</li><li>Em Project Settings → API, copie a Project URL e a chave pública (anon ou publishable) e cole aqui.</li></ol><div class="m" style="font-weight:800;letter-spacing:.06em">SQL</div><textarea id="cf_sql" readonly rows="9" style="width:100%;font-family:monospace;font-size:12px">${esc(SETUP_SQL)}</textarea><div class="row" style="margin:6px 0 12px"><button class="add" onclick="copySql()">Copiar SQL</button></div><div class="m" style="font-weight:800;letter-spacing:.06em">Configuração da nuvem</div><input class="f" id="cf_url" placeholder="URL do projeto Supabase" style="width:100%;margin-top:6px"><input class="f" id="cf_key" placeholder="Chave pública (anon / publishable)" style="width:100%;margin-top:6px"><div class="row" style="margin-top:10px"><button class="add" onclick="saveCloudCfg()">Salvar configuração</button></div></div>`;}
 function matchLine(m){if(m.matchType==='Promo')return '🎤 Promo: '+(m.participants||[]).map(nm).join(' · ');return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
 function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
 function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
@@ -2152,7 +2373,7 @@ const SNAP_DB = 'universedesk_bk', SNAP_ST = 'snaps', SNAP_AUTO = 3, SNAP_OTHER 
 function snapDB() {
   return new Promise((res, rej) => {
     try {
-      const r = indexedDB.open(SNAP_DB, 1);
+      const r = indexedDB.open(SNAP_DB + (SESSION ? '_' + SESSION.user.id : ''), 1);
       r.onupgradeneeded = () => r.result.createObjectStore(SNAP_ST, { keyPath: 'ts' });
       r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
     } catch (e) { rej(e); }
@@ -2179,13 +2400,13 @@ let _snapBusy = false;
 async function autoSnap() {
   if (_snapBusy) return;
   try {
-    const last = +localStorage.getItem('universedesk_lastsnap') || 0;
+    const last = +localStorage.getItem('universedesk_lastsnap' + (SESSION ? SESSION.user.id : '')) || 0;
     if (Date.now() - last < 30 * 60 * 1000) return;
     _snapBusy = true;
     const all = await snapAll(), cur = JSON.stringify(S);
     const la = all.find(x => x.kind === 'auto');
     if (!la || la.data !== cur) await takeSnap('auto');
-    localStorage.setItem('universedesk_lastsnap', String(Date.now()));
+    localStorage.setItem('universedesk_lastsnap' + (SESSION ? SESSION.user.id : ''), String(Date.now()));
   } catch (e) {} finally { _snapBusy = false; }
 }
 function fmtSnap(ts) { const d = new Date(ts); return fmtBR(dstr(d)) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
@@ -2236,6 +2457,7 @@ function profileCard(r,showBrand){
 }
 
 const V = {
+  account() { return accountHtml(); },
   search() {
     return `<div class="card"><div class="sh">BUSCA GLOBAL</div><input class="f" id="gq" type="search" autocomplete="off" placeholder="Lutador, título, rivalidade, show, time, facção…" value="${esc(GQ)}" oninput="gSearch(this.value)"><div class="m" style="margin-top:6px">Procura em todas as brands: roster (inclui Free Agency), títulos, rivalidades, shows e lutas, tag teams e facções.</div></div><div id="gres">${gResults(GQ)}</div>`;
   },
@@ -2525,7 +2747,7 @@ function draw() {
   const y=window.scrollY;
   const theme = tab==='globalRoster' ? 'Global' : B;
   document.documentElement.dataset.b = theme;
-  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk','search'].includes(tab))tab='freeAgency';
+  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk','search','account'].includes(tab))tab='freeAgency';
   // Título do header: Universe Desk na home; nome da brand quando selecionada; Roster Global / Free Agency
   const h1 = document.querySelector('header.masthead h1');
   const sub = document.querySelector('header.masthead .sub');
@@ -2536,7 +2758,7 @@ function draw() {
     else { h1.innerHTML=B.toUpperCase()+' <span>DESK</span>'; if(sub)sub.textContent='Brand ativa · booking em andamento'; }
   }
   const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k)||(k==='downgrade'&&B!=='NXT')||(k==='nxtcut'&&B==='NXT'));
-  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button><button style="--c:#8ab4ff" class="nav-wide ${tab==='search'?'on':''}" onclick="go('search')">🔍 BUSCA</button><button style="--c:#ffd166" class="nav-wide" onclick="setLang('${LANG==='en'?'pt':'en'}')">🌐 ${LANG==='en'?'PORTUGUÊS':'ENGLISH'}</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
+  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button><button style="--c:#8ab4ff" class="nav-wide ${tab==='search'?'on':''}" onclick="go('search')">🔍 BUSCA</button><button style="--c:#ffd166" class="nav-wide" onclick="setLang('${LANG==='en'?'pt':'en'}')">🌐 ${LANG==='en'?'PORTUGUÊS':'ENGLISH'}</button><button id="acctBtn" style="--c:#7ee0a1" class="nav-wide ${tab==='account'?'on':''}" onclick="go('account')">${acctLabel()}</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
   const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
   $('app').innerHTML=back('')+V[tab]()+back('bottom');
   window.scrollTo(0,y);
@@ -2550,6 +2772,7 @@ function draw() {
 }
 
 draw();
+cloudStart();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
