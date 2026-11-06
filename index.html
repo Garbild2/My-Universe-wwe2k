@@ -478,6 +478,7 @@ hr { border:0;border-top:1px solid var(--bd); }
 </style>
 </head>
 <body>
+<aside id="side"></aside>
 <header class="masthead">
   <div class="brand-lockup"><div class="brand-mark">U<span>W</span></div><div><div class="eyebrow">WWE 2K26 · UNIVERSE MODE</div><h1>UNIVERSE <span>DESK</span></h1><div class="sub">Seu universo. Seu booking. Sua história.</div></div></div>
   <div class="edition"><span class="live-dot"></span><span>BOOKING HQ</span><b>26</b></div>
@@ -493,6 +494,8 @@ const CLOUD_DEFAULT_URL = '', CLOUD_DEFAULT_KEY = '';
 let CLOUD = {}, SESSION = null;
 try { CLOUD = JSON.parse(localStorage.getItem('universedesk_cloudcfg')) || {}; } catch(e) {}
 if (!CLOUD.url) CLOUD = { url: CLOUD_DEFAULT_URL, key: CLOUD_DEFAULT_KEY };
+const cleanUrl = u => { try { u = String(u || '').trim(); if (u && !/^https?:\/\//i.test(u)) u = 'https://' + u; return u ? new URL(u).origin : ''; } catch (e) { return String(u || '').trim().replace(/\/+$/, ''); } };
+CLOUD.url = cleanUrl(CLOUD.url); CLOUD.key = String(CLOUD.key || '').trim();
 try { SESSION = JSON.parse(localStorage.getItem('universedesk_auth')); } catch(e) {}
 if (SESSION && !(SESSION.user && SESSION.user.id && CLOUD.url && CLOUD.key)) SESSION = null;
 if (SESSION) KEY = BASE_KEY + ':u:' + SESSION.user.id;
@@ -530,6 +533,8 @@ function mig(o) {
     f.resolved = !!f.resolved;
   });
   o.year = o.year || {};
+  o.stories = o.stories || [];
+  o.storyPrefs = o.storyPrefs || {onlyMine:false};
   o.moves = o.moves || [];
   if(!o.promoAdded){ if(!o.matchTypes.includes('Promo')) o.matchTypes.unshift('Promo'); o.promoAdded=true; }
   o.nxtReview = o.nxtReview || {last:'',kept:[]};
@@ -691,7 +696,7 @@ const OP = new Set(), SEL = {};
 let B = 'Raw', tab = 'landing', F = {r:'', d:'', o:'az'}, G = {r:'', d:'', o:'az'};
 const tg = (id,o) => { o ? OP.add(id) : OP.delete(id); };
 const dt = (id,head,body) => `<details class="card" ${OP.has(id)?'open':''} ontoggle="tg('${id}',this.open)"><summary>${head}</summary>${body}</details>`;
-const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['downgrade','Downgrade → NXT'],['nxtcut','Revisão da NXT'],['globalRoster','Roster global'],['bk','Backup']];
+const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['downgrade','Downgrade → NXT'],['nxtcut','Revisão da NXT'],['globalRoster','Roster global'],['bk','Backup'],['ranking','Ranking']];
 
 function sb(b) { B = b; tab = b==='Free Agency'?'freeAgency':'all'; draw(); window.scrollTo(0,0); }
 function go(t) { tab = t; draw(); window.scrollTo(0,0); }
@@ -806,7 +811,7 @@ function buildBooking(r,bump){
   }
   if(partner&&tier!=='forte'||(partner&&tier==='forte'&&rnd()<.4)){act.partner=partner.id;act.teamName=short+' & '+partner.name.split(' ').slice(-1)[0]+' '+pickR(rnd,TAG_WORDS);plan.push('Tag team com '+partner.name+' ("'+act.teamName+'"): '+(tier==='reduzido'?'dividir o holofote ajuda a recuperar fôlego e a estar em lutas de PPV.':'abre a disputa pelos títulos de duplas.'));}
   if(facMembers.length&&(tier==='forte'||tier==='subindo')&&rnd()<.6){act.facIds=facMembers.map(x=>x.id);act.facName=short+' '+pickR(rnd,FAC_WORDS);plan.push('Facção "'+act.facName+'" com '+facMembers.map(x=>x.name).join(' e ')+': '+short+' como líder, dominando o meio de card.');}
-  if(rival)plan.push('História sugerida: '+(al==='Face'?rv+' passa a desprezar '+r.name+' depois de roubar uma vitória; '+r.name+' busca revanche limpa.':al==='Heel'?r.name+' ataca '+rv+' nos bastidores para provar quem manda; a revanche vira o evento principal da semana.':r.name+' e '+rv+' disputam o respeito do vestiário — o vencedor decide de que lado vai ficar.'));
+  if(rival)plan.push(STORY_PFX+pickStory(r,rival,al,title,rnd,rv));
   return {date:today,next:addMonths(today,3),tier,head,why,plan,act,bump:bump||0};
 }
 let _bkSave=0;
@@ -1427,6 +1432,190 @@ Facção|Faction
 Facções|Factions
 BUSCA|SEARCH
 Busca|Search
+🎨 Personalizar logo e banner|🎨 Customize logo and banner
+LOGO DA MARCA|BRAND LOGO
+BANNER DA HOME DA BRAND|BRAND HOME BANNER
+📤 Enviar imagem|📤 Upload image
+PNG com fundo transparente fica melhor. Aparece no menu, nos títulos e nas listas.|PNG with transparent background works best. Shown in the menu, titles and lists.
+Imagem larga (ex.: 1400×600). Aparece atrás do texto "ESTÁ NO AR!".|Wide image (e.g. 1400×600). Shown behind the "IS ON THE AIR!" text.
+FOTO DO CINTURÃO|TITLE BELT PHOTO
+Dica: PNG com fundo transparente fica melhor. Redimensiona automaticamente.|Tip: PNG with transparent background works best. Resized automatically.
+BOOKE SEU SHOW|BOOK YOUR SHOW
+Monte o card do seu show e prepare um espetáculo inesquecível!|Build your show card and prepare an unforgettable spectacle!
+🎬 Montar luta|🎬 Build match
+MONTAR LUTA|BUILD MATCH
+TIPO DE LUTA|MATCH TYPE
+ESCOLHA OS LUTADORES|CHOOSE THE WRESTLERS
+SUA LUTA|YOUR MATCH
+LUTADOR|WRESTLER
+Buscar lutador...|Search wrestler...
+Participantes|Participants
+Por time|Per team
+Tipo de luta|Match type
+Título em jogo|Title on the line
+Nenhum|None
+＋ ADICIONAR AO CARD|＋ ADD TO CARD
+✓ Luta adicionada! Monte a próxima ou feche|✓ Match added! Build the next one or close
+✕ Fechar|✕ Close
+RESUMO DO SHOW|SHOW SUMMARY
+Total de lutas|Total matches
+Promoções|Promos
+Lutas|Matches
+Avaliação prevista|Predicted rating
+Sem notas|No ratings
+Confirmar show|Confirm show
+Reabrir show|Reopen show
+Nenhum lutador encontrado.|No wrestler found.
+Nenhuma tag team nesta brand.|No tag team in this brand.
+Nenhuma luta neste filtro. Use "Montar luta".|No match in this filter. Use "Build match".
+RIVALIDADES|FEUDS
+OUTRAS RIVALIDADES|OTHER FEUDS
+GERENCIAR RIVALIDADES|MANAGE FEUDS
+CAMPEONATOS|CHAMPIONSHIPS
+RANKINGS DE TÍTULOS|TITLE RANKINGS
+GERENCIAR TÍTULOS|MANAGE TITLES
+GERENCIAR ROSTER|MANAGE ROSTER
+Ver todos os wrestlers →|See all wrestlers →
+SHOWS E PPV|SHOWS & PPV
+Shows da Semana|Weekly Shows
+Editar Card →|Edit Card →
+CALENDÁRIO & EVENTOS|CALENDAR & EVENTS
+CRIAR E EDITAR TAG TEAMS & FACÇÕES|CREATE & EDIT TAG TEAMS & FACTIONS
+Times|Teams
+Resultados|Results
+HISTÓRICO|HISTORY
+LINHA DO TEMPO · ANOTAÇÕES POR MÊS|TIMELINE · MONTHLY NOTES
+RANKING|RANKING
+TOP 5 POR BRAND|TOP 5 PER BRAND
+Ver ranking completo (todas as brands) →|See full ranking (all brands) →
+Nenhum resultado registrado ainda.|No result recorded yet.
+Nenhuma tag team criada ainda.|No tag team created yet.
+Nenhuma facção criada ainda.|No faction created yet.
+Nenhum título nesta categoria.|No title in this category.
+Vago|Vacant
+vence|beats
+Ver Detalhes →|View Details →
+Campeonatos|Championships
+Shows e PPV|Shows & PPV
+Ranking|Ranking
+Todas as brands|All brands
+Push pós-PPV|Post-PPV push
+Revisão da NXT|NXT review
+ESTÁ NO AR!|IS ON THE AIR!
+PRÓXIMOS EVENTOS|UPCOMING EVENTS
+A marca vermelha está pronta para mais uma semana de ação!|The red brand is ready for another week of action!
+Prepare-se para uma noite inesquecível!|Get ready for an unforgettable night!
+A próxima geração está pronta para brilhar!|The next generation is ready to shine!
+Nenhum show agendado. Crie um em Shows e PPV.|No scheduled show. Create one in Shows & PPV.
+Sem data|No date
+Domingo|Sunday
+Segunda-feira|Monday
+Terça-feira|Tuesday
+Quarta-feira|Wednesday
+Quinta-feira|Thursday
+Sexta-feira|Friday
+Sábado|Saturday
+Início|Home
+Campeões|Champions
+Popularidade|Popularity
+Histórico|History
+Configurações|Settings
+Histórias|Stories
+DESTAQUES DA SEMANA|FEATURED THIS WEEK
+Ver Card do Show →|View Show Card →
+Semana|Week
+Janeiro|January
+Fevereiro|February
+Março|March
+Abril|April
+Maio|May
+Junho|June
+Julho|July
+Agosto|August
+Setembro|September
+Outubro|October
+Novembro|November
+Dezembro|December
+OUTRAS|OTHERS
+SUAS BRANDS|YOUR BRANDS
+ATALHOS|SHORTCUTS
+Gerencie seu Universo. Construa histórias. Faça história.|Manage your Universe. Build stories. Make history.
+DESTAQUE DA SEMANA|FEATURED THIS WEEK
+RIVALIDADE EM DESTAQUE|FEATURED FEUD
+CAMPEÕES ATUAIS|CURRENT CHAMPIONS
+SUGESTÕES DE PUSH|PUSH SUGGESTIONS
+RANKINGS DE POPULARIDADE|POPULARITY RANKINGS
+PRÓXIMOS EVENTOS|UPCOMING EVENTS
+ÚLTIMOS RESULTADOS|LATEST RESULTS
+Ver todos os campeões →|See all champions →
+Ver ranking completo →|See full ranking →
+Ver histórico completo →|See full history →
+Ver card →|View card →
+Abrir rivalidade →|Open feud →
+outras ativas|other active
+sem contrato|without contract
+lutadores|wrestlers
+campeões|champions
+rivalidades|feuds
+Sem gancho definido ainda.|No hook defined yet.
+Baseado em popularidade, tempo sem lutar e renovação.|Based on popularity, idle time and renewal.
+venceu|won
+Sem resultado registrado|No result recorded
+Nenhum show concluído ainda.|No completed show yet.
+Nenhum show agendado. Crie um em Shows / PPVs.|No scheduled show. Create one in Shows / PPVs.
+Nenhum campeão registrado.|No champion registered.
+Sem lutadores nesta divisão.|No wrestlers in this division.
+Cadastre lutadores para ver sugestões.|Add wrestlers to see suggestions.
+Nenhuma rivalidade ativa. Crie uma na aba Rivalidades de uma brand.|No active feud. Create one in a brand's Feuds tab.
+Campeões & rankings|Champions & rankings
+Roster global|Global roster
+ATIVAS|ACTIVE
+ENCERRADAS|ENDED
+NOVA RIVALIDADE|NEW FEUD
+▾ Minimizar todas|▾ Minimize all
+▸ Expandir todas|▸ Expand all
+▸ Expandir|▸ Expand
+GANCHO|HOOK
+GANCHO / MOTIVAÇÃO|HOOK / MOTIVATION
+Gancho / motivação da rivalidade|Feud hook / motivation
+Por que eles se odeiam? Ex.: traição após o PPV|Why do they hate each other? E.g.: betrayal after the PPV
+Sem gancho ainda. Expanda para escrever a motivação da rivalidade.|No hook yet. Expand to write the feud's motivation.
+PRÓXIMO PASSO / OBJETIVO|NEXT STEP / GOAL
+HISTÓRIA / MOMENTOS IMPORTANTES|STORY / KEY MOMENTS
+AÇÕES|ACTIONS
+Nenhuma rivalidade encerrada.|No ended feuds.
+Nenhuma rivalidade ativa em|No active feud in
+Progresso:|Progress:
+sem avanço há|no progress for
+HISTÓRIAS|STORIES
+MINHAS HISTÓRIAS|MY STORIES
+IMPORTAR VÁRIAS DE UMA VEZ|IMPORT SEVERAL AT ONCE
+SUAS HISTÓRIAS|YOUR STORIES
+Escreva modelos de história para as sugestões de booking. Use|Write story templates for the booking suggestions. Use
+para o personagem sugerido,|for the suggested character,
+para o rival e|for the rival and
+para o título (opcional). Exemplo:|for the title (optional). Example:
+Todos os alinhamentos|All alignments
+Todas as brands|All brands
++ Adicionar história|+ Add story
+Uma história por linha. Comece a linha com [face], [heel] ou [tweener] para limitar o alinhamento (sem isso vale para todos).|One story per line. Start the line with [face], [heel] or [tweener] to limit the alignment (otherwise it applies to all).
+Importar|Import
+Usar só as minhas nas sugestões (quando houver alguma que sirva)|Use only mine in the suggestions (when any fits)
+Você ainda não adicionou histórias. As sugestões usam o banco do app.|You haven't added any stories yet. Suggestions use the app's bank.
+Prévia:|Preview:
+ativa|active
+BANCO DO APP|APP BANK
+histórias|stories
+Histórias que o app já usa. Toque em "Copiar para as minhas" para editar a seu gosto.|Stories the app already uses. Tap "Copy to mine" to edit them to your taste.
+Copiar para as minhas|Copy to mine
+Com título|With title
+Escreva a história primeiro.|Write the story first.
+Nenhuma história encontrada. Escreva uma por linha.|No story found. Write one per line.
+história(s) importada(s).|story(ies) imported.
+Remover esta história?|Remove this story?
+Editar história (use {A}, {B} e {T}):|Edit story (use {A}, {B} and {T}):
+📖 Copiada para as suas histórias.|📖 Copied to your stories.
+Editar|Edit
 🔥 Criar rivalidade com esta história|🔥 Create feud with this story
 Não encontrei o rival desta história no elenco da brand.|Could not find this story's rival in the brand roster.
 Rivalidade criada com a história sugerida! Veja na aba Rivalidades da|Feud created with the suggested story! See it in the Feuds tab of
@@ -2159,7 +2348,7 @@ function syncInfoHtml(){
   const m={ok:'✓ Sincronizado',pending:'⏳ Pendente',err:'⚠ Erro de sincronização',off:'—'}[SYNC.state];
   const t=SYNC.at?' · Última sincronização: '+new Date(SYNC.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
   return esc(m)+esc(t)+(SYNC.msg?`<div class="m" style="color:#ff8a8a">${esc(SYNC.msg)}</div>`:'');}
-function saveCloudCfg(){const u=(($('cf_url')||{}).value||'').trim().replace(/\/+$/,''),k=(($('cf_key')||{}).value||'').trim();
+function saveCloudCfg(){const u=cleanUrl(($('cf_url')||{}).value),k=(($('cf_key')||{}).value||'').trim();
   if(!/^(https:\/\/|http:\/\/localhost).+/i.test(u)||!k){alert('Informe a URL (https://...supabase.co) e a chave pública.');return;}
   CLOUD={url:u,key:k};lsSet('universedesk_cloudcfg',JSON.stringify(CLOUD));draw();showGate();}
 function clearCloudCfg(){if(!confirm('Remover a configuração da nuvem deste aparelho?'))return;if(SESSION)try{localStorage.removeItem('universedesk_auth');}catch(e){}
@@ -2192,6 +2381,145 @@ function bookingStoryFeud(rid){
     notes:'Criada pela sugestão de booking.',goal,story,resolved:false,groups:{},progress:0,touched:universeDate(),
     timeline:[{id:uid(),date:universeDate(),text:'História: '+story}]});
   save();draw();alert('Rivalidade criada com a história sugerida! Veja na aba Rivalidades da '+r.brand+'.');}
+const STORY_BANK=[{c:'face',pt:'{B} passa a desprezar {A} depois de roubar uma vitória; {A} busca revanche limpa.',en:'{B} starts to despise {A} after stealing a win; {A} seeks a clean rematch.'},{c:'face',pt:'{B} ataca {A} pelas costas depois de uma luta em que ele estava vencendo; {A} promete devolver na frente de todos.',en:'{B} attacks {A} from behind after a match {A} was winning; {A} promises to pay it back in front of everyone.'},{c:'face',pt:'{B} zomba de {A} em uma promo e o público se divide; {A} responde no ringue com uma luta que decide quem merece respeito.',en:'{B} mocks {A} in a promo and the crowd is split; {A} answers in the ring with a match that decides who deserves respect.'},{c:'face',pt:'{A} protege um colega atacado por {B} e vira o alvo número um do vestiário.',en:"{A} protects a colleague attacked by {B} and becomes the locker room's number one target."},{c:'face',pt:'{B} sabota a entrada de {A} no PPV; a revanche acontece no show seguinte, com a vitória limpa de {A} como meta.',en:"{B} sabotages {A}'s entrance at the PPV; the rematch happens on the next show, with a clean win as {A}'s goal."},{c:'face',pt:'{A} volta de uma derrota injusta e persegue {B}, que se esconde atrás de interferências.',en:'{A} returns from an unfair loss and chases {B}, who hides behind interference.'},{c:'face',pt:'{B} rouba o momento de {A} no segmento do main event; o confronto cresce em 3 shows até a luta final.',en:"{B} steals {A}'s moment in the main event segment; the conflict builds over 3 shows until the final match."},{c:'face',pt:'Uma lesão causada por {B} (na história) tira {A} por uma semana; na volta, {A} só quer vingança.',en:'An injury caused by {B} (in the story) sidelines {A} for a week; on the return, {A} only wants revenge.'},{c:'face',pt:'{A} aceita o desafio de {B} para provar que o apoio do público é merecido.',en:"{A} accepts {B}'s challenge to prove the crowd's support is deserved."},{c:'face',pt:'{B} diz que {A} só chegou até aqui por sorte; uma sequência de lutas vira a prova definitiva.',en:'{B} says {A} only got this far by luck; a run of matches becomes the definitive proof.'},{c:'face',pt:'Depois de perder para {B} com ajuda externa, {A} exige uma revanche sem desqualificação.',en:'After losing to {B} with outside help, {A} demands a no-disqualification rematch.'},{c:'heel',pt:'{A} ataca {B} nos bastidores para provar quem manda; a revanche vira o evento principal da semana.',en:'{A} attacks {B} backstage to prove who is boss; the rematch becomes the main event of the week.'},{c:'heel',pt:'{A} humilha {B} em uma promo e o ataca antes da luta para provar quem manda.',en:'{A} humiliates {B} in a promo and attacks him before the match to prove who is boss.'},{c:'heel',pt:'{A} rouba a vitória de {B} com um truque sujo e passa a semana debochando do público.',en:"{A} steals {B}'s win with a dirty trick and spends the week taunting the crowd."},{c:'heel',pt:'{A} diz que {B} é um fracasso e promete aposentá-lo; a rivalidade cresce até uma luta com estipulação.',en:'{A} calls {B} a failure and vows to retire him; the feud builds to a stipulation match.'},{c:'heel',pt:'{A} manda um aliado atacar {B} nos bastidores e finge inocência.',en:'{A} sends an ally to attack {B} backstage and plays innocent.'},{c:'heel',pt:'{A} se recusa a dar revanche a {B} até que ele prove que merece.',en:'{A} refuses to give {B} a rematch until he proves he deserves it.'},{c:'heel',pt:'{A} sabota o momento mais importante de {B} para impedir sua ascensão.',en:"{A} sabotages {B}'s biggest moment to stop his rise."},{c:'heel',pt:'{A} ignora as regras e vence {B} por contagem fora do ringue; o público exige justiça.',en:'{A} ignores the rules and beats {B} by count-out; the crowd demands justice.'},{c:'heel',pt:'{A} trai {B} no meio de uma luta e destrói a confiança entre os dois; a revanche é inevitável.',en:'{A} betrays {B} mid-match and destroys the trust between them; the rematch is inevitable.'},{c:'heel',pt:'{A} subestima {B}, perde por pouco e transforma a derrota em obsessão.',en:'{A} underestimates {B}, loses by a hair and turns the defeat into an obsession.'},{c:'tween',pt:'{A} e {B} disputam o respeito do vestiário — o vencedor decide de que lado vai ficar.',en:"{A} and {B} fight for the locker room's respect — the winner decides which side to be on."},{c:'tween',pt:'{A} e {B} começam como aliados de ocasião e acabam divididos por uma decisão polêmica.',en:'{A} and {B} start as allies of convenience and end up divided by a controversial decision.'},{c:'tween',pt:'{A} e {B} se enfrentam em uma luta amistosa que escala quando um deles passa dos limites.',en:'{A} and {B} face off in a friendly match that escalates when one of them crosses the line.'},{c:'tween',pt:'O público não decide se torce por {A} ou por {B}; a história força os dois a escolher um lado.',en:"The crowd can't decide whether to cheer {A} or {B}; the story forces both to pick a side."},{c:'tween',pt:'{A} e {B} competem por uma oportunidade e a luta decisiva muda o alinhamento de quem perder.',en:"{A} and {B} compete for an opportunity and the deciding match changes the loser's alignment."},{c:'tween',pt:'{A} acusa {B} de copiar seu estilo; o confronto vira a disputa de quem é o original.',en:'{A} accuses {B} of copying his style; the clash becomes a fight over who is the original.'},{c:'tween',pt:'{B} aparece para testar {A}; a luta mostra se ele está pronto para subir de degrau.',en:'{B} shows up to test {A}; the match shows whether he is ready to move up a step.'},{c:'title',pt:'{A} e {B} disputam o primeiro lugar da fila pelo {T}; o vencedor ganha a próxima chance.',en:'{A} and {B} fight for the top spot in line for the {T}; the winner gets the next shot.'},{c:'title',pt:'{B} provoca {A} dizendo que ele não está à altura do {T}; a resposta vem em um confronto direto.',en:'{B} taunts {A} saying he is not up to the {T}; the answer comes in a direct showdown.'},{c:'title',pt:'{A} e {B} se enfrentam em uma luta eliminatória pelo {T}, e quem perder precisa de uma reconstrução.',en:'{A} and {B} meet in an elimination match for the {T}, and the loser needs a rebuild.'},{c:'title',pt:'O {T} vira o centro da rivalidade: {A} promete trazê-lo para o show e {B} promete impedir.',en:'The {T} becomes the center of the feud: {A} vows to bring it to the show and {B} vows to stop him.'},{c:'title',pt:'{B} ataca o campeão do {T} para chamar atenção, e {A} entra na briga para se tornar o desafiante.',en:'{B} attacks the {T} champion to get attention, and {A} joins the fight to become the challenger.'},{c:'title',pt:'{A} perde para {B} em um confronto duplo e usa a revanche pelo {T} como aposta final.',en:'{A} loses to {B} in a two-match series and uses the {T} rematch as the final bet.'}];
+
+function fillStory(t,A,B,T){return String(t).replace(/\{A\}/gi,A).replace(/\{B\}/gi,B).replace(/\{T\}/gi,T);}
+function storyPool(r,al,hasTitle){
+  const mine=(S.stories||[]).filter(x=>x.on!==false&&(x.align==='Todos'||x.align===al)&&(x.brand==='Todas'||x.brand===r.brand)&&(hasTitle||!/\{T\}/i.test(x.text)));
+  const cat=al==='Face'?'face':al==='Heel'?'heel':'tween';
+  let bank=STORY_BANK.filter(x=>x.c===cat||(x.c==='title'&&hasTitle));
+  if(S.storyPrefs&&S.storyPrefs.onlyMine&&mine.length)bank=[];
+  return {mine,bank};}
+function pickStory(r,rival,al,title,rnd,rv){
+  const hasT=!!title,pool=storyPool(r,al,hasT),en=LANG==='en';
+  const items=[];pool.mine.forEach(x=>{for(let i=0;i<3;i++)items.push(x.text);});pool.bank.forEach(x=>items.push(en?x.en:x.pt));
+  const t=pickR(rnd,items)||'{A} e {B} disputam o respeito do vestiário.';
+  return fillStory(t,r.name,rv,title?title.name:(en?'title':'título'));}
+function storiesHtml(){
+  const my=S.stories||[],only=!!(S.storyPrefs&&S.storyPrefs.onlyMine);
+  const sample=t=>esc(fillStory(t,'Alex Storm','Rio Vega',LANG==='en'?'World Title':'Título Mundial'));
+  const bankByCat={face:'Face',heel:'Heel',tween:'Tweener',title:'Com título'};
+  return `<div class="card"><div class="sh">MINHAS HISTÓRIAS</div>
+  <div class="m" style="margin:6px 0 10px">Escreva modelos de história para as sugestões de booking. Use <b>{A}</b> para o personagem sugerido, <b>{B}</b> para o rival e <b>{T}</b> para o título (opcional). Exemplo: <i>{A} trai {B} depois do PPV e promete acabar com a carreira dele.</i></div>
+  <textarea class="f" id="st_text" rows="3" style="width:100%" placeholder="{A} trai {B} depois do PPV…"></textarea>
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:8px"><select id="st_al"><option value="Todos">Todos os alinhamentos</option><option>Face</option><option>Heel</option><option>Tweener</option></select><select id="st_br"><option value="Todas">Todas as brands</option>${BRS.filter(b=>b!=='Free Agency').map(b=>`<option>${b}</option>`).join('')}</select><button class="add" onclick="storyAdd()">+ Adicionar história</button></div></div>
+  <div class="card"><div class="sh">IMPORTAR VÁRIAS DE UMA VEZ</div><div class="m" style="margin:6px 0 8px">Uma história por linha. Comece a linha com [face], [heel] ou [tweener] para limitar o alinhamento (sem isso vale para todos).</div>
+  <textarea class="f" id="st_bulk" rows="5" style="width:100%" placeholder="[heel] {A} humilha {B} em uma promo…&#10;[face] {B} ataca {A} pelas costas…&#10;{A} e {B} disputam o {T}…"></textarea><div class="row" style="margin-top:8px"><button class="add" onclick="storyBulk()">Importar</button></div></div>
+  <div class="card"><div class="sh">SUAS HISTÓRIAS · ${my.length}</div>
+  <label class="m" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" ${only?'checked':''} onchange="storyOnly(this.checked)"> Usar só as minhas nas sugestões (quando houver alguma que sirva)</label>
+  ${my.length?my.map(x=>`<div class="opp" style="${x.on===false?'opacity:.5':''}"><div style="min-width:0;flex:1"><div>${esc(x.text)}</div><div class="m">${esc(x.align)} · ${esc(x.brand)}</div><div class="m">Prévia: ${sample(x.text)}</div></div><div style="display:flex;flex-direction:column;gap:6px"><label class="m"><input type="checkbox" ${x.on===false?'':'checked'} onchange="storyTog('${x.id}',this.checked)"> ativa</label><button class="add" onclick="storyEdit('${x.id}')">Editar</button><button class="x" onclick="storyDel('${x.id}')">Remover</button></div></div>`).join(''):'<div class="m">Você ainda não adicionou histórias. As sugestões usam o banco do app.</div>'}</div>
+  ${dt('storybank','<span class="sh" style="margin:0">BANCO DO APP · '+STORY_BANK.length+' histórias</span>',`<div class="m" style="margin:6px 0">Histórias que o app já usa. Toque em "Copiar para as minhas" para editar a seu gosto.</div>${STORY_BANK.map((x,i)=>`<div class="opp"><div style="min-width:0;flex:1"><div>${esc(LANG==='en'?x.en:x.pt)}</div><div class="m">${bankByCat[x.c]}</div></div><button class="add" onclick="storyCopy(${i})">Copiar para as minhas</button></div>`).join('')}`)}`;}
+function storyNew(text,al,br){text=String(text||'').trim();if(!text)return false;(S.stories=S.stories||[]).push({id:uid(),text,align:al||'Todos',brand:br||'Todas',on:true});return true;}
+function storyAdd(){const t=$('st_text');if(!t||!storyNew(t.value,($('st_al')||{}).value,($('st_br')||{}).value)){alert('Escreva a história primeiro.');return;}save();draw();}
+function storyBulk(){const t=$('st_bulk');if(!t)return;let n=0;
+  t.value.split('\n').forEach(l=>{l=l.trim();if(!l)return;let al='Todos';const m=l.match(/^\[(face|heel|tweener|todos)\]\s*/i);if(m){al=m[1][0].toUpperCase()+m[1].slice(1).toLowerCase();l=l.slice(m[0].length);}if(storyNew(l,al,'Todas'))n++;});
+  if(!n){alert('Nenhuma história encontrada. Escreva uma por linha.');return;}save();draw();alert(n+' história(s) importada(s).');}
+function storyDel(id){if(!confirm('Remover esta história?'))return;S.stories=(S.stories||[]).filter(x=>x.id!==id);save();draw();}
+function storyTog(id,on){const x=(S.stories||[]).find(z=>z.id===id);if(x){x.on=!!on;save();draw();}}
+function storyEdit(id){const x=(S.stories||[]).find(z=>z.id===id);if(!x)return;const v=prompt('Editar história (use {A}, {B} e {T}):',x.text);if(v&&v.trim()){x.text=v.trim();save();draw();}}
+function storyOnly(on){S.storyPrefs=S.storyPrefs||{};S.storyPrefs.onlyMine=!!on;save();}
+function storyCopy(i){const b=STORY_BANK[i];if(!b)return;storyNew(LANG==='en'?b.en:b.pt,b.c==='face'?'Face':b.c==='heel'?'Heel':b.c==='tween'?'Tweener':'Todos','Todas');save();draw();cloudToast('📖 Copiada para as suas histórias.');}
+
+/* ===== v3.3: rivalidades em seções (ativas/encerradas), minimizar e gancho editável ===== */
+const FST=(()=>{try{return JSON.parse(localStorage.getItem('universedesk_fst')||'{}');}catch(e){return {};}})();
+function saveFst(){try{localStorage.setItem('universedesk_fst',JSON.stringify(FST));}catch(e){}}
+function feudEnded(f){return !!(f.resolved||f.status==='Encerrada');}
+function feudIsMin(f){const v=FST[f.id];if(v==='min')return true;if(v==='open')return false;return feudEnded(f);}
+function keepScroll(fn){const y=window.scrollY;fn();window.scrollTo(0,y);}
+function feudToggle(id){const f=S.feuds.find(x=>x.id==id);if(!f)return;FST[id]=feudIsMin(f)?'open':'min';saveFst();keepScroll(draw);}
+function feudMinAll(e,min){S.feuds.filter(f=>(!f.brand||f.brand==B)&&feudEnded(f)===!!e).forEach(f=>FST[f.id]=min?'min':'open');saveFst();keepScroll(draw);}
+function feudEditR(id,k,v){const x=S.feuds.find(z=>z.id==id);if(x){x[k]=v;save();keepScroll(draw);}}
+function feudCard(f){
+  const ended=feudEnded(f),min=feudIsMin(f),pr=f.progress||0,st=f.status||'Ativa',cls=ended?'ended':st==='Pausada'?'paused':'live';
+  const tt=f.hasTitle&&f.titleId?(S.titles.find(t=>t.id===f.titleId)||{}).name:'';
+  const stale=feudStale(f);
+  const head=`<div class="fhead"><span class="t">${feudLabel(f)}</span><div class="row" style="gap:6px;flex:0 0 auto"><button class="x mv" onclick="feudToggle('${f.id}')">${min?'▸ Expandir':'▾ Minimizar'}</button><button class="x mv" onclick="del('feuds','${f.id}')">✕</button></div></div>
+    <div class="ftags">${tag(kindTag(f.kind||'lutador'))}${tag(f.division||'Masculino')}${f.hasTitle?tag('🏆 '+(tt||'Título'),'face'):''}${tag(ended?'Encerrada':st,ended?'face':'')}${tag(pr>=100?'Final':pr+'%')}</div>`;
+  const quote=`<div class="fquote"><small>GANCHO</small>${f.notes?esc(f.notes):'<span class="m">Sem gancho ainda. Expanda para escrever a motivação da rivalidade.</span>'}</div>${f.goal?`<div class="m" style="margin:4px 0">🎯 ${esc(f.goal)}</div>`:''}`;
+  let body='';
+  if(min){
+    body=`<div class="pbar"><i style="width:${pr}%"></i></div><div class="m">Progresso: ${pr>=100?'Final':pr+'%'}${stale?` · <span style="color:#f4c95d">⚠ sem avanço há ${stale} dias</span>`:''}</div>`;
+  }else{
+    body=`<div class="fsec"><label class="fl">✎ GANCHO / MOTIVAÇÃO</label><textarea rows="3" placeholder="Por que eles se odeiam? Ex.: traição após o PPV" onchange="feudEditR('${f.id}','notes',this.value)">${esc(f.notes||'')}</textarea></div>
+    <div class="fsec"><label class="fl">🎯 PRÓXIMO PASSO / OBJETIVO</label><input value="${esc(f.goal||'')}" placeholder="Ex.: confronto no PPV" onchange="feudEditR('${f.id}','goal',this.value)"></div>
+    <div class="fsec"><label class="fl">📖 HISTÓRIA / MOMENTOS IMPORTANTES</label><textarea rows="3" placeholder="Promo, traição, interferência, estipulação..." onchange="feudEdit('${f.id}','story',this.value)">${esc(f.story||'')}</textarea></div>
+    ${feudProgressHtml(f)}
+    <div class="fsec"><label class="fl">⚙ AÇÕES</label><div class="row" style="gap:8px;flex-wrap:wrap">${sel(['Ativa','Pausada','Encerrada'],f.status,`onchange="st('feuds','${f.id}','status',this.value,1)"`)}${resolveButtons(f)}</div></div>`;
+  }
+  return `<div class="card fcard ${cls}" id="feud-${f.id}">${head}${feudPosters(f)}${quote}${body}</div>`;}
+
+/* ===== v4.1: Home em painel + barra lateral (concept) ===== */
+let HOMEDIV='Masculino';
+function setHomeDiv(d){HOMEDIV=d;draw();}
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function weekLabel(d){if(!d)return '';const p=d.split('-');const day=+p[2];return 'Semana '+Math.min(5,Math.ceil(day/7))+' · '+MESES[+p[1]-1]+' '+p[0];}
+const HBC={Raw:'#e11d2e',SmackDown:'#2a7bf0',NXT:'#d9a81e','Free Agency':'#9b5de5'};
+function artOf(b){return ((S.brandArt||{})[b])||{};}
+function wordmark(b,sm){const c=HBC[b]||'#aaa';const lg=artOf(b).logo;if(lg)return `<img class="wmimg${sm?' sm':''}" src="${esc(lg)}" alt="${esc(b)}" onerror="this.outerHTML='${esc(b)}'">`;const t=b==='Free Agency'?'FREE AGENCY':b==='SmackDown'?'SMACKDOWN':b.toUpperCase();return `<span class="wm wm-${b.replace(/\s/g,'')}${sm?' sm':''}" style="--c:${c}">${t}</span>`;}
+const BRTAB=['all','roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut','ranking'];
+const BRTAG={Raw:'A marca vermelha está pronta para mais uma semana de ação!',SmackDown:'Prepare-se para uma noite inesquecível!',NXT:'A próxima geração está pronta para brilhar!'};
+const WDAY=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+function wdayLabel(d){if(!d)return 'Sem data';const x=new Date(d+'T12:00:00');return WDAY[x.getDay()]+' · '+fmtBR(d);}
+function brandSide(){
+  const c=HBC[B]||'#e11d2e';
+  const it=(k,ic,lb)=>`<button class="si ${tab===k?'on':''}" onclick="go('${k}')"><span class="sic">${ic}</span><span>${lb}</span></button>`;
+  return `<div class="slogo bl" onclick="go('landing')" title="Voltar à Home geral"><div class="slt">${wordmark(B)}</div></div>
+  ${it('all','⌂','Início')}${it('feuds','🔥','Rivalidades')}${it('titles','🏆','Campeonatos')}${it('roster','👥','Roster')}${it('shows','🎟','Shows e PPV')}${it('teams','🤝','Tag Teams')}${it('year','🕓','Histórico')}
+  ${it('ranking','📊','Ranking')}
+  <hr>${it('push','📈','Push pós-PPV')}${it('summary','📋','Resumo')}${B==='NXT'?it('nxtcut','✂','Revisão da NXT'):it('downgrade','⬇','Downgrade → NXT')}
+  <hr><button class="si" onclick="go('landing')"><span class="sic">↩</span><span>Todas as brands</span></button><button class="si" onclick="go('search')"><span class="sic">🔍</span><span>Busca</span></button><button class="si ${tab==='account'?'on':''}" onclick="go('account')"><span class="sic">⚙</span><span>Configurações</span></button>
+  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v5.1</small></div></div>`;
+}
+function sideHtml(){
+  if(B!=='Free Agency'&&BRTAB.includes(tab))return brandSide();
+  const inBrand=['all','roster','titles','feuds','shows','teams','push','summary','downgrade','nxtcut','freeAgency'].includes(tab);
+  const it=(on,oc,ic,lb)=>`<button class="si ${on?'on':''}" onclick="${oc}"><span class="sic">${ic}</span><span>${lb}</span></button>`;
+  const br=(b,l)=>`<button class="si ${inBrand&&B===b?'on':''}" onclick="sb('${b}')"><span class="sic wide">${wordmark(b,1)}</span></button>`;
+  return `<div class="slogo" onclick="go('landing')"><div class="brand-mark">U<span>W</span></div><div class="slt">UNIVERSE<br>DESK</div></div>
+  ${it(tab==='landing',"go('landing')",'⌂','Início')}${it(tab==='globalRoster',"go('globalRoster')",'👥','Roster')}${it(tab==='globalChampions',"go('globalChampions')",'🏆','Campeões')}${it(tab==='popularity',"go('popularity')",'★','Popularidade')}${it(B==='Free Agency'&&inBrand,"sb('Free Agency')",'▲','Free Agency')}
+  <hr>${br('Raw','RAW')}${br('SmackDown','SMACK')}${br('NXT','NXT')}
+  <hr>${it(tab==='year',`openTab(B==='Free Agency'?'Raw':B,'year')`,'🕓','Histórico')}${it(tab==='search',"go('search')",'🔍','Busca')}${it(tab==='stories',"go('stories')",'📖','Histórias')}${it(tab==='bk',"go('bk')",'💾','Backup')}${it(tab==='account',"go('account')",'⚙','Configurações')}
+  <button class="si" onclick="setLang('${LANG==='en'?'pt':'en'}')"><span class="sic">🌐</span><span>${LANG==='en'?'Português':'English'}</span></button>
+  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v4.1</small></div></div>`;
+}
+function homePanel(title,icon,body,foot,cls){return `<section class="hp ${cls||''}"><div class="hph"><span class="hic">${icon}</span>${title}</div><div class="hpb">${body}</div>${foot?`<div class="hpf">${foot}</div>`:''}</section>`;}
+function himg(r,cls){const n=r?r.name:'';return `<div class="${cls||'hav'}">${esc(initials(n))}${r&&r.photo?`<img src="${esc(r.photo)}" alt="" onerror="this.style.display='none'">`:''}</div>`;}
+function cardBadge(r){const c=r.card||'Roster',l=c.toLowerCase();const k=/top|upper/.test(l)?'pu':/main/.test(l)?'bl':/mid/.test(l)?'gr':'gy';return `<span class="hbd ${k}">${esc(c)}</span>`;}
+function homeDash(){
+  const ud=universeDate();
+  const tiles=['Raw','SmackDown','NXT','Free Agency'].map(b=>`<button class="hlogo ${B===b?'on':''}" style="--c:${HBC[b]}" onclick="sb('${b}')">${wordmark(b)}</button>`).join('')+`<button class="hlogo other" onclick="go('globalRoster')"><span class="wm" style="--c:#8b93a5">OUTRAS</span></button>`;
+  /* destaque */
+  const af=S.feuds.filter(f=>!feudEnded(f)&&f.status!=='Pausada').sort((x,y)=>((y.hasTitle?30:0)+(y.progress||0))-((x.hasTitle?30:0)+(x.progress||0)));
+  const hf=af[0];let hero;
+  if(hf){const gs=feudGroups(hf).filter(g=>g.length).slice(0,2);const side=g=>`<div class="hside">${himg(person(g[0]),'hbig')}</div>`;
+    hero=`<div class="hban" style="--c:${HBC[hf.brand]||'#e11d2e'}"><span class="hwm">${esc((hf.brand||'').toUpperCase())}</span>${gs.map(side).join('')}<div class="hcap"><div class="hcapt">${feudLabel(hf).replace(' vs ',' <em>vs</em> ')}</div><div class="hcapq">${hf.notes?esc(hf.notes):'Sem gancho definido ainda.'}</div></div></div><div class="hpf2"><button class="add" onclick="openTab('${hf.brand||B}','feuds')">Abrir rivalidade →</button>${af.length>1?`<span class="m">+${af.length-1} outras ativas</span>`:''}</div>`;
+  }else hero=em('Nenhuma rivalidade ativa. Crie uma na aba Rivalidades de uma brand.');
+  /* campeões */
+  const ch=S.titles.filter(t=>t.champ).sort((x,y)=>BRS.indexOf(x.brand)-BRS.indexOf(y.brand)).slice(0,5);
+  const champs=ch.length?ch.map(t=>`<div class="hrow"><span class="belt" style="--c:${HBC[t.brand]||'#c9a227'}">${beltHtml(t,'sm')}</span>${himg(person(t.champ),'hav')}<div style="min-width:0"><div class="hrt">${esc(t.name)}</div><div class="m">${esc(nm(t.champ))}</div></div></div>`).join(''):em('Nenhum campeão registrado.');
+  /* push */
+  const sug=['Raw','SmackDown','NXT'].flatMap(b=>heroPick(b).slice(0,2).map(x=>({...x,b}))).sort((x,y)=>y.sc-x.sc).slice(0,3);
+  const sugH=sug.length?sug.map(({r,bk})=>`<div class="hrow" style="cursor:pointer" onclick="openWrestler('${r.id}')">${himg(r,'hav')}<div style="min-width:0;flex:1"><div class="hrt">${esc(r.name)}</div><div class="m clamp2">${esc(bk.why||bk.head)}</div></div>${cardBadge(r)}</div>`).join(''):em('Cadastre lutadores para ver sugestões.');
+  /* ranking */
+  const rk=S.roster.filter(r=>r.role==='Lutador'&&(r.division||'Masculino')===HOMEDIV).sort((x,y)=>popularity(y.id)-popularity(x.id)||x.name.localeCompare(y.name)).slice(0,5);
+  const rkH=`<div class="rkw"><div class="rkl"><div class="htabs"><button class="${HOMEDIV==='Masculino'?'on':''}" onclick="setHomeDiv('Masculino')">Masculino</button><button class="${HOMEDIV==='Feminino'?'on':''}" onclick="setHomeDiv('Feminino')">Feminino</button></div>`+(rk.length?rk.map((r,i)=>`<div class="hrow slim" style="cursor:pointer" onclick="openWrestler('${r.id}')"><b class="hrn">${i+1}</b>${himg(r,'hav sm')}<div class="hrt" style="flex:1;min-width:0">${esc(r.name)}</div><b>${Math.round(popularity(r.id))}%</b></div>`).join(''):em('Sem lutadores nesta divisão.'))+`</div>${rk[0]?`<div class="rkimg">${himg(rk[0],'hbig')}</div>`:''}</div>`;
+  /* próximos */
+  const nx=S.shows.filter(x=>!x.completed&&!x.archived).sort((x,y)=>(x.date||'9').localeCompare(y.date||'9'))[0];
+  const nxH=nx?`<div class="nxban" style="--c:${HBC[brandsFor(nx)[0]]||'#e11d2e'}"><span class="hwm">${esc(brandsFor(nx)[0].toUpperCase())}</span></div><div class="nxb"><div class="nxt">${esc(nx.name)}</div><div class="m">${esc(weekLabel(nx.date))||'Sem data'}</div><div class="m">📍 ${esc(brandsFor(nx).join(' · '))} · ${(nx.matches||[]).length} lutas</div><button class="add red" onclick="openShow('${nx.id}')">Ver Card do Show →</button></div>`:em('Nenhum show agendado. Crie um em Shows / PPVs.');
+  /* últimos */
+  const ls=S.shows.filter(x=>x.completed).sort((x,y)=>(y.date||'').localeCompare(x.date||'')).slice(0,3);
+  const lsH=ls.length?ls.map(x=>{const ms=(x.matches||[]).filter(m=>m.result&&m.result!=='Empate');const m=ms[ms.length-1];return `<div class="hrow" style="cursor:pointer" onclick="openShow('${x.id}')">${wordmark(brandsFor(x)[0],1)}<div style="min-width:0;flex:1"><div class="hrt">${esc(x.name)} <span class="m">· ${esc(weekLabel(x.date))}</span></div><div class="m">${m?esc(m.result)+' venceu':'Sem resultado registrado'}</div></div></div>`;}).join(''):em('Nenhum show concluído ainda.');
+  return `<section class="hhead"><div><h2>HOME</h2><p>Gerencie seu Universo. Construa histórias. Faça história.</p></div><div class="hdt">📅 <span>${esc(weekLabel(ud))}</span></div></section>
+  <div class="hsh">SUAS BRANDS</div><div class="hlogos">${tiles}</div>
+  <div class="hgrid">
+   ${homePanel('DESTAQUES DA SEMANA','🔥',hero,'','hp-hero')}
+   ${homePanel('CAMPEÕES ATUAIS','🏆',champs,'<a onclick="go(\'globalChampions\')">Ver todos os campeões →</a>','hp-ch')}
+   ${homePanel('SUGESTÕES DE PUSH','📈',sugH,'','hp-su')}
+   ${homePanel('RANKINGS DE POPULARIDADE','📊',rkH,'<a onclick="go(\'popularity\')">Ver ranking completo →</a>','hp-rk')}
+   ${homePanel('PRÓXIMOS EVENTOS','📅',nxH,'','hp-nx')}
+   ${homePanel('ÚLTIMOS RESULTADOS','⭐',lsH,'<a onclick="go(\'year\')">Ver histórico completo →</a>','hp-ls')}
+  </div>`;
+}
 function matchLine(m){if(m.matchType==='Promo')return '🎤 Promo: '+(m.participants||[]).map(nm).join(' · ');return m.groups&&m.groups.length?m.groups.map((g,i)=>'Time '+TL[i]+': '+g.map(nm).join(' & ')).join(' vs '):((m.participants||[]).map(nm).join(' vs ')||m.t||'');}
 function resultOpts(m){return m.groups&&m.groups.length?m.groups.map((g,gi)=>`<option value="__g${gi}" ${m.winGroup===gi?'selected':''}>Vitória: Time ${TL[gi]} (${esc(g.map(nm).join(' & '))})</option>`).join(''):(m.participants||[]).map(pid=>`<option value="${pid}" ${(m.outcomes||{})[pid]==='Vitoria'?'selected':''}>Vitória: ${esc(nm(pid))}</option>`).join('');}
 function teamForGroup(g){return S.teams.find(t=>{const mm=t.members||[];return mm.length===g.length&&g.every(x=>mm.includes(x));})||S.teams.find(t=>g.every(x=>(t.members||[]).includes(x)));}
@@ -2488,21 +2816,12 @@ function profileCard(r,showBrand){
 }
 
 const V = {
+  stories() { return storiesHtml(); },
   account() { return accountHtml(); },
   search() {
     return `<div class="card"><div class="sh">BUSCA GLOBAL</div><input class="f" id="gq" type="search" autocomplete="off" placeholder="Lutador, título, rivalidade, show, time, facção…" value="${esc(GQ)}" oninput="gSearch(this.value)"><div class="m" style="margin-top:6px">Procura em todas as brands: roster (inclui Free Agency), títulos, rivalidades, shows e lutas, tag teams e facções.</div></div><div id="gres">${gResults(GQ)}</div>`;
   },
-  landing() {
-    const brands=BRS.filter(b=>b!=='Free Agency');
-    const free=S.roster.filter(r=>r.brand==='Free Agency');
-    return `<section class="landing-hero"><div class="eyebrow">WWE 2K26 · UNIVERSE MANAGEMENT</div><h1>UNIVERSE <span>DESK</span></h1><p>Escolha onde deseja continuar seu Universe Mode.</p></section>
-    <div class="brand-picker">${brands.map(b=>`<button class="brand-tile" style="--c:${COL[b]}" onclick="sb('${b}')"><span class="tile-name">${esc(b)}</span><small>ABRIR BRAND</small><b>Entrar na Home →</b></button>`).join('')}
-    <button class="brand-tile free-tile" style="--c:${COL['Free Agency']}" onclick="sb('Free Agency')"><span class="tile-name">FREE AGENCY</span><small>${free.length} personagens sem contrato</small><b>Ver agentes livres →</b></button>
-    <button class="brand-tile roster-tile" style="--c:#35c9a5" onclick="go('globalRoster')"><span class="tile-name">ROSTER GLOBAL</span><small>Elenco completo, equipes e facções</small><b>Abrir roster global →</b></button>
-    <button class="brand-tile roster-tile" style="--c:#f4c95d" onclick="go('globalChampions')"><span class="tile-name">CAMPEÕES & RANKINGS</span><small>Todos os títulos e desafiantes</small><b>Consultar →</b></button>
-    <button class="brand-tile roster-tile" style="--c:#7fb0ff" onclick="go('bk')"><span class="tile-name">BACKUP</span><small>Exportar e importar seus dados (.json)</small><b>Abrir backup →</b></button>
-    <button class="brand-tile roster-tile" style="--c:#b28dff" onclick="go('popularity')"><span class="tile-name">POPULARIDADE</span><small>Ranking geral do roster</small><b>Consultar →</b></button></div>`;
-  },
+  landing() { return homeDash(); },
   globalChampions() {
     const titles=S.titles.slice().sort((a,b)=>(a.brand||'').localeCompare(b.brand||'')||(a.name||'').localeCompare(b.name||''));
     const champions=titles.filter(t=>t.champ);
@@ -2520,7 +2839,13 @@ const V = {
     const b=B, roster=lut(b), champs=S.titles.filter(t=>t.brand===b&&t.champ), shows=S.shows.filter(s=>brandsFor(s).includes(b)).sort((a,c)=>(c.date||'').localeCompare(a.date||'')), feuds=S.feuds.filter(f=>!f.brand||f.brand===b), teams=S.teams.filter(t=>t.brand===b), facs=S.factions.filter(f=>f.brand===b);
     if(b==='Free Agency')return V.freeAgency();
     const suggestions=roster.filter(r=>!carry(r.id).length).sort((a,c)=>pushWeight(c)-pushWeight(a)).slice(0,5);
-    return `<section class="sec" style="--c:${COL[b]}"><div class="sh">${b.toUpperCase()} · BRAND HQ</div><div class="g"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${champs.length}</b><div class="m">Campeões</div></div><div><b>${shows.length}</b><div class="m">Eventos no histórico</div></div><div><b>${feuds.filter(f=>f.status!=='Encerrada').length}</b><div class="m">Rivalidades ativas</div></div></div><div class="g" style="margin-top:14px"></div></section>
+    const nxs=S.shows.filter(x=>!x.completed&&!x.archived&&brandsFor(x).includes(b)).sort((x,y)=>(x.date||'9').localeCompare(y.date||'9')).slice(0,3);
+    const bc=HBC[b]||'#e11d2e';
+    const top=`<section class="bhd"><div class="bhn">${wordmark(b)}</div><div class="hdt">📅 <span>${esc(weekLabel(universeDate()))}</span></div></section>
+    <div class="bhero ${artOf(b).banner?'hasb':''}" style="--c:${bc}">${artOf(b).banner?`<img class="bbanner" src="${esc(artOf(b).banner)}" alt="" onerror="this.style.display='none'">`:''}<div class="bbeam"></div>${artOf(b).logo?`<div class="bwm"><img class="bwimg" src="${esc(artOf(b).logo)}" alt=""></div>`:`<div class="bwm">${b==='SmackDown'?'SMACK<br>DOWN':b.toUpperCase()}</div>`}<div class="bcap"><div class="bcapt">${b.toUpperCase()} ESTÁ NO AR!</div><div class="bcaps">${esc(BRTAG[b]||'')}</div></div><button class="bdet" onclick="go('shows')">Ver Detalhes →</button></div><div style="text-align:right;margin-top:6px"><a class="lk" onclick="toggleArt()">🎨 Personalizar logo e banner</a></div>${ARTED?artEditor(b):''}
+    <div class="hsh" style="margin-top:16px">PRÓXIMOS EVENTOS</div>
+    <div class="bnx">${nxs.length?nxs.map(x=>`<div class="bnr" style="--c:${bc}" onclick="openShow('${x.id}')">${wordmark(b,1)}<div style="flex:1;min-width:0"><div class="hrt">${esc(x.name)}</div><div class="m">${esc(wdayLabel(x.date))}</div></div><span class="m">›</span></div>`).join(''):em('Nenhum show agendado. Crie um em Shows e PPV.')}</div>`;
+    return top+`<section class="sec" style="--c:${COL[b]};margin-top:18px"><div class="sh">${b.toUpperCase()} · BRAND HQ</div><div class="g"><div><b>${roster.length}</b><div class="m">Wrestlers</div></div><div><b>${champs.length}</b><div class="m">Campeões</div></div><div><b>${shows.length}</b><div class="m">Eventos no histórico</div></div><div><b>${feuds.filter(f=>f.status!=='Encerrada').length}</b><div class="m">Rivalidades ativas</div></div></div><div class="g" style="margin-top:14px"></div></section>
       
       ${heroBooking(b)}
       <div class="brand-home-columns"><div class="card"><div class="sh">SUGESTÕES DE PUSH</div><div class="m" style="margin-bottom:10px">Consideram popularidade e a média de estrelas das lutas; campeões atuais são excluídos.</div>${suggestions.length?suggestions.map(r=>`<div class="rw"><div><span class="t">${esc(r.name)}</span><div class="m">${pushLabel(r.id)} · ${statsFor(r.id).wins} vitórias · ${starLine(r.id)}</div></div><span class="sp"></span>${tag(popularity(r.id)+'%')}</div>`).join(''):em('Adicione wrestlers para receber sugestões.')}</div><div class="card brand-champions-list"><div class="sh">CAMPEÕES DA BRAND</div>${champs.length?champs.map(t=>`<div class="rw"><div><span class="t">${esc(t.name)}</span><div class="m">${esc(t.brand)}</div></div><span class="sp"></span><b>${esc(nm(t.champ))}</b></div>`).join(''):em('Nenhum campeão registrado.')}</div></div>
@@ -2553,6 +2878,10 @@ const V = {
     const p = pool(t), k = "'titles','"+t.id+"'", free = p.filter(x => x.id != t.champ && !t.rank.includes(x.id));
     return h + `<div class="card hero">
       <div class="row"><span class="t" style="font-size:17px">${esc(t.name)}</span>${tag(t.lv)}<span class="sp"></span><button class="x" onclick="removeTitle('${t.id}')">🗑 Remover</button></div>
+      <div class="photo-box" style="margin-top:10px"><div class="tphoto">${beltHtml(t,'lg')}</div><div class="fl"><span class="m">FOTO DO CINTURÃO</span>
+        <input placeholder="Cole a URL da imagem" value="${t.photo&&String(t.photo).startsWith('data:')?'':esc(t.photo||'')}" onchange="setTitlePhotoUrl('${t.id}',this.value)">
+        <div class="photo-actions"><label class="add">📤 Enviar foto<input type="file" accept="image/*" onchange="setTitlePhotoFile('${t.id}',this)"></label>${t.photo?`<button class="x" type="button" onclick="clearTitlePhoto('${t.id}')">Remover foto</button>`:''}</div>
+        <div class="m" style="margin-top:4px">Dica: PNG com fundo transparente fica melhor. Redimensiona automaticamente.</div></div></div>
       <div class="m" style="margin-top:10px">CAMPEÃO ATUAL</div>
       ${(()=>{
         if(!t.champ) return `<div class="champ">Vago</div>`;
@@ -2636,12 +2965,13 @@ const V = {
   },
 
   feuds() {
-    const l = S.feuds.filter(f => !f.brand || f.brand == B);
+    const all = S.feuds.filter(f => !f.brand || f.brand == B);
+    const ended = f => f.resolved || f.status === 'Encerrada';
+    const act = all.filter(f => !ended(f)).sort((a,b) => (a.status==='Pausada') - (b.status==='Pausada'));
+    const end = all.filter(ended);
     const titles = S.titles.filter(t => t.brand===B);
     setTimeout(()=>{feudKindUI();feudTitleUI();},0);
-    return `<div class="card">
-      <div class="sh">NOVA RIVALIDADE · ${B.toUpperCase()}</div>
-      <div class="g">
+    const form = dt('newfeud', `<span class="sh" style="margin:0">➕ NOVA RIVALIDADE · ${B.toUpperCase()}</span>`, `<div class="g">
         ${fld('Tipo',`<select id="fk" onchange="feudKindUI()"><option value="lutador">Lutador 1v1</option><option value="multi">Triple / Four — Singles</option><option value="tag">Tag Team vs Tag Team</option><option value="multi-tag">Triple / Four — Tag Teams</option><option value="faction">Facção vs Facção</option></select>`)}
         ${fld('Divisão',`<select id="fdiv" onchange="feudKindUI()">${opt(['Masculino','Feminino','Mix'])}</select>`)}
         ${fld('Envolve título?',`<label style="display:flex;align-items:center;gap:8px;min-height:40px"><input type="checkbox" id="fht" onchange="feudTitleUI()"> Sim</label>`)}
@@ -2649,26 +2979,13 @@ const V = {
       <div id="ftitleWrap" style="display:none;margin-top:10px">${fld('Título em jogo',`<select id="ftitle">${po(titles,'','— escolher título')}</select>`)}</div>
       <div id="feudSides" style="margin-top:12px"></div>
       <div class="g" style="margin-top:12px">
-        ${fld('Resumo / storyline',`<input class="f" id="fnt" placeholder="Gancho da rivalidade">`)}
+        ${fld('Gancho / motivação da rivalidade',`<input class="f" id="fnt" placeholder="Por que eles se odeiam? Ex.: traição após o PPV">`)}
         ${fld('Objetivo / próximo passo',`<input class="f" id="fgoal" placeholder="Ex.: luta pelo título no PPV">`)}
       </div>
       <button class="add" style="margin-top:12px" onclick="addFeud()">Criar rivalidade</button>
-      <div class="m" style="margin-top:8px">Pop: Singles (1v1 ou Triple/Four) vencedor +3.5 / cada perdedor −2. Tag ou Facção: cada membro da tag/facção vencedora +1.5 / perdedores −1.</div>
-    </div>` +
-    (l.length ? l.map(f => {
-      const titleName = f.hasTitle && f.titleId ? (S.titles.find(t=>t.id===f.titleId)||{}).name : '';
-      return `<div class="card">
-      <div class="row"><span class="t">${feudLabel(f)}</span><span class="sp"></span>${tag(kindTag(f.kind||'lutador'))}${tag(f.division||'Masculino')}${f.hasTitle?tag('🏆 '+(titleName||'Título'),'face'):''}${tag((f.progress||0)>=100?'Final':(f.progress||0)+'%')}${tag(f.status||'Ativa',f.status==='Encerrada'?'face':'')}<button class="x" onclick="del('feuds','${f.id}')">✕</button></div>
-      ${feudPosters(f)}
-      ${f.notes ? `<div class="m" style="margin:6px 0 10px">${esc(f.notes)}</div>` : ''}
-      <div class="g" style="margin-top:10px">${fld('Próximo passo / objetivo',`<input value="${esc(f.goal||'')}" placeholder="Ex.: confronto no PPV" onchange="feudEdit('${f.id}','goal',this.value)">`)}${fld('História / momentos importantes',`<textarea rows="3" placeholder="Promo, traição, interferência, estipulação..." onchange="feudEdit('${f.id}','story',this.value)">${esc(f.story||'')}</textarea>`)}</div>
-      ${feudProgressHtml(f)}
-      <div class="row" style="margin-top:10px;gap:10px;flex-wrap:wrap">
-        ${sel(['Ativa','Pausada','Encerrada'],f.status,`onchange="st('feuds','${f.id}','status',this.value,1)"`)}
-        ${resolveButtons(f)}
-      </div>
-    </div>`;
-    }).join('') : em('Nenhuma rivalidade em '+B+'.'));
+      <div class="m" style="margin-top:8px">Pop: Singles (1v1 ou Triple/Four) vencedor +3.5 / cada perdedor −2. Tag ou Facção: cada membro da tag/facção vencedora +1.5 / perdedores −1.</div>`);
+    const sec = (ttl, list, e) => `<div class="fsh"><span class="sh" style="margin:0">${ttl} · ${list.length}</span><span class="sp"></span>${list.length?`<button class="add" onclick="feudMinAll(${e},1)">▾ Minimizar todas</button><button class="add" onclick="feudMinAll(${e},0)">▸ Expandir todas</button>`:''}</div>` + (list.length ? list.map(feudCard).join('') : em(e ? 'Nenhuma rivalidade encerrada.' : 'Nenhuma rivalidade ativa em '+B+'.'));
+    return form + sec('🔥 ATIVAS', act, 0) + sec('🏁 ENCERRADAS', end, 1);
   },
 
   shows() {
@@ -2678,7 +2995,7 @@ const V = {
     <div class="card"><div class="sh">ROYAL RUMBLE</div><div class="m">Cria o evento especial para as duas Rumbles (masculina e feminina), cada uma com 30 participantes; depois adicione cada luta selecionando a divisão correspondente. Os vencedores representam o desafiante da WrestleMania.</div><div class="row" style="margin-top:10px"><input id="rumbleDate" type="date"><button class="add" onclick="createRumble()">Criar Royal Rumble</button></div></div>
     <div class="card"><div class="sh">TIPOS DE LUTA</div><div class="row"><input id="newType" class="f" placeholder="Novo tipo de luta"><button class="add" onclick="addMatchType()">Adicionar tipo</button></div><div class="chips" style="margin-top:10px">${S.matchTypes.map(t=>`<span class="tag">${esc(t)} <button class="x" onclick="delMatchType(${JSON.stringify(t).replace(/"/g,'&quot;')})">×</button></span>`).join('')}</div></div>`+
     (l.length?`<div class="row" style="gap:8px;margin:4px 0 8px"><button class="add" onclick="minAllShows(true)">▾ Minimizar todos</button><button class="add" onclick="minAllShows(false)">▸ Expandir todos</button></div>`+l.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(s=>`<div class="card" id="show-${s.id}"><div class="row"><div><div class="t">${esc(s.name)}</div><div class="m">${s.type}${s.date?' · '+fmtBR(s.date)+' ('+dow(s.date)+')':' · sem data'} · ${brandsFor(s).join(' / ')}</div></div><span class="sp"></span><input type="date" value="${s.date||''}" title="Alterar a data deste show" onchange="st('shows','${s.id}','date',this.value,1)" style="max-width:150px">${tag(s.completed?'Concluído':'Em booking',s.completed?'face':'')}${s.completed&&showAvg(s)?tag('Média do show: '+starAvgTxt(showAvg(s).avg)+' ('+showAvg(s).n+(showAvg(s).n===1?' luta':' lutas')+')','face'):''}<button class="add" type="button" onclick="toggleMinShow('${s.id}')" style="padding:6px 10px">${MINS.has(s.id)?'▸ Expandir':'▾ Minimizar'}</button><button class="x" onclick="del('shows','${s.id}')">✕</button></div>
-      ${MINS.has(s.id)?miniShow(s):`<div>${s.matches.map((m,i)=>`<div class="card mcard" data-sid="${s.id}" data-mi="${i}" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="dh" title="Arraste para reordenar" onpointerdown="dragStart(event,'${s.id}',${i})">⠿</span><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x mv" title="Subir" onclick="moveMatch('${s.id}',${i},${i-1})">▲</button><button class="x mv" title="Descer" onclick="moveMatch('${s.id}',${i},${i+1})">▼</button>${m.feudId&&S.feuds.some(f=>f.id===m.feudId)?`<span class="tag">🔥 Rivalidade criada</span>`:`<button class="x" onclick="feudFromMatch('${s.id}',${i})">🔥 Criar rivalidade</button>`}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${m.matchType==='Promo'?'':fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
+      ${MINS.has(s.id)?miniShow(s):`<div>${showBoard(s)}${s.matches.map((m,i)=>`<div class="card mcard" data-sid="${s.id}" data-mi="${i}" style="margin-top:10px;margin-bottom:8px"><div class="row"><span class="dh" title="Arraste para reordenar" onpointerdown="dragStart(event,'${s.id}',${i})">⠿</span><span class="m">${i+1}.</span><div><div class="t">${esc(m.matchType||'Luta')} · ${esc(m.division||'Mix')}</div><div class="m">${esc(matchLine(m))}</div></div><span class="sp"></span>${typeof m.stars==='number'?tag(starTxt(m.stars),'face'):''}${m.title?tag('🏆 '+m.title,'face'):''}<button class="x mv" title="Subir" onclick="moveMatch('${s.id}',${i},${i-1})">▲</button><button class="x mv" title="Descer" onclick="moveMatch('${s.id}',${i},${i+1})">▼</button>${m.feudId&&S.feuds.some(f=>f.id===m.feudId)?`<span class="tag">🔥 Rivalidade criada</span>`:`<button class="x" onclick="feudFromMatch('${s.id}',${i})">🔥 Criar rivalidade</button>`}<button class="x" onclick="delMatch('${s.id}',${i})">Remover</button></div><div class="g" style="margin-top:8px">${fld('Resultado oficial',`<select onchange="setMatchResult('${s.id}',${i},this.value)"><option value="">Não registrado</option>${resultOpts(m)}<option value="__draw" ${m.result==='Empate'?'selected':''}>Empate</option></select>`)}${m.matchType==='Promo'?'':fld('Estrelas da luta (0–5)',`<select onchange="setMatchStars('${s.id}',${i},this.value)"><option value="">Sem nota</option>${STAR_STEPS.map(v=>`<option value="${v}" ${m.stars===v?'selected':''}>${starTxt(v)}</option>`).join('')}</select>`)}${fld('Notas da luta',`<input value="${esc(m.notes||'')}" placeholder="Finalização, interferência, momento-chave..." onchange="matchEdit('${s.id}',${i},'notes',this.value)">`)}</div></div>`).join('')}
       ${s.completed?showImpactCard(s):''}<div class="card" style="margin-top:12px"><div class="row" style="flex-wrap:wrap;gap:6px"><div class="sh" style="margin:0">PRÉ-VISUALIZAÇÃO DO CARD</div><span class="sp"></span><button class="add pvbtn" data-m="poster" onclick="setPrev('poster')">🖼 Pôster</button><button class="add pvbtn" data-m="lista" onclick="setPrev('lista')">☰ Lista</button></div><div id="prev${s.id}">${cardPreviewHtml(s,null)}</div></div>${s.rumble?'':`<div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px"><button class="add" onclick="suggestMatch('${s.id}')">💡 Sugerir luta</button><span class="m" id="sugg${s.id}"></span></div>`}${s.rumble?rumbleForm(s.id,'Masculino')+rumbleForm(s.id,'Feminino'):`<div id="matchForm${s.id}">${matchForm(s.id)}</div>`}<label class="fl" style="margin-top:10px"><span class="m">Notas do show / plano do booker</span><textarea rows="2" placeholder="Promos, segmentos, decisões para as histórias..." onchange="st('shows','${s.id}','notes',this.value)">${esc(s.notes||'')}</textarea></label><div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><button class="add" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Marcar show concluído'}</button>${s.completed?`<button class="add" onclick="archiveShow('${s.id}')">📦 Arquivar este show</button>`:''}</div></div>`}</div>`).join(''):em('Nenhum evento ainda. Crie um card ou gere a semana padrão.'))+archiveSection(B);
   },
 
@@ -2774,11 +3091,202 @@ const V = {
   }
 };
 
+
+/* ===== v5.0: telas de seção no formato do concept ===== */
+const SECT={titles:'Masculino',roster:'Masculino',teams:'Times',shows:'Shows da Semana',year:'Resultados',ranking:'Popularidade'};
+function setSect(k,v){SECT[k]=v;draw();}
+function secTabs(k,list){return `<div class="htabs sect">${list.map(x=>`<button class="${SECT[k]===x?'on':''}" onclick="setSect('${k}','${x}')">${x}</button>`).join('')}</div>`;}
+function secHead(title){return `<section class="bhd"><h2 class="sech">${title}</h2><div class="shr">${wordmark(B)}<div class="hdt">📅 <span>${esc(weekLabel(universeDate()))}</span></div></div></section>`;}
+function secManage(label){return `<div class="hsh" id="manage" style="margin-top:26px">${label}</div>`;}
+function toManage(){const e=document.getElementById('manage');if(e)e.scrollIntoView({behavior:'smooth',block:'start'});}
+function ptile(r){return `<div class="rtile" onclick="openWrestler('${r.id}')">${himg(r,'rtp')}<div class="rtn">${esc(r.name)}</div><div class="m">${esc(r.card||'')}</div><div class="m">${esc(r.alignment||'')}</div></div>`;}
+function grpTile(name,ids,sub){const ms=ids.map(person).filter(Boolean).slice(0,4);return `<div class="gtile"><div class="gtp">${ms.map(m=>himg(m,'gtph')).join('')||'<div class="gtph">—</div>'}</div><div class="rtn" style="text-align:center">${esc(name)}</div>${sub?`<div class="m" style="text-align:center">${sub}</div>`:''}</div>`;}
+function feudHot(x,y){return ((y.hasTitle?30:0)+(y.progress||0))-((x.hasTitle?30:0)+(x.progress||0));}
+function feudSides(f){return feudGroups(f).filter(g=>g.length).slice(0,2);}
+function openFeudCard(id){FST[id]='open';saveFst();draw();scrollToSel('#feud-'+id);}
+function topFeuds(){
+  const l=S.feuds.filter(f=>(!f.brand||f.brand===B)&&!feudEnded(f)).sort(feudHot),hf=l[0];
+  const hero=hf?`<div class="fhero" style="--c:${HBC[B]||'#e11d2e'}"><div class="fhs">${feudSides(hf).map(g=>`<div class="hside">${himg(person(g[0]),'hbig')}</div>`).join('')}</div><div class="fhc"><div class="fhct">${feudLabel(hf).replace(' vs ',' <em>vs</em> ')}</div><div class="fhcq">${hf.notes?esc(hf.notes):'Sem gancho definido ainda.'}</div><button class="bdet static" onclick="openFeudCard('${hf.id}')">Ver Detalhes →</button></div></div>`:em('Nenhuma rivalidade ativa. Crie uma abaixo.');
+  const oth=l.slice(1,6).map(f=>`<div class="orow" onclick="openFeudCard('${f.id}')"><div class="oav">${feudSides(f).map(g=>himg(person(g[0]),'hav sm')).join('')}</div><div style="flex:1;min-width:0"><div class="hrt">${feudLabel(f)}</div><div class="m clamp2">${f.notes?esc(f.notes):'—'}</div></div><span class="hbd ${f.hasTitle?'pu':(f.progress||0)>=60?'bl':'gy'}">${f.hasTitle?'Título':(f.progress||0)+'%'}</span></div>`).join('');
+  return secHead('RIVALIDADES')+hero+(oth?`<div class="hsh" style="margin-top:14px">OUTRAS RIVALIDADES</div><div class="olist">${oth}</div>`:'')+secManage('GERENCIAR RIVALIDADES');
+}
+function titleDiv(t){return t.lv==='Tag Team'?'Tag Team':/women/i.test(t.name)?'Feminino':'Masculino';}
+function topTitles(){
+  const ts=S.titles.filter(t=>t.brand===B),cur=SECT.titles,list=ts.filter(t=>titleDiv(t)===cur);
+  const grid=list.length?list.map(t=>`<div class="ttile" onclick="SEL['${B}']='${t.id}';draw();toManage()"><div class="tbelt">${beltHtml(t,'tb')}</div><div class="rtn" style="text-align:center">${esc(t.name)}</div><div class="m" style="text-align:center">${t.champ?esc(nm(t.champ)):'Vago'}</div></div>`).join(''):em('Nenhum título nesta categoria.');
+  const rk=list.map((t,i)=>`<div class="hrow slim"><b class="hrn">${i+1}</b><div class="hrt" style="flex:1;min-width:0">${esc(t.name)}</div><span class="m">${t.champ?esc(nm(t.champ)):'Vago'}</span></div>`).join('');
+  return secHead('CAMPEONATOS')+secTabs('titles',['Masculino','Feminino','Tag Team'])+`<div class="tgrid">${grid}</div>${rk?`<div class="hsh" style="margin-top:14px">RANKINGS DE TÍTULOS</div><div class="hp"><div class="hpb">${rk}</div></div>`:''}`+secManage('GERENCIAR TÍTULOS');
+}
+function topRoster(){
+  const cur=SECT.roster;let body;
+  if(cur==='Masculino'||cur==='Feminino'){const l=lut(B).filter(r=>(r.division||'Masculino')===cur).sort((a,b)=>popularity(b.id)-popularity(a.id));body=l.length?`<div class="rgrid">${l.map(ptile).join('')}</div>`:em('Nenhum lutador nesta divisão.');}
+  else if(cur==='Tag Teams'){const l=S.teams.filter(t=>t.brand===B);body=l.length?`<div class="tmgrid">${l.map(t=>grpTile(t.name,t.members||[],'')).join('')}</div>`:em('Nenhuma tag team.');}
+  else{const l=S.factions.filter(f=>f.brand===B);body=l.length?`<div class="tmgrid">${l.map(f=>grpTile(f.name,S.roster.filter(x=>x.faction===f.id).map(x=>x.id),esc(f.tipo||''))).join('')}</div>`:em('Nenhuma facção.');}
+  return secHead(B.toUpperCase()+' ROSTER')+secTabs('roster',['Masculino','Feminino','Tag Teams','Facções'])+body+`<div style="text-align:right;margin-top:8px"><a class="lk" onclick="toManage()">Ver todos os wrestlers →</a></div>`+secManage('GERENCIAR ROSTER');
+}
+function topShows(){
+  const cur=SECT.shows,ppv=cur==='PPVs';
+  const l=S.shows.filter(x=>brandsFor(x).includes(B)&&!x.completed&&!x.archived&&((x.type==='PPV')===ppv)).sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
+  const f=l[0];
+  const hero=f?`<div class="shero" style="--c:${HBC[B]||'#e11d2e'}"><div class="shw">${wordmark(brandsFor(f)[0])}</div><div class="shi"><div class="shn">${esc(f.name)}</div><div class="m">${esc(wdayLabel(f.date))}</div><div class="m">${(f.matches||[]).length} lutas</div><button class="bdet static" onclick="openShow('${f.id}')">Editar Card →</button></div></div>`:em(ppv?'Nenhum PPV agendado.':'Nenhum show da semana agendado.');
+  const nx=l.slice(1,5).map(x=>`<div class="bnr" style="--c:${HBC[brandsFor(x)[0]]||'#e11d2e'}" onclick="openShow('${x.id}')">${wordmark(brandsFor(x)[0],1)}<div style="flex:1;min-width:0"><div class="hrt">${esc(x.name)}</div><div class="m">${esc(wdayLabel(x.date))}</div></div><span class="m">›</span></div>`).join('');
+  return secHead('SHOWS E PPV')+secTabs('shows',['Shows da Semana','PPVs'])+hero+(nx?`<div class="hsh" style="margin-top:14px">PRÓXIMOS EVENTOS</div><div class="bnx">${nx}</div>`:'')+secManage('CALENDÁRIO & EVENTOS');
+}
+function topTeams(){
+  const cur=SECT.teams;let body;
+  if(cur==='Times'){const l=S.teams.filter(t=>t.brand===B);body=l.length?`<div class="tmgrid">${l.map(t=>grpTile(t.name,t.members||[],tag(t.status||'Ativo'))).join('')}</div>`:em('Nenhuma tag team criada ainda.');}
+  else{const l=S.factions.filter(f=>f.brand===B);body=l.length?`<div class="tmgrid">${l.map(f=>grpTile(f.name,S.roster.filter(x=>x.faction===f.id).map(x=>x.id),tag(f.tipo||'Stable'))).join('')}</div>`:em('Nenhuma facção criada ainda.');}
+  return secHead('TAG TEAMS')+secTabs('teams',['Times','Facções'])+body+secManage('CRIAR E EDITAR TAG TEAMS & FACÇÕES');
+}
+function resultRows(shows){const rows=[];shows.forEach(s=>(s.matches||[]).forEach(m=>{if(!m.result||m.result==='Empate')return;const los=(m.participants||[]).filter(id=>(m.outcomes||{})[id]==='Derrota').map(nm);rows.push({s,t:esc(m.result)+(los.length?' vence '+esc(los.join(' & ')):' venceu')});}));return rows;}
+function topYear(){
+  const cur=SECT.year;let body='';const mine=S.shows.filter(x=>brandsFor(x).includes(B));
+  if(cur==='Resultados'){const rows=resultRows(mine.filter(x=>x.completed).sort((a,b)=>(b.date||'').localeCompare(a.date||''))).slice(0,10);body=rows.length?rows.map(x=>`<div class="hrow" style="cursor:pointer" onclick="openShow('${x.s.id}')">${wordmark(brandsFor(x.s)[0],1)}<div class="hrt" style="flex:1;min-width:0">${x.t}</div><span class="m">${x.s.date?fmtBR(x.s.date).slice(0,5):''}</span></div>`).join(''):em('Nenhum resultado registrado ainda.');}
+  else if(cur==='PPVs'){const l=mine.filter(x=>x.type==='PPV').sort((a,b)=>(b.date||'').localeCompare(a.date||''));body=l.length?l.map(x=>`<div class="hrow" style="cursor:pointer" onclick="openShow('${x.id}')"><div class="hrt" style="flex:1">${esc(x.name)}</div>${tag(x.completed?'Concluído':'Agendado',x.completed?'face':'')}<span class="m">${x.date?fmtBR(x.date):''}</span></div>`).join(''):em('Nenhum PPV.');}
+  else if(cur==='Rivalidades'){const l=S.feuds.filter(f=>(!f.brand||f.brand===B)&&feudEnded(f));body=l.length?l.map(f=>`<div class="hrow"><div style="flex:1;min-width:0"><div class="hrt">${feudLabel(f)}</div><div class="m">${f.notes?esc(f.notes):''}</div></div>${tag('Encerrada','face')}</div>`).join(''):em('Nenhuma rivalidade encerrada.');}
+  else{const rows=[];S.titles.filter(t=>t.brand===B).forEach(t=>(t.history||[]).forEach(h=>rows.push({t,h})));body=rows.length?rows.slice(-12).reverse().map(({t,h})=>`<div class="hrow"><div class="hrt" style="flex:1;min-width:0">${esc(nm(h.champion))} <span class="m">· ${esc(t.name)}</span></div><span class="m">${h.ended?'até '+esc(h.ended):'atual'}</span></div>`).join(''):em('Nenhuma mudança de título registrada.');}
+  return secHead('HISTÓRICO')+secTabs('year',['Resultados','PPVs','Rivalidades','Títulos'])+`<div class="hp"><div class="hpb">${body}</div></div>`+secManage('LINHA DO TEMPO · ANOTAÇÕES POR MÊS');
+}
+function rankingHtml(){
+  const cur=SECT.ranking;let l=lut(B);if(cur!=='Popularidade')l=l.filter(r=>(r.division||'Masculino')===(cur==='Masculino'?'Masculino':'Feminino'));
+  l=l.slice().sort((a,b)=>popularity(b.id)-popularity(a.id)||a.name.localeCompare(b.name)).slice(0,10);
+  const left=l.length?l.map((r,i)=>`<div class="hrow slim" style="cursor:pointer" onclick="openWrestler('${r.id}')"><b class="hrn">${i+1}</b>${himg(r,'hav sm')}<div class="hrt" style="flex:1;min-width:0">${esc(r.name)}</div>${chgChip(r.id)}<b>${Math.round(popularity(r.id))}%</b></div>`).join(''):em('Sem lutadores.');
+  const top5=['Raw','SmackDown','NXT'].map(b=>{const t=lut(b).slice().sort((x,y)=>popularity(y.id)-popularity(x.id)).slice(0,3);return `<div class="t5"><div class="t5w">${wordmark(b,1)}</div><div class="m">${t.map((r,i)=>(i+1)+' '+esc(r.name)).join('<br>')||'—'}</div></div>`;}).join('');
+  return secHead('RANKING')+secTabs('ranking',['Popularidade','Masculino','Feminino'])+`<div class="rkgrid"><div class="hp"><div class="hph">RANKING · ${esc(B.toUpperCase())}</div><div class="hpb">${left}</div></div><div class="hp"><div class="hph">TOP 5 POR BRAND</div><div class="hpb">${top5}</div></div></div><div style="text-align:right;margin-top:8px"><a class="lk" onclick="go('popularity')">Ver ranking completo (todas as brands) →</a></div>`;
+}
+(function(){const wrap=(k,top)=>{const o=V[k];V[k]=function(){return top()+o.apply(V,arguments);};};
+ wrap('feuds',topFeuds);wrap('titles',topTitles);wrap('roster',topRoster);wrap('shows',topShows);wrap('teams',topTeams);wrap('year',topYear);V.ranking=rankingHtml;})();
+
+
+/* ===== v5.1: Montar luta (builder) + Card do show ===== */
+const SHF={};
+function setShf(id,v){SHF[id]=v;draw();}
+function isTagM(m){return m.matchType==='Tag Team'||!!(m.groups&&m.groups.length);}
+function showBoard(s){
+  if(s.rumble)return '';
+  const f=SHF[s.id]||'Todos',ms=s.matches||[],bc=HBC[brandsFor(s)[0]]||'#e11d2e';
+  const flt={'Todos':()=>true,'Promoções':m=>m.matchType==='Promo','Lutas':m=>m.matchType!=='Promo'&&!isTagM(m),'Times':isTagM,'Resultados':m=>!!m.result};
+  const tabs=Object.keys(flt).map(k=>`<button class="${f===k?'on':''}" onclick="setShf('${s.id}','${k}')">${k}</button>`).join('');
+  const rows=ms.map((m,i)=>({m,i})).filter(x=>flt[f](x.m)).map(({m,i})=>{
+    const gs=m.groups&&m.groups.length?m.groups:(m.participants||[]).map(x=>[x]);
+    const side=g=>`<div class="bks"><div class="bka">${g.slice(0,2).map(id=>himg(person(id),'hav')).join('')}</div><div class="bkn">${esc(g.map(nm).join(' & '))}</div></div>`;
+    const many=gs.length>3;
+    const mid=many?`<div class="bks"><div class="bka">${(m.participants||[]).slice(0,5).map(id=>himg(person(id),'hav sm')).join('')}</div><div class="bkn">${(m.participants||[]).length} lutadores</div></div>`:gs.map(side).join(`<span class="bkv">${m.matchType==='Promo'?'·':'VS'}</span>`);
+    return `<div class="bkrow" style="--c:${bc}"><div class="bkl"><div class="bkt"><b>${i+1}.</b> ${esc((m.matchType||'Luta').toUpperCase())}</div><div class="m">${m.title?'🏆 '+esc(m.title):esc(m.division||'')}</div>${m.result?`<div class="m">🏁 ${esc(m.result)}</div>`:''}</div><div class="bkm">${mid}</div><div class="bkst">${typeof m.stars==='number'&&m.matchType!=='Promo'?esc(starTxt(m.stars)):'<span class="m">—</span>'}</div></div>`;}).join('');
+  const promos=ms.filter(m=>m.matchType==='Promo').length,av=showAvg(s);
+  return `<div class="board"><div class="boardh"><div><div class="boardt">BOOKE SEU SHOW ${esc(brandsFor(s)[0].toUpperCase())}</div><div class="m">Monte o card do seu show e prepare um espetáculo inesquecível!</div></div><div class="row" style="gap:8px;flex-wrap:wrap">${s.date?`<span class="hdt">📅 ${esc(weekLabel(s.date))}</span>`:''}<button class="add red" style="width:auto;margin:0;padding:9px 16px" onclick="openBuilder('${s.id}')">🎬 Montar luta</button></div></div>
+  <div class="boardb"><div class="boardf">${tabs}</div><div class="boardl">${rows||em('Nenhuma luta neste filtro. Use "Montar luta".')}</div>
+  <div class="boardr" style="--c:${bc}"><div class="hph" style="margin:-12px -12px 10px">RESUMO DO SHOW</div><div class="boardwm">${wordmark(brandsFor(s)[0])}</div><div class="rw"><span>Total de lutas</span><span class="sp"></span><b>${ms.length}</b></div><div class="rw"><span>Promoções</span><span class="sp"></span><b>${promos}</b></div><div class="rw"><span>Lutas</span><span class="sp"></span><b>${ms.length-promos}</b></div><div class="m" style="text-align:center;margin-top:10px">Avaliação prevista</div><div style="text-align:center;font-weight:800;color:#f4c95d">${av?esc(starAvgTxt(av.avg)):'Sem notas'}</div><button class="add red" onclick="completeShow('${s.id}')">${s.completed?'Reabrir show':'Confirmar show'}</button></div></div></div>`;
+}
+let BLD=null;
+const BT_IC={'Promo':'🎤','Single':'🥊','Tag Team':'🤝','Triple Threat':'🔺','Fatal 4-Way':'✖','Battle Royal':'👥','Ladder Match':'🪜','Tables Match':'🪑','TLC':'🛠','Hell in a Cell':'🔒','Steel Cage':'⛓','No Holds Barred':'🔥','Iron Man':'⏱','Submission':'🔗','Last Man Standing':'🔟'};
+const BT_N={'Triple Threat':3,'Fatal 4-Way':4,'Battle Royal':8};
+function bldBrands(){const sh=S.shows.find(x=>x.id===BLD.sid);return sh?brandsFor(sh):[B];}
+function bldTotal(){return BLD.type==='Tag Team'?BLD.teams*BLD.per:BLD.n;}
+function bldResize(){const ids=BLD.slots.filter(Boolean),n=bldTotal();BLD.slots=Array.from({length:n},(_,i)=>ids[i]||'');}
+function openBuilder(sid){
+  const sh=S.shows.find(x=>x.id===sid);if(!sh)return;
+  BLD={sid,type:'Single',n:2,teams:2,per:2,slots:['',''],tab:'Masculino',q:'',title:''};
+  let o=document.getElementById('bld');if(!o){o=document.createElement('div');o.id='bld';document.body.appendChild(o);}
+  const bc=HBC[bldBrands()[0]]||'#e11d2e';
+  o.style.setProperty('--c',bc);o.className='bld';
+  o.innerHTML=`<div class="bld-top"><div class="bld-wm">${wordmark(bldBrands()[0])}</div><div class="bld-ttl">MONTAR LUTA</div><div class="hdt">📅 <span>${esc(weekLabel(sh.date||universeDate()))}</span></div><button class="add" style="margin-left:auto" onclick="closeBuilder()">✕ Fechar</button></div>
+  <div class="bld-body"><aside class="bld-l"><div class="bld-h">TIPO DE LUTA</div><div id="bldL"></div></aside><section class="bld-c"><div class="bld-h">ESCOLHA OS LUTADORES</div><div class="htabs sect" id="bldT"></div><input class="f" id="bldQ" type="search" autocomplete="off" placeholder="Buscar lutador..." oninput="bldSearch(this.value)"><div id="bldG"></div></section><aside class="bld-r"><div class="bld-h">SUA LUTA</div><div id="bldR"></div></aside></div>`;
+  document.body.classList.add('noscroll');bldRefresh();
+  if(LANG==='en'){startTr();trAll();}
+}
+function closeBuilder(){const o=document.getElementById('bld');if(o)o.remove();document.body.classList.remove('noscroll');BLD=null;}
+function bldRefresh(){if(!BLD)return;bldL();bldT();bldG();bldR();if(LANG==='en'){startTr();trAll();}}
+function bldL(){
+  const types=S.matchTypes.filter(t=>t!=='Royal Rumble');
+  const steps=BLD.type==='Tag Team'?`<div class="bld-st"><span>Times</span><button onclick="bldStep('teams',-1)">−</button><b>${BLD.teams}</b><button onclick="bldStep('teams',1)">+</button></div><div class="bld-st"><span>Por time</span><button onclick="bldStep('per',-1)">−</button><b>${BLD.per}</b><button onclick="bldStep('per',1)">+</button></div>`:`<div class="bld-st"><span>Participantes</span><button onclick="bldStep('n',-1)">−</button><b>${BLD.n}</b><button onclick="bldStep('n',1)">+</button></div>`;
+  $('bldL').innerHTML=`<div class="bld-types">${types.map(t=>`<button class="bt ${BLD.type===t?'on':''}" onclick="bldType(${JSON.stringify(t).replace(/"/g,'&quot;')})"><span class="bti">${BT_IC[t]||'🥊'}</span><span>${esc(t)}</span></button>`).join('')}</div>${steps}`;
+}
+function bldType(t){BLD.type=t;if(t==='Tag Team'){BLD.teams=2;BLD.per=2;}else BLD.n=t==='Promo'?2:(BT_N[t]||2);if(t==='Promo')BLD.title='';bldResize();bldRefresh();}
+function bldStep(k,d){const lim={n:BLD.type==='Promo'?[1,3]:[2,10],teams:[2,6],per:[1,4]}[k];BLD[k]=Math.max(lim[0],Math.min(lim[1],BLD[k]+d));bldResize();bldRefresh();}
+function bldT(){$('bldT').innerHTML=['Masculino','Feminino','Tag Teams','Todos'].map(x=>`<button class="${BLD.tab===x?'on':''}" onclick="BLD.tab='${x}';bldT();bldG()">${x}</button>`).join('');}
+function bldSearch(v){BLD.q=v;bldG();}
+function bldPool(){const brs=bldBrands();return S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&r.status!=='Ausente'&&brs.includes(r.brand));}
+function bldG(){
+  const q=norm(BLD.q||'');
+  if(BLD.tab==='Tag Teams'){const l=S.teams.filter(t=>bldBrands().includes(t.brand)&&norm(t.name).includes(q));
+    $('bldG').innerHTML=l.length?`<div class="bgrid">${l.map(t=>`<div class="bw" onclick="bldTeam('${t.id}')"><div class="bwp">${(t.members||[]).slice(0,2).map(id=>himg(person(id),'gtph')).join('')}</div><div class="bwn">${esc(t.name)}</div></div>`).join('')}</div>`:em('Nenhuma tag team nesta brand.');return;}
+  const l=bldPool().filter(r=>(BLD.tab==='Todos'||(r.division||'Masculino')===BLD.tab)&&norm(r.name).includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+  $('bldG').innerHTML=l.length?`<div class="bgrid">${l.map(r=>`<div class="bw ${BLD.slots.includes(r.id)?'on':''}" onclick="bldPick('${r.id}')">${himg(r,'bwp')}<div class="bwn">${esc(r.name)}</div>${BLD.slots.includes(r.id)?'<span class="bwc">✓</span>':''}</div>`).join('')}</div>`:em('Nenhum lutador encontrado.');
+}
+function bldPick(id){const i=BLD.slots.indexOf(id);if(i>=0)BLD.slots[i]='';else{const e=BLD.slots.indexOf('');if(e<0)return;BLD.slots[e]=id;}bldG();bldR();if(LANG==='en'){startTr();trAll();}}
+function bldTeam(tid){if(BLD.type!=='Tag Team'){BLD.type='Tag Team';BLD.teams=2;BLD.per=2;bldResize();}
+  const t=S.teams.find(x=>x.id===tid);if(!t)return;const mem=(t.members||[]).slice(0,BLD.per);
+  for(let g=0;g<BLD.teams;g++){const seg=BLD.slots.slice(g*BLD.per,(g+1)*BLD.per);if(seg.every(x=>!x)){mem.forEach((m,k)=>{if(!BLD.slots.includes(m))BLD.slots[g*BLD.per+k]=m;});break;}}
+  bldRefresh();}
+function bldSlot(i){BLD.slots[i]='';bldG();bldR();}
+function bldR(){
+  const sl=BLD.slots,tag_=BLD.type==='Tag Team';
+  const slot=(i,lb)=>{const r=sl[i]?person(sl[i]):null;return `<div class="bsl" onclick="bldSlot(${i})" title="Clique para remover"><div class="bsll">${lb}</div><div class="bslp">${r?himg(r,'bwp'):'<div class="bwp empty">?</div>'}</div><div class="bwn">${r?esc(r.name):'—'}</div></div>`;};
+  let sh='';
+  if(tag_){for(let g=0;g<BLD.teams;g++){sh+=(g?'<div class="bvs">VS</div>':'')+`<div class="bgrp"><div class="bsll">TIME ${TL[g]}</div><div class="bgrow">${Array.from({length:BLD.per},(_,k)=>slot(g*BLD.per+k,'')).join('')}</div></div>`;}}
+  else sh=sl.map((_,i)=>(i?`<div class="bvs">${BLD.type==='Promo'?'·':'VS'}</div>`:'')+slot(i,'LUTADOR '+TL[i])).join('');
+  const brs=bldBrands(),titles=S.titles.filter(t=>brs.includes(t.brand));
+  const ready=sl.every(Boolean)&&new Set(sl).size===sl.length;
+  $('bldR').innerHTML=`<div class="bsls">${sh}</div><div class="bsum"><div class="rw"><span>Tipo de luta</span><span class="sp"></span><b>${esc(BLD.type)}</b></div>${BLD.type==='Promo'?'':`<div class="rw"><span>Título em jogo</span><span class="sp"></span><select onchange="BLD.title=this.value"><option value="">Nenhum</option>${titles.map(t=>`<option ${BLD.title===t.name?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>`}</div><button class="add red bld-add" ${ready?'':'style="opacity:.55"'} onclick="bldAdd()">＋ ADICIONAR AO CARD</button>`;
+}
+function bldAdd(){
+  const s=S.shows.find(x=>x.id===BLD.sid);if(!s)return;
+  const sl=BLD.slots;if(!sl.every(Boolean)||new Set(sl).size!==sl.length){alert('Selecione todos os lutadores, sem repetir ninguém.');return;}
+  const ds=[...new Set(sl.map(id=>(person(id)||{}).division||'Masculino'))],division=ds.length===1?ds[0]:'Mix',type=BLD.type,promo=type==='Promo';
+  const m={t:'',title:promo?'':(BLD.title||''),result:'',notes:'',participants:sl.slice(),outcomes:{},division,matchType:type};
+  if(type==='Tag Team'){const groups=[];for(let g=0;g<BLD.teams;g++)groups.push(sl.slice(g*BLD.per,(g+1)*BLD.per));m.groups=groups;m.t=groups.map(g=>g.map(nm).join(' & ')).join(' vs ');}
+  else m.t=sl.map(nm).join(promo?' · ':' vs ');
+  s.matches.push(m);save();
+  BLD.slots=Array(bldTotal()).fill('');BLD.title='';bldRefresh();
+  draw();
+  const o=document.getElementById('bld');if(o){const b=o.querySelector('.bld-add');if(b){b.textContent='✓ Luta adicionada! Monte a próxima ou feche';}}
+}
+
+
+/* fotos dos títulos */
+function beltHtml(t,cls){return t&&t.photo?`<span class="beltimg ${cls||''}"><img src="${esc(t.photo)}" alt="" onerror="this.parentNode.textContent='🏆'"></span>`:'🏆';}
+function setTitlePhotoUrl(id,url){const t=S.titles.find(x=>x.id===id);if(!t)return;t.photo=(url||'').trim();save();draw();}
+function clearTitlePhoto(id){const t=S.titles.find(x=>x.id===id);if(!t)return;t.photo='';save();draw();}
+function setTitlePhotoFile(id,input){
+  const file=input&&input.files&&input.files[0];if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Escolha uma imagem.');return;}
+  const reader=new FileReader();
+  reader.onload=()=>{const img=new Image();img.onload=()=>{
+    const max=480;let w=img.width,h=img.height;if(w>max||h>max){const k=Math.min(max/w,max/h);w=Math.round(w*k);h=Math.round(h*k);}
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+    const png=/png|webp|gif/.test(file.type);const data=c.toDataURL(png?'image/png':'image/jpeg',0.8);
+    const t=S.titles.find(x=>x.id===id);if(!t)return;t.photo=data;save();draw();};img.src=reader.result;};
+  reader.readAsDataURL(file);
+}
+
+
+/* logo e banner personalizados por brand */
+let ARTED=false;
+function toggleArt(){ARTED=!ARTED;draw();}
+function setBrandArt(b,k,v){S.brandArt=S.brandArt||{};S.brandArt[b]=S.brandArt[b]||{};S.brandArt[b][k]=(v||'').trim();save();draw();}
+function brandArtFile(b,k,input){
+  const file=input&&input.files&&input.files[0];if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Escolha uma imagem.');return;}
+  const reader=new FileReader();
+  reader.onload=()=>{const img=new Image();img.onload=()=>{
+    const max=k==='banner'?1400:500;let w=img.width,h=img.height;if(w>max||h>max){const z=Math.min(max/w,max/h);w=Math.round(w*z);h=Math.round(h*z);}
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+    const keepAlpha=k==='logo'&&/png|webp|gif|svg/.test(file.type);
+    S.brandArt=S.brandArt||{};S.brandArt[b]=S.brandArt[b]||{};S.brandArt[b][k]=c.toDataURL(keepAlpha?'image/png':'image/jpeg',0.82);save();draw();};img.src=reader.result;};
+  reader.readAsDataURL(file);
+}
+function artEditor(b){
+  const a=artOf(b);
+  const box=(k,lb,hint)=>`<div class="photo-box"><div class="tphoto art-${k}">${a[k]?`<img src="${esc(a[k])}" alt="" style="max-width:100%;max-height:100%;object-fit:${k==='banner'?'cover':'contain'}">`:'🖼'}</div><div class="fl"><span class="m">${lb}</span><input placeholder="Cole a URL da imagem" value="${a[k]&&String(a[k]).startsWith('data:')?'':esc(a[k]||'')}" onchange="setBrandArt('${b}','${k}',this.value)"><div class="photo-actions"><label class="add">📤 Enviar imagem<input type="file" accept="image/*" onchange="brandArtFile('${b}','${k}',this)"></label>${a[k]?`<button class="x" type="button" onclick="setBrandArt('${b}','${k}','')">Remover</button>`:''}</div><div class="m" style="margin-top:4px">${hint}</div></div></div>`;
+  return `<div class="card" style="margin-top:10px"><div class="sh">🎨 PERSONALIZAR ${esc(b.toUpperCase())}</div>${box('logo','LOGO DA MARCA','PNG com fundo transparente fica melhor. Aparece no menu, nos títulos e nas listas.')}${box('banner','BANNER DA HOME DA BRAND','Imagem larga (ex.: 1400×600). Aparece atrás do texto "ESTÁ NO AR!".')}</div>`;
+}
+
 function draw() {
   const y=window.scrollY;
   const theme = tab==='globalRoster' ? 'Global' : B;
   document.documentElement.dataset.b = theme;
-  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk','search','account'].includes(tab))tab='freeAgency';
+  if(B==='Free Agency'&&!['freeAgency','globalRoster','landing','bk','search','account','stories'].includes(tab))tab='freeAgency';
   // Título do header: Universe Desk na home; nome da brand quando selecionada; Roster Global / Free Agency
   const h1 = document.querySelector('header.masthead h1');
   const sub = document.querySelector('header.masthead .sub');
@@ -2789,10 +3297,11 @@ function draw() {
     else { h1.innerHTML=B.toUpperCase()+' <span>DESK</span>'; if(sub)sub.textContent='Brand ativa · booking em andamento'; }
   }
   const brandTabs=B==='Free Agency'?[]:TABS.filter(([k])=>['roster','titles','feuds','shows','teams','push','summary','year'].includes(k)||(k==='downgrade'&&B!=='NXT')||(k==='nxtcut'&&B==='NXT'));
-  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button><button style="--c:#8ab4ff" class="nav-wide ${tab==='search'?'on':''}" onclick="go('search')">🔍 BUSCA</button><button style="--c:#ffd166" class="nav-wide" onclick="setLang('${LANG==='en'?'pt':'en'}')">🌐 ${LANG==='en'?'PORTUGUÊS':'ENGLISH'}</button><button id="acctBtn" style="--c:#7ee0a1" class="nav-wide ${tab==='account'?'on':''}" onclick="go('account')">${acctLabel()}</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
+  $('top').innerHTML=`<nav class="home-nav"><button class="${tab==='landing'?'on':''}" onclick="go('landing')">HOME</button><div class="brands">${BRS.filter(b=>b!=='Free Agency').map(b=>`<button style="--c:${COL[b]}" class="${b===B&&tab!=='landing'&&tab!=='globalRoster'?'on':''}" onclick="sb('${b}')">${b}</button>`).join('')}</div><span class="nav-divider" aria-hidden="true"></span><button style="--c:${COL['Free Agency']}" class="nav-wide ${B==='Free Agency'&&tab!=='globalRoster'?'on':''}" onclick="sb('Free Agency')">FREE AGENCY</button><button style="--c:#20c9b0" class="nav-wide ${tab==='globalRoster'?'on':''}" onclick="go('globalRoster')">ROSTER GLOBAL</button><button style="--c:#f4c95d" class="nav-wide ${tab==='bk'?'on':''}" onclick="go('bk')">💾 BACKUP</button><button style="--c:#8ab4ff" class="nav-wide ${tab==='search'?'on':''}" onclick="go('search')">🔍 BUSCA</button><button style="--c:#f59e0b" class="nav-wide ${tab==='stories'?'on':''}" onclick="go('stories')">📖 HISTÓRIAS</button><button style="--c:#ffd166" class="nav-wide" onclick="setLang('${LANG==='en'?'pt':'en'}')">🌐 ${LANG==='en'?'PORTUGUÊS':'ENGLISH'}</button><button id="acctBtn" style="--c:#7ee0a1" class="nav-wide ${tab==='account'?'on':''}" onclick="go('account')">${acctLabel()}</button></nav>${tab==='all'?`<div class="brand-home-label" style="--c:${COL[B]}">${B.toUpperCase()} · HOME DA BRAND</div><nav class="brand-menu">${brandTabs.map(([k,l])=>`<button class="brand-menu-btn ${tab===k?'on':''}" onclick="go('${k}')">${l}<span>ABRIR →</span></button>`).join('')}</nav>`:''}`;
   const back=c=>(B!=='Free Agency'&&['roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut'].includes(tab))?`<button class="back-btn ${c}" style="--c:${COL[B]}" onclick="go('all')">← Voltar à Home da ${B}</button>`:'';
   let _body;
   try{_body=V[tab]();}catch(e){console.error(e);_body=`<div class="card"><div class="sh">⚠ ERRO AO ABRIR ESTA TELA</div><div class="m" style="margin:8px 0">Algo nos dados desta tela causou um erro. Seus dados estão salvos e não foram alterados. Envie esta mensagem para corrigirmos:</div><textarea readonly rows="5" style="width:100%;font-family:monospace;font-size:12px">${esc('Tela: '+tab+' · Brand: '+B+'\n'+(e&&e.message||e)+'\n'+String(e&&e.stack||'').split('\n').slice(0,4).join('\n'))}</textarea></div>`;}
+  try{const sd=$('side');sd.innerHTML=sideHtml();sd.style.setProperty('--bc',(B!=='Free Agency'&&BRTAB.includes(tab))?(HBC[B]||'#e11d2e'):'#e11d2e');}catch(e){console.error(e);}
   $('app').innerHTML=back('')+_body+back('bottom');
   window.scrollTo(0,y);
   if(tab==='bk')renderSnapList();
@@ -2938,6 +3447,16 @@ if ('serviceWorker' in navigator) {
 @keyframes fl{0%,40%{box-shadow:0 0 0 3px var(--ac)}100%{box-shadow:none}}
 .sr{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--bd);border-radius:10px;margin:6px 0;cursor:pointer;background:#12151c}
 .sr:hover{border-color:var(--ac)}
+.fcard{border-left:4px solid var(--c,#888)!important}
+.fcard.live{--c:#3ddc84}.fcard.paused{--c:#f4c95d}.fcard.ended{--c:#8a93a6}
+.fhead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.fhead .t{font-size:17px;line-height:1.3}
+.ftags{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+.fquote{border-left:3px solid var(--ac);padding:8px 12px;margin:10px 0;background:rgba(255,255,255,.04);border-radius:0 8px 8px 0;font-size:14px;line-height:1.5}
+.fquote small{display:block;font-size:10px;letter-spacing:.1em;font-weight:800;color:var(--mu);margin-bottom:3px}
+.fsec{margin-top:16px}.fsec>label.fl{display:block;font-size:11px;letter-spacing:.08em;font-weight:800;color:var(--mu);margin-bottom:6px}
+.fsec textarea,.fsec input:not([type=checkbox]){width:100%}
+.fsh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px 0 8px}
 .selcb{width:20px;height:20px;flex:0 0 auto;accent-color:var(--ac);cursor:pointer}
 #selBar{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:99980;background:#12151c;border:1px solid var(--ac);border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.65);display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 20px);justify-content:center}
 .opp{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;border-top:1px solid var(--bd);padding:6px 0}
@@ -2957,4 +3476,191 @@ if ('serviceWorker' in navigator) {
 #feudSides .wsel-btn{min-height:80px;height:auto}
 #feudSides .wsel-btn .av,#feudSides .wsel-item .av,#feudSides .wsel-btn .av-ph,#feudSides .wsel-item .av-ph{width:46px;height:69px;border-radius:7px;font-size:16px}
 #feudSides .wsel-item{align-items:center}
+
+/* v4.1 Home painel + sidebar */
+#side{display:none}
+.hhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 2px 14px;border-bottom:1px solid var(--bd);margin-bottom:16px}
+.hhead h2{margin:0;font-size:clamp(24px,3.4vw,32px);letter-spacing:.06em;font-weight:900}
+.hhead p{margin:2px 0 0;color:var(--mu);font-size:13px}
+.hdt{border-left:1px solid var(--bd);padding:4px 0 4px 16px;font-size:13px;font-weight:700}
+.hsh{font-size:11px;font-weight:900;letter-spacing:.14em;color:var(--txt);margin:6px 0 8px;padding-left:8px;border-left:3px solid #e11d2e}
+.hlogos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.hlogo{height:70px;cursor:pointer;border:1px solid var(--bd);border-radius:6px;background:linear-gradient(160deg,color-mix(in srgb,var(--c,#555) 30%,#0b0d13),#0b0d13 85%);display:grid;place-items:center;color:var(--txt);padding:0 6px}
+.hlogo.on{border:2px solid #e11d2e;box-shadow:0 0 14px rgba(225,29,46,.45)}
+.hlogo:hover{border-color:var(--c,#888)}
+.hlogo.other{background:#1a1d26}
+.wm{font-weight:900;letter-spacing:.04em;font-size:clamp(17px,2.2vw,28px);color:var(--c);font-style:italic;text-shadow:0 1px 0 rgba(0,0,0,.5);white-space:nowrap}
+.wm-SmackDown{color:#fff;font-style:normal;font-size:clamp(14px,1.6vw,20px);background:var(--c);padding:3px 8px;border-radius:3px;letter-spacing:.02em}
+.wm-NXT{color:var(--c);font-style:normal;letter-spacing:.08em;text-shadow:0 0 10px rgba(217,168,30,.5)}
+.wm-FreeAgency{color:#c9a8ff;font-style:normal;font-size:clamp(13px,1.5vw,19px)}
+.wm.sm{font-size:13px;min-width:56px;display:inline-block;text-align:left}.wm-SmackDown.sm{font-size:10px;padding:2px 5px;min-width:0}
+.hgrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;margin-top:16px}
+.hp{background:linear-gradient(180deg,#10131b,#0b0d13);border:1px solid var(--bd);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.hp-hero{grid-column:span 6}.hp-ch{grid-column:span 3}.hp-su{grid-column:span 3}.hp-rk{grid-column:span 4}.hp-nx{grid-column:span 4}.hp-ls{grid-column:span 4}
+.hph{padding:10px 14px;font-size:12px;font-weight:900;letter-spacing:.1em;border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center;border-left:3px solid #e11d2e}
+.hic{font-size:13px}
+.hpb{padding:10px 12px;flex:1;min-height:0}
+.hp-hero .hpb{padding:0;position:relative}
+.hpf{padding:8px 14px;border-top:1px solid var(--bd);font-size:11px;text-align:right}
+.hpf a{color:#e8edf7;cursor:pointer;font-weight:600}
+.hpf2{padding:8px 14px;display:flex;gap:10px;align-items:center;border-top:1px solid var(--bd)}
+.hrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.hrow:last-child{border-bottom:0}
+.hrt{font-weight:700;font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hav{position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;flex:0 0 auto;display:grid;place-items:center;background:#1c212d;color:var(--mu);font-weight:900;font-size:14px;border:1px solid var(--bd)}
+.hav.sm{width:34px;height:34px;font-size:12px}
+.hav img,.hbig img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.belt{font-size:22px;width:34px;text-align:center;filter:drop-shadow(0 0 6px var(--c))}
+.hbd{font-size:10px;font-weight:800;padding:3px 7px;border-radius:4px;white-space:nowrap;color:#fff}
+.hbd.pu{background:#6d3fd1}.hbd.bl{background:#2557c9}.hbd.gr{background:#1f8f5f}.hbd.gy{background:#454c5e}
+.hrn{width:14px;text-align:center;color:var(--mu);font-size:12px}
+.hrow.slim{padding:6px 0}
+.hban{position:relative;display:flex;height:260px;overflow:hidden;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--c) 45%,#07080c),#07080c 75%)}
+.hwm{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:clamp(70px,10vw,140px);font-weight:900;font-style:italic;color:var(--c);opacity:.35;letter-spacing:.02em;pointer-events:none;white-space:nowrap}
+.hside{position:relative;flex:1;min-width:0}
+.hbig{position:absolute;inset:0;display:grid;place-items:center;font-size:54px;font-weight:900;color:rgba(255,255,255,.25)}
+.hcap{position:absolute;left:0;right:0;bottom:0;padding:44px 18px 14px;background:linear-gradient(0deg,rgba(5,6,9,.96),rgba(5,6,9,.75) 55%,transparent)}
+.hcapt{font-size:clamp(18px,2.1vw,26px);font-weight:900;border-left:3px solid #e11d2e;padding-left:10px;line-height:1.15}
+.hcapt em{font-style:normal;color:var(--mu);font-weight:700;font-size:.8em}
+.hcapq{font-size:13px;color:#d4d9e4;margin:6px 0 0 13px;max-width:92%}
+.rkw{display:flex;gap:6px;height:100%}.rkl{flex:1;min-width:0}
+.rkimg{position:relative;width:42%;flex:0 0 42%;margin:-10px -12px -10px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 40%);mask-image:linear-gradient(90deg,transparent,#000 40%)}
+.rkimg .hbig{font-size:70px}
+.htabs{display:flex;margin-bottom:6px}.htabs button{padding:6px 14px;border:0;background:#1a1d26;color:var(--mu);font-weight:800;cursor:pointer;font-size:12px}.htabs button.on{background:#e11d2e;color:#fff}
+.nxban{position:relative;height:120px;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--c) 45%,#07080c),#07080c 75%);overflow:hidden;margin:-10px -12px 0}
+.nxban .hwm{font-size:84px;top:50%}
+.nxb{padding:10px 0 0}.nxt{font-size:19px;font-weight:900;margin-bottom:2px}
+.add.red{background:#c1121f!important;color:#fff!important;border-color:#c1121f!important;width:100%;margin-top:10px;padding:11px;font-weight:800}
+/* v5.0 seções */
+.sech{margin:0;font-size:clamp(18px,2.4vw,24px);letter-spacing:.05em;font-weight:900}
+.shr{display:flex;align-items:center;gap:16px}.shr .wm{font-size:clamp(22px,2.6vw,32px)}
+.bhd .sech+.shr{margin-left:auto}
+.htabs.sect{margin:0 0 12px}.htabs.sect button{padding:8px 18px}
+.lk{color:#e8edf7;cursor:pointer;font-size:12px;font-weight:700}
+.fhero{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--c) 60%,#000);border-radius:8px;height:300px;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--c) 35%,#07080c),#07080c 75%)}
+.fhs{position:absolute;inset:0;display:flex}.fhs .hside{flex:1;position:relative}
+.fhc{position:absolute;left:0;right:0;bottom:0;padding:50px 20px 16px;text-align:center;background:linear-gradient(0deg,rgba(5,6,9,.97),rgba(5,6,9,.7) 60%,transparent)}
+.fhct{font-size:clamp(20px,2.6vw,30px);font-weight:900}.fhct em{font-style:normal;color:var(--mu);font-size:.7em;font-weight:700}
+.fhcq{font-size:13px;color:#d4d9e4;margin:4px auto 10px;max-width:560px}
+.bdet.static{position:static;background:#c1121f}
+.olist{display:flex;flex-direction:column;gap:6px}
+.orow{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--bd);border-radius:6px;background:#0d1017;cursor:pointer}.orow:hover{border-color:#e11d2e}
+.oav{display:flex}.oav .hav+.hav{margin-left:-10px}
+.tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ttile{cursor:pointer;border:1px solid var(--bd);border-radius:8px;padding:16px 10px;background:linear-gradient(160deg,#141824,#0b0d13);display:flex;flex-direction:column;align-items:center;gap:6px}.ttile:hover{border-color:var(--ac)}
+.tbelt{font-size:54px;filter:drop-shadow(0 0 12px var(--ac))}
+.rgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rtile{cursor:pointer;border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:#0d1017;text-align:center;padding-bottom:8px}.rtile:hover{border-color:var(--ac)}
+.rtp{position:relative;width:100%;aspect-ratio:3/4;display:grid;place-items:center;background:linear-gradient(160deg,#1c212d,#0b0d13);font-size:40px;font-weight:900;color:rgba(255,255,255,.25);overflow:hidden}
+.rtp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.rtn{font-weight:800;font-size:13px;margin-top:6px}
+.tmgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gtile{border:1px solid var(--bd);border-radius:8px;background:#0d1017;padding:0 0 10px;overflow:hidden}
+.gtp{display:flex;height:130px}.gtph{position:relative;flex:1;display:grid;place-items:center;background:linear-gradient(160deg,#1c212d,#0b0d13);font-weight:900;color:rgba(255,255,255,.25);font-size:28px;overflow:hidden;border-right:1px solid #07080c}
+.gtph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.shero{display:flex;align-items:center;gap:20px;border:1px solid var(--bd);border-radius:8px;padding:18px;background:radial-gradient(circle at 20% 50%,color-mix(in srgb,var(--c) 30%,#0b0d13),#0b0d13 70%);flex-wrap:wrap}
+.shw .wm{font-size:clamp(34px,5vw,60px)}.shn{font-size:20px;font-weight:900}.shi{display:flex;flex-direction:column;gap:3px;align-items:flex-start}.shi .bdet{margin-top:8px}
+.rkgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px}
+.t5{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}.t5:last-child{border:0}.t5w{margin-bottom:4px}
+@media(max-width:700px){.rgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.rkgrid{grid-template-columns:1fr}.fhero{height:260px}.bhd{flex-wrap:wrap}}
+/* v5.1 builder + card */
+body.noscroll{overflow:hidden}
+.board{border:1px solid var(--bd);border-radius:10px;padding:14px;margin-top:10px;background:linear-gradient(180deg,#10131b,#0a0c12)}
+.boardh{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.boardt{font-size:clamp(17px,2.2vw,24px);font-weight:900;letter-spacing:.03em}
+.boardb{display:grid;grid-template-columns:130px minmax(0,1fr) 250px;gap:12px}
+.boardf{display:flex;flex-direction:column;gap:4px}
+.boardf button{text-align:left;background:transparent;border:0;border-left:3px solid transparent;color:#c3c9d6;padding:10px 12px;font-weight:700;cursor:pointer;font-size:13px}
+.boardf button.on{background:#e8b820;color:#111;border-left-color:#e8b820;border-radius:3px}
+.boardl{display:flex;flex-direction:column;gap:8px;min-width:0}
+.bkrow{display:grid;grid-template-columns:130px minmax(0,1fr) 80px;gap:10px;align-items:center;border:1px solid color-mix(in srgb,var(--c) 45%,#222);border-radius:6px;padding:8px 12px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 14%,#0b0d13),#0b0d13 60%)}
+.bkt{font-weight:900;font-size:14px}
+.bkm{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.bks{display:flex;align-items:center;gap:8px}.bka{display:flex}.bka .hav+.hav{margin-left:-10px}
+.bkn{font-weight:800;font-size:12px;line-height:1.15;max-width:90px}
+.bkv{color:var(--c);font-weight:900;font-style:italic}
+.bkst{text-align:right;font-weight:800;color:#f4c95d;font-size:13px}
+.boardr{border:1px solid color-mix(in srgb,var(--c) 50%,#222);border-radius:8px;padding:12px;background:#0c0f16;align-self:start}
+.boardwm{text-align:center;margin:6px 0 10px}.boardwm .wm{font-size:34px}
+.bld{position:fixed;inset:0;z-index:80;overflow-y:auto;background:radial-gradient(ellipse at 50% 0,color-mix(in srgb,var(--c) 22%,#07080c),#07080c 60%);color:var(--txt)}
+.bld-top{display:flex;align-items:center;gap:16px;padding:12px 18px;border-bottom:1px solid color-mix(in srgb,var(--c) 50%,#222);flex-wrap:wrap;position:sticky;top:0;background:rgba(7,8,12,.92);z-index:2}
+.bld-wm .wm{font-size:28px}.bld-ttl{font-size:clamp(18px,2.4vw,26px);font-weight:900;letter-spacing:.06em}
+.bld-body{display:grid;grid-template-columns:260px minmax(0,1fr) 300px;gap:14px;padding:14px 18px 30px;max-width:1500px;margin:0 auto}
+.bld-l,.bld-c,.bld-r{border:1px solid color-mix(in srgb,var(--c) 40%,#222);border-radius:8px;padding:12px;background:rgba(10,12,18,.85);min-width:0;align-self:start}
+.bld-h{font-size:15px;font-weight:900;letter-spacing:.06em;margin-bottom:10px;color:var(--c)}
+.bld-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border:1px solid var(--bd);border-radius:6px;background:#0d1017;color:var(--txt);font-size:11px;font-weight:800;cursor:pointer;text-align:center}
+.bt .bti{font-size:24px}.bt.on{border-color:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 16%,#0d1017)}
+.bld-st{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px}.bld-st span{flex:1;color:var(--mu)}.bld-st button{width:30px;height:30px;border-radius:6px;border:1px solid var(--bd);background:#1a1d26;color:#fff;font-size:16px;cursor:pointer}
+.bgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;max-height:62vh;overflow-y:auto;padding-right:4px}
+.bw{position:relative;border:1px solid var(--bd);border-radius:6px;overflow:hidden;background:#0d1017;cursor:pointer;text-align:center}
+.bw:hover{border-color:var(--c)}.bw.on{border-color:var(--c);box-shadow:0 0 10px color-mix(in srgb,var(--c) 60%,transparent)}
+.bwp{position:relative;width:100%;aspect-ratio:3/4;display:grid;place-items:center;background:linear-gradient(160deg,#1c212d,#0b0d13);font-size:30px;font-weight:900;color:rgba(255,255,255,.25);overflow:hidden}
+.bwp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.bwp.empty{font-size:34px}
+.bw .bwp{border-radius:0}.bwn{font-weight:800;font-size:11px;padding:5px 4px;line-height:1.15}
+.bwc{position:absolute;top:5px;right:5px;background:var(--c);color:#fff;border-radius:50%;width:20px;height:20px;display:grid;place-items:center;font-size:12px;font-weight:900}
+.bw .gtph{aspect-ratio:3/4;flex:1}.bw .bwp{display:flex}
+.bsls{display:flex;flex-direction:column;align-items:center;gap:6px}
+.bsl{width:150px;cursor:pointer;text-align:center;border:1px solid color-mix(in srgb,var(--c) 55%,#222);border-radius:6px;overflow:hidden;background:#0d1017}
+.bsll{font-size:11px;font-weight:900;letter-spacing:.1em;color:var(--mu);text-align:center;padding:4px}
+.bslp .bwp{aspect-ratio:4/3}
+.bvs{font-size:26px;font-weight:900;font-style:italic;color:var(--c);text-shadow:0 0 12px var(--c)}
+.bgrp{width:100%}.bgrow{display:flex;gap:6px;justify-content:center}.bgrow .bsl{width:46%}
+.bsum{margin-top:14px;border:1px solid var(--bd);border-radius:6px;padding:4px 12px;background:#0c0f16}
+.bsum select{max-width:150px}
+.bld-add{margin-top:12px!important;font-size:14px!important;padding:14px!important;background:linear-gradient(180deg,#f2c230,#c8940f)!important;color:#111!important;border-color:#f2c230!important}
+@media(max-width:1000px){.boardb{grid-template-columns:1fr}.boardf{flex-direction:row;flex-wrap:wrap}.bld-body{grid-template-columns:1fr}.bgrid{grid-template-columns:repeat(3,minmax(0,1fr));max-height:none}.bkrow{grid-template-columns:1fr}.bkst{text-align:left}}
+.beltimg{display:inline-flex;align-items:center;justify-content:center}.beltimg img{max-width:100%;max-height:100%;object-fit:contain}
+.beltimg.tb{width:100%;height:90px}.beltimg.sm{width:44px;height:30px}.beltimg.lg{width:120px;height:80px}
+.tphoto{flex:0 0 auto;width:120px;height:80px;display:grid;place-items:center;font-size:44px;background:#0d1017;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.belt{width:46px;display:flex;justify-content:center}.tbelt{display:flex;justify-content:center}
+.wmimg{height:34px;max-width:180px;object-fit:contain;vertical-align:middle}.wmimg.sm{height:20px;max-width:70px}
+.slt .wmimg{height:44px;max-width:170px}.bhd .wmimg{height:44px}.hlogo .wmimg{height:52px;max-width:90%}
+.bbanner{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+.bhero.hasb::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(5,6,9,.9),rgba(5,6,9,.25) 60%,rgba(5,6,9,.5))}
+.bhero.hasb .bwm,.bhero.hasb .bcap,.bhero.hasb .bdet{z-index:2}
+.bwimg{max-width:min(70%,520px);max-height:190px;object-fit:contain;filter:drop-shadow(0 0 18px var(--c))}
+.tphoto.art-banner{width:160px}
+/* home da brand */
+.bhd{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 0 12px;border-bottom:1px solid var(--bd);margin-bottom:12px}
+.bhd .wm{font-size:clamp(26px,3vw,40px)}
+.bt{margin:0 0 10px;font-size:20px;letter-spacing:.06em;font-weight:900}
+.bhero{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--c) 70%,#000);border-radius:8px;min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 18px 70px;background:radial-gradient(ellipse at 50% 35%,color-mix(in srgb,var(--c) 55%,#050609),#050609 75%)}
+.bbeam{position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% -10%,color-mix(in srgb,var(--c) 22%,transparent) 0 6deg,transparent 6deg 16deg);opacity:.55;pointer-events:none}
+.bwm{position:relative;font-size:clamp(54px,9vw,120px);font-weight:900;font-style:italic;line-height:.95;color:#fff;letter-spacing:.01em;text-shadow:0 0 30px var(--c),0 4px 0 color-mix(in srgb,var(--c) 70%,#000)}
+.bcap{position:relative;margin-top:22px}
+.bcapt{font-size:clamp(18px,2.2vw,26px);font-weight:900}
+.bcaps{font-size:13px;color:#d6dbe6;margin-top:4px}
+.bdet{position:absolute;right:16px;bottom:14px;background:var(--c);color:#fff;border:0;border-radius:5px;padding:9px 18px;font-weight:800;cursor:pointer}
+.bnx{display:flex;flex-direction:column;gap:8px}
+.bnr{display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--bd);border-left:3px solid var(--c);border-radius:6px;background:#0d1017;cursor:pointer}
+.bnr:hover{border-color:var(--c)}
+/* barra lateral (desktop) */
+@media(min-width:1000px){
+ body{padding-left:224px}
+ #side{display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;width:224px;background:#090b10;border-right:1px solid var(--bd);padding:12px 0;z-index:30;overflow-y:auto}
+ header.masthead{display:none}
+ .home-nav{display:none!important}
+ .top{display:none}
+ .back-btn{display:none!important}
+ main#app{max-width:1500px;padding-top:20px}
+ .slogo{display:flex;align-items:center;gap:10px;padding:6px 16px 16px;cursor:pointer}
+ .slogo .brand-mark{width:40px;height:40px;font-size:18px}
+ .slt{font-weight:900;font-size:13px;letter-spacing:.1em;line-height:1.2}
+ .si{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:0;border-left:3px solid transparent;color:#c3c9d6;padding:12px 16px;font-size:14px;font-weight:600;cursor:pointer}
+ .si .sic{width:34px;display:inline-flex;justify-content:flex-start;font-size:16px}
+ .si .sic.wide{width:auto}
+ #side .brand-mark{display:flex;align-items:center;justify-content:center;white-space:nowrap;letter-spacing:-2px;line-height:1;overflow:hidden}
+ .si:hover{background:rgba(255,255,255,.05);color:#fff}
+ .si.on{background:linear-gradient(90deg,color-mix(in srgb,var(--bc,#e11d2e) 60%,transparent),color-mix(in srgb,var(--bc,#e11d2e) 8%,transparent));border-left-color:var(--bc,#e11d2e);color:#fff}
+ #side{border-right-color:color-mix(in srgb,var(--bc,#e11d2e) 55%,#222);box-shadow:inset -1px 0 18px color-mix(in srgb,var(--bc,#e11d2e) 18%,transparent)}
+ .slogo.bl{justify-content:center;padding:10px 12px 18px}.slt .wm{font-size:22px}.slt .wm-SmackDown{font-size:14px}
+ #side hr{border:0;border-top:1px solid var(--bd);margin:8px 14px}
+ .sfoot{margin-top:auto;display:flex;gap:10px;align-items:center;padding:14px 16px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--mu)}
+ .sfoot .brand-mark{width:30px;height:30px;font-size:13px}.sfoot small{font-weight:600}
+}
+@media(max-width:1200px){.hp-hero{grid-column:span 12}.hp-ch,.hp-su{grid-column:span 6}.hp-rk,.hp-nx,.hp-ls{grid-column:span 6}}
+@media(max-width:700px){.hlogos{grid-template-columns:repeat(2,minmax(0,1fr))}.hp-ch,.hp-su,.hp-rk,.hp-nx,.hp-ls{grid-column:span 12}.hban{height:220px}}
 </style>

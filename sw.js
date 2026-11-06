@@ -1,4 +1,4 @@
-const CACHE = 'universe-desk-v24';
+const CACHE = 'universe-desk-v33';
 const ASSETS = [
   './',
   './index.html',
