@@ -696,7 +696,7 @@ const OP = new Set(), SEL = {};
 let B = 'Raw', tab = 'landing', F = {r:'', d:'', o:'az'}, G = {r:'', d:'', o:'az'};
 const tg = (id,o) => { o ? OP.add(id) : OP.delete(id); };
 const dt = (id,head,body) => `<details class="card" ${OP.has(id)?'open':''} ontoggle="tg('${id}',this.open)"><summary>${head}</summary>${body}</details>`;
-const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['downgrade','Downgrade → NXT'],['nxtcut','Revisão da NXT'],['globalRoster','Roster global'],['bk','Backup'],['ranking','Ranking']];
+const TABS = [['landing','Home inicial'],['all','Home da brand'],['roster','Roster da brand'],['titles','Títulos'],['feuds','Rivalidades & Histórias'],['shows','Shows / PPVs'],['teams','Tag Teams & Facções'],['push','Push pós-PPV'],['summary','Resumo'],['year','Histórico'],['freeAgency','Free Agency'],['downgrade','Downgrade → NXT'],['nxtcut','Revisão da NXT'],['globalRoster','Roster global'],['bk','Backup'],['calendar','Calendário'],['ranking','Ranking']];
 
 function sb(b) { B = b; tab = b==='Free Agency'?'freeAgency':'all'; draw(); window.scrollTo(0,0); }
 function go(t) { tab = t; draw(); window.scrollTo(0,0); }
@@ -743,7 +743,7 @@ function perfOf(r,pool){const pop=popularity(r.id),si=starsInfo(r.id),st=statsFo
   return {r,pop,si,st,score:.35*(100-pop)+.35*starsBad+.30*winsBad};}
 function perfReason(c){const w=c.st.wins;return 'Pop '+Math.round(c.pop)+'% · '+starLine(c.r.id)+' · '+w+(w===1?' vitória':' vitórias')+(c.st.total?' ('+c.st.pct+'%)':'')+' · pior nota '+c.score.toFixed(0)+'/100';}
 function worstByDivision(pool,n){const ch=champIds(),res={};['Masculino','Feminino'].forEach(d=>{const g=pool.filter(r=>r.division===d&&!ch.has(r.id));res[d]=g.map(r=>perfOf(r,g)).sort((a,b)=>b.score-a.score).slice(0,n);});return res;}
-function moveBrand(id,to,kind){const r=S.roster.find(x=>x.id===id);if(!r)return;if(!confirm((kind==='cut'?'Demitir ':'Mandar para a '+to+': ')+r.name+(kind==='cut'?' (vai para a Free Agency)?':'?')))return;
+function moveBrand(id,to,kind,skip){const r=S.roster.find(x=>x.id===id);if(!r)return;if(!skip&&!confirm((kind==='cut'?'Demitir ':'Mandar para a '+to+': ')+r.name+(kind==='cut'?' (vai para a Free Agency)?':'?')))return;
   (S.moves=S.moves||[]).unshift({date:universeDate(),id,name:r.name,from:r.brand,to,kind});r.brand=to;save();draw();}
 function nxtState(){const rv=S.nxtReview=S.nxtReview||{last:'',kept:[]};rv.kept=rv.kept||[];const today=universeDate();let base=rv.last;if(!base){const ds=S.shows.filter(s=>s.date).map(s=>s.date).sort();base=ds[0]||today;}const due=addMonths(base,6);return {rv,today,base,due,isDue:today>=due};}
 function keepNxt(id){const rv=nxtState().rv;if(!rv.kept.includes(id))rv.kept.push(id);save();draw();}
@@ -1267,7 +1267,7 @@ function feudProgressHtml(f){
   ${tl.length?`<div class="tl">${tl.map(e=>`<div class="te"><span class="m">${e.date?fmtBR(e.date):'sem data'}</span> <button class="x" style="float:right" onclick="feudTlDel('${f.id}','${e.id}')">✕</button><div>${esc(e.text)}</div></div>`).join('')}</div>`:'<div class="m" style="margin:6px 0">Nenhum momento registrado ainda.</div>'}
   <div class="row" style="gap:6px;flex-wrap:wrap"><input type="date" id="tlD${f.id}" value="${universeDate()}"><input class="f" id="tlT${f.id}" style="flex:1;min-width:160px" placeholder="Ex.: promo de ataque nos bastidores"><button class="add" onclick="feudTlAdd('${f.id}')">+ Momento</button><button class="add" onclick="feudTlSync('${f.id}')" title="Adiciona as lutas já realizadas entre estes lutadores">↻ Importar lutas</button></div></div>`;}
 function feudTouch(f){f.touched=universeDate();}
-function feudProgress(id,v){const f=S.feuds.find(x=>x.id==id);if(!f)return;f.progress=v;feudTouch(f);(f.timeline=f.timeline||[]).push({id:uid(),date:universeDate(),text:'Progresso → '+(v>=100?'Final':v===0?'Início':v+'%')});save();draw();}
+function feudProgress(id,v){const f=S.feuds.find(x=>x.id==id);if(!f)return;f.progress=v;delete f.steps;feudTouch(f);(f.timeline=f.timeline||[]).push({id:uid(),date:universeDate(),text:'Progresso → '+(v>=100?'Final':v===0?'Início':v+'%')});save();draw();}
 function feudTlAdd(id){const f=S.feuds.find(x=>x.id==id),t=$('tlT'+id),d=$('tlD'+id);if(!f||!t||!t.value.trim())return;(f.timeline=f.timeline||[]).push({id:uid(),date:d&&d.value||universeDate(),text:t.value.trim()});feudTouch(f);save();draw();}
 function feudTlDel(id,eid){const f=S.feuds.find(x=>x.id==id);if(!f)return;f.timeline=(f.timeline||[]).filter(e=>e.id!==eid);save();draw();}
 function feudTlSync(id){const f=S.feuds.find(x=>x.id==id);if(!f)return;const ids=feudIds(f);if(ids.length<2)return;f.timeline=f.timeline||[];let n=0;
@@ -1432,6 +1432,190 @@ Facção|Faction
 Facções|Factions
 BUSCA|SEARCH
 Busca|Search
+Rivalidades & Histórias|Feuds & Stories
+RIVALIDADES & HISTÓRIAS|FEUDS & STORIES
+Crie, importe e gerencie rivalidades e sagas do seu universo!|Create, import and manage feuds and sagas of your universe!
+Ativas|Active
+Encerradas|Ended
+⊕ NOVA RIVALIDADE|⊕ NEW FEUD
+← Voltar|← Back
+Brand da rivalidade:|Feud brand:
+🔥 Rivalidade|🔥 Feud
+📖 História|📖 Story
+🔥 Transformar em rivalidade|🔥 Turn into feud
+Nenhuma rivalidade ou história encerrada.|No ended feuds or stories.
+HISTÓRIAS|STORIES
+Crie, importe e gerencie as principais histórias do seu universo!|Create, import and manage the main stories of your universe!
+ⓘ Histórias tornam seu show mais emocionante, aumentam o engajamento e criam rivalidades inesquecíveis!|ⓘ Stories make your show more exciting, boost engagement and create unforgettable feuds!
+Minhas Histórias|My Stories
+Importar|Import
+Recomendações|Recommendations
+⊕ CRIAR NOVA HISTÓRIA|⊕ CREATE NEW STORY
+PROGRESSO DA HISTÓRIA|STORY PROGRESS
+AÇÕES DISPONÍVEIS|AVAILABLE ACTIONS
+✎ EDITAR HISTÓRIA|✎ EDIT STORY
+🔍 VER DETALHES|🔍 VIEW DETAILS
+⬇ IMPORTAR HISTÓRIA|⬇ IMPORT STORY
+🗑 EXCLUIR HISTÓRIA|🗑 DELETE STORY
+Início da Rivalidade|Feud Start
+Primeiro Confronto|First Confrontation
+Grande Promo|Big Promo
+Combate Decisivo|Decisive Match
+Conclusão|Conclusion
+ENVOLVIDOS|INVOLVED
+INÍCIO|START
+Em andamento|In progress
+Planejada|Planned
+Concluída|Completed
+⭐ HISTÓRIAS RECOMENDADAS|⭐ RECOMMENDED STORIES
+Ver todas as recomendações →|See all recommendations →
+PRÓXIMO PASSO|NEXT STEP
+MINHA|MINE
+APP|APP
+MARCAR|MARK
+SALVAR HISTÓRIA|SAVE STORY
+IMPORTAR HISTÓRIAS PRONTAS|IMPORT READY STORIES
+NOVA HISTÓRIA|NEW STORY
+EDITAR HISTÓRIA|EDIT STORY
+DETALHES|DETAILS
+Descrição|Description
+Próximo passo:|Next step:
+Sem descrição.|No description.
+Sem recomendações no momento.|No recommendations right now.
+🔥 Criar rivalidade com esta história|🔥 Create feud from this story
+Rodízio: ainda não teve push|Rotation: no push yet
+Rodízio: último push em|Rotation: last push on
+PUSH DA SEMANA|WEEKLY PUSH
+Limpar semana|Clear week
+Nenhum lutador ativo nesta brand.|No active wrestler in this brand.
+Nenhuma tag team nesta brand.|No tag team in this brand.
+Até 4 lutadores + 1 tag masculina + 1 tag feminina.|Up to 4 wrestlers + 1 men's tag + 1 women's tag.
+Máximo de 4 lutadores no push da semana.|Maximum of 4 wrestlers in the weekly push.
+Rodízio simples: quem está há mais tempo sem push (ou nunca teve) aparece primeiro. Quem recebeu push na semana passada fica de fora.|Simple rotation: whoever has gone longest without a push (or never had one) comes first. Whoever got a push last week is left out.
+PUSH PÓS-PPV · VALE ATÉ O PRÓXIMO PPV (ÍNDICE ×1.5)|POST-PPV PUSH · LASTS UNTIL THE NEXT PPV (×1.5 INDEX)
+Tag feminina|Women's tag
+Tag masculina|Men's tag
+Tag Teams|Tag Teams
+(push semana passada)|(last week's push)
+(semana passada)|(last week)
+Títulos Principais|Main Titles
+Títulos de Equipe|Tag Team Titles
+Títulos Femininos|Women's Titles
+Títulos Secundários|Secondary Titles
+CAMPEÃO ATUAL|CURRENT CHAMPION
+DESDE|SINCE
+DIAS NO CARGO|DAYS AS CHAMPION
+DESAFIANTES OFICIAIS|OFFICIAL CONTENDERS
+CONTENDER|CONTENDER
+DETALHES DO TÍTULO|TITLE DETAILS
+TIPO|TYPE
+Individual|Singles
+Equipe|Team
+DESAFIANTES ATUAIS|CURRENT CONTENDERS
+PRÓXIMA DEFESA|NEXT DEFENSE
+A definir|TBD
+HISTÓRICO DE CAMPEÕES|CHAMPION HISTORY
+Atual|Current
+‹ VOLTAR|‹ BACK
+🏆 GERENCIAR DESAFIANTES|🏆 MANAGE CONTENDERS
+Título vago.|Vacant title.
+SEU ROSTER|YOUR ROSTER
+Selecionados:|Selected:
+de 30|of 30
+Popularidade:|Popularity:
+Momento:|Momentum:
+Push?|Push?
+RECOMENDAÇÕES DA SEMANA|WEEKLY RECOMMENDATIONS
+Com base no desempenho, rivalidades e engajamento, estes lutadores são os mais indicados para um push neste período.|Based on performance, feuds and engagement, these wrestlers are the best candidates for a push this period.
+ADICIONAR|ADD
+CONFIRMAR PUSH|CONFIRM PUSH
+PUSH ATIVO|ACTIVE PUSH
+Rivalidade em andamento|Feud in progress
+Bom momento recente|Good recent momentum
+Popularidade em alta|Rising popularity
+Grande potencial|Great potential
+Pouco usado ultimamente|Underused lately
+Popularidade sólida|Solid popularity
+Escolha quem recebe push (×1.5 de popularidade até o próximo PPV).|Choose who gets a push (×1.5 popularity until the next PPV).
+Confirme para ativar os pushes selecionados.|Confirm to activate the selected pushes.
+Sem recomendações no momento.|No recommendations right now.
+PUSH PÓS-PPV · SUGESTÕES AUTOMÁTICAS E TAG TEAMS|POST-PPV PUSH · AUTOMATIC SUGGESTIONS AND TAG TEAMS
+CALENDÁRIO|CALENDAR
+Calendário|Calendar
+Acompanhe os próximos shows e eventos da sua empresa!|Follow the upcoming shows and events of your company!
+Mês|Month
+Semana|Week
+Lista|List
+DETALHES|DETAILS
+Local não definido|Location not set
+PRÓXIMO GRANDE EVENTO|NEXT BIG EVENT
+＋ AGENDAR EVENTO|＋ SCHEDULE EVENT
+AGENDAR|SCHEDULE
+Tipo|Type
+Local|Location
+Brands do PPV:|PPV brands:
+Nenhum evento neste mês. Use "＋ Agendar evento".|No event this month. Use "＋ Schedule event".
+Nenhum evento futuro agendado.|No upcoming event scheduled.
+Sem eventos|No events
+PRÓXIMOS|UPCOMING
+ANTERIORES|PREVIOUS
+Concluído|Completed
+BUSCAR|SEARCH
+Encontre lutadores, equipes, eventos e muito mais!|Find wrestlers, teams, events and much more!
+Lutadores|Wrestlers
+Equipes|Teams
+Eventos|Events
+Outros|Others
+FILTROS AVANÇADOS|ADVANCED FILTERS
+Gênero|Gender
+Nacionalidade|Nationality
+Classificação|Classification
+Todos os Brands|All brands
+Todas|All
+Qualquer|Any
+⟳ LIMPAR FILTROS|⟳ CLEAR FILTERS
+🔍 BUSCAR|🔍 SEARCH
+RESULTADOS DA BUSCA|SEARCH RESULTS
+Digite o nome do lutador...|Type the wrestler's name...
+Digite o nome da equipe...|Type the team's name...
+Digite o nome do evento...|Type the event's name...
+Digite para buscar em tudo...|Type to search everything...
+Nenhuma equipe encontrada.|No team found.
+Nenhum evento encontrado.|No event found.
+Remover este evento do calendário? (as lutas dele também serão apagadas)|Remove this event from the calendar? (its matches will be deleted too)
+DOWNGRADE|DOWNGRADE
+Envie um superastro do seu elenco principal para a NXT.|Send a superstar from your main roster to NXT.
+CATEGORIA|CATEGORY
+RENOVAÇÃO|RENEWAL
+STATUS|STATUS
+FUNÇÃO|ROLE
+Após o downgrade|After the downgrade
+estará disponível para atuar na NXT.|will be available to perform on NXT.
+✔ CONFIRMAR DOWNGRADE|✔ CONFIRM DOWNGRADE
+CANCELAR|CANCEL
+CONTRATAR|SIGN
+Escolha a brand que vai contratar este talento.|Choose the brand that will sign this talent.
+ROSTER GLOBAL|GLOBAL ROSTER
+Seu Roster|Your Roster
+Todos|All
+Independentes|Independents
+Filtrar: todos|Filter: all
+Buscar lutador...|Search wrestler...
+Estrelas|Stars
+lutadores listados|wrestlers listed
+no seu roster|in your roster
+⚙ GERENCIAR ROSTER|⚙ MANAGE ROSTER
+GERENCIAR ROSTER GLOBAL|MANAGE GLOBAL ROSTER
+FREE AGENCY|FREE AGENCY
+Contrate novos talentos, libere espaço no seu roster e fortaleça sua marca no seu Universo!|Sign new talent, free up space in your roster and strengthen your brand in your Universe!
+Disponíveis|Available
+Contratados|Signed
+Nenhum lutador disponível na Free Agency.|No wrestler available in Free Agency.
+Nenhum manager disponível.|No manager available.
+Nenhuma contratação registrada ainda.|No signing recorded yet.
+managers sem contrato|managers without contract
+ROSTER GLOBAL →|GLOBAL ROSTER →
+GERENCIAR FREE AGENCY|MANAGE FREE AGENCY
 🎨 Personalizar logo e banner|🎨 Customize logo and banner
 LOGO DA MARCA|BRAND LOGO
 BANNER DA HOME DA BRAND|BRAND HOME BANNER
@@ -2395,7 +2579,7 @@ function pickStory(r,rival,al,title,rnd,rv){
   const items=[];pool.mine.forEach(x=>{for(let i=0;i<3;i++)items.push(x.text);});pool.bank.forEach(x=>items.push(en?x.en:x.pt));
   const t=pickR(rnd,items)||'{A} e {B} disputam o respeito do vestiário.';
   return fillStory(t,r.name,rv,title?title.name:(en?'title':'título'));}
-function storiesHtml(){
+function storyTemplatesHtml(){
   const my=S.stories||[],only=!!(S.storyPrefs&&S.storyPrefs.onlyMine);
   const sample=t=>esc(fillStory(t,'Alex Storm','Rio Vega',LANG==='en'?'World Title':'Título Mundial'));
   const bankByCat={face:'Face',heel:'Heel',tween:'Tweener',title:'Com título'};
@@ -2456,7 +2640,7 @@ function weekLabel(d){if(!d)return '';const p=d.split('-');const day=+p[2];retur
 const HBC={Raw:'#e11d2e',SmackDown:'#2a7bf0',NXT:'#d9a81e','Free Agency':'#9b5de5'};
 function artOf(b){return ((S.brandArt||{})[b])||{};}
 function wordmark(b,sm){const c=HBC[b]||'#aaa';const lg=artOf(b).logo;if(lg)return `<img class="wmimg${sm?' sm':''}" src="${esc(lg)}" alt="${esc(b)}" onerror="this.outerHTML='${esc(b)}'">`;const t=b==='Free Agency'?'FREE AGENCY':b==='SmackDown'?'SMACKDOWN':b.toUpperCase();return `<span class="wm wm-${b.replace(/\s/g,'')}${sm?' sm':''}" style="--c:${c}">${t}</span>`;}
-const BRTAB=['all','roster','titles','feuds','shows','teams','push','summary','year','downgrade','nxtcut','ranking'];
+const BRTAB=['all','roster','titles','feuds','shows','calendar','teams','push','summary','year','downgrade','nxtcut','ranking'];
 const BRTAG={Raw:'A marca vermelha está pronta para mais uma semana de ação!',SmackDown:'Prepare-se para uma noite inesquecível!',NXT:'A próxima geração está pronta para brilhar!'};
 const WDAY=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 function wdayLabel(d){if(!d)return 'Sem data';const x=new Date(d+'T12:00:00');return WDAY[x.getDay()]+' · '+fmtBR(d);}
@@ -2464,11 +2648,11 @@ function brandSide(){
   const c=HBC[B]||'#e11d2e';
   const it=(k,ic,lb)=>`<button class="si ${tab===k?'on':''}" onclick="go('${k}')"><span class="sic">${ic}</span><span>${lb}</span></button>`;
   return `<div class="slogo bl" onclick="go('landing')" title="Voltar à Home geral"><div class="slt">${wordmark(B)}</div></div>
-  ${it('all','⌂','Início')}${it('feuds','🔥','Rivalidades')}${it('titles','🏆','Campeonatos')}${it('roster','👥','Roster')}${it('shows','🎟','Shows e PPV')}${it('teams','🤝','Tag Teams')}${it('year','🕓','Histórico')}
+  ${it('all','⌂','Início')}${it('feuds','🔥','Rivalidades & Histórias')}${it('titles','🏆','Campeonatos')}${it('roster','👥','Roster')}${it('shows','🎟','Shows e PPV')}${it('calendar','🗓','Calendário')}${it('teams','🤝','Tag Teams')}${it('year','🕓','Histórico')}
   ${it('ranking','📊','Ranking')}
   <hr>${it('push','📈','Push pós-PPV')}${it('summary','📋','Resumo')}${B==='NXT'?it('nxtcut','✂','Revisão da NXT'):it('downgrade','⬇','Downgrade → NXT')}
   <hr><button class="si" onclick="go('landing')"><span class="sic">↩</span><span>Todas as brands</span></button><button class="si" onclick="go('search')"><span class="sic">🔍</span><span>Busca</span></button><button class="si ${tab==='account'?'on':''}" onclick="go('account')"><span class="sic">⚙</span><span>Configurações</span></button>
-  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v5.1</small></div></div>`;
+  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v6.5</small></div></div>`;
 }
 function sideHtml(){
   if(B!=='Free Agency'&&BRTAB.includes(tab))return brandSide();
@@ -2478,9 +2662,9 @@ function sideHtml(){
   return `<div class="slogo" onclick="go('landing')"><div class="brand-mark">U<span>W</span></div><div class="slt">UNIVERSE<br>DESK</div></div>
   ${it(tab==='landing',"go('landing')",'⌂','Início')}${it(tab==='globalRoster',"go('globalRoster')",'👥','Roster')}${it(tab==='globalChampions',"go('globalChampions')",'🏆','Campeões')}${it(tab==='popularity',"go('popularity')",'★','Popularidade')}${it(B==='Free Agency'&&inBrand,"sb('Free Agency')",'▲','Free Agency')}
   <hr>${br('Raw','RAW')}${br('SmackDown','SMACK')}${br('NXT','NXT')}
-  <hr>${it(tab==='year',`openTab(B==='Free Agency'?'Raw':B,'year')`,'🕓','Histórico')}${it(tab==='search',"go('search')",'🔍','Busca')}${it(tab==='stories',"go('stories')",'📖','Histórias')}${it(tab==='bk',"go('bk')",'💾','Backup')}${it(tab==='account',"go('account')",'⚙','Configurações')}
+  <hr>${it(tab==='year',`openTab(B==='Free Agency'?'Raw':B,'year')`,'🕓','Histórico')}${it(tab==='search',"go('search')",'🔍','Busca')}${it(tab==='stories',"go('stories')",'📖','Rivalidades & Histórias')}${it(tab==='bk',"go('bk')",'💾','Backup')}${it(tab==='account',"go('account')",'⚙','Configurações')}
   <button class="si" onclick="setLang('${LANG==='en'?'pt':'en'}')"><span class="sic">🌐</span><span>${LANG==='en'?'Português':'English'}</span></button>
-  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v4.1</small></div></div>`;
+  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v6.5</small></div></div>`;
 }
 function homePanel(title,icon,body,foot,cls){return `<section class="hp ${cls||''}"><div class="hph"><span class="hic">${icon}</span>${title}</div><div class="hpb">${body}</div>${foot?`<div class="hpf">${foot}</div>`:''}</section>`;}
 function himg(r,cls){const n=r?r.name:'';return `<div class="${cls||'hav'}">${esc(initials(n))}${r&&r.photo?`<img src="${esc(r.photo)}" alt="" onerror="this.style.display='none'">`:''}</div>`;}
@@ -2816,7 +3000,7 @@ function profileCard(r,showBrand){
 }
 
 const V = {
-  stories() { return storiesHtml(); },
+  stories() { return storiesDash(); },
   account() { return accountHtml(); },
   search() {
     return `<div class="card"><div class="sh">BUSCA GLOBAL</div><input class="f" id="gq" type="search" autocomplete="off" placeholder="Lutador, título, rivalidade, show, time, facção…" value="${esc(GQ)}" oninput="gSearch(this.value)"><div class="m" style="margin-top:6px">Procura em todas as brands: roster (inclui Free Agency), títulos, rivalidades, shows e lutas, tag teams e facções.</div></div><div id="gres">${gResults(GQ)}</div>`;
@@ -2985,6 +3169,7 @@ const V = {
       <button class="add" style="margin-top:12px" onclick="addFeud()">Criar rivalidade</button>
       <div class="m" style="margin-top:8px">Pop: Singles (1v1 ou Triple/Four) vencedor +3.5 / cada perdedor −2. Tag ou Facção: cada membro da tag/facção vencedora +1.5 / perdedores −1.</div>`);
     const sec = (ttl, list, e) => `<div class="fsh"><span class="sh" style="margin:0">${ttl} · ${list.length}</span><span class="sp"></span>${list.length?`<button class="add" onclick="feudMinAll(${e},1)">▾ Minimizar todas</button><button class="add" onclick="feudMinAll(${e},0)">▸ Expandir todas</button>`:''}</div>` + (list.length ? list.map(feudCard).join('') : em(e ? 'Nenhuma rivalidade encerrada.' : 'Nenhuma rivalidade ativa em '+B+'.'));
+    if(FEUDFORM)return form;
     return form + sec('🔥 ATIVAS', act, 0) + sec('🏁 ENCERRADAS', end, 1);
   },
 
@@ -3003,7 +3188,7 @@ const V = {
   downgrade() {
     const pool=S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&['Raw','SmackDown'].includes(r.brand));
     const w=worstByDivision(pool,4);
-    const card=(c,top)=>`<div class="card" style="margin-top:8px;${top?'border-color:var(--ac)':''}"><div class="row">${avHtml(c.r,false)}<div style="flex:1;min-width:0"><div class="t">${esc(c.r.name)}</div><div class="m">${esc(c.r.brand)} · ${perfReason(c)}</div></div>${top?tag('SUGESTÃO','face'):''}<button class="add" onclick="moveBrand('${c.r.id}','NXT','down')">Mandar para a NXT</button></div></div>`;
+    const card=(c,top)=>`<div class="card" style="margin-top:8px;${top?'border-color:var(--ac)':''}"><div class="row">${avHtml(c.r,false)}<div style="flex:1;min-width:0"><div class="t">${esc(c.r.name)}</div><div class="m">${esc(c.r.brand)} · ${perfReason(c)}</div></div>${top?tag('SUGESTÃO','face'):''}<button class="add" onclick="openDowngrade('${c.r.id}')">Mandar para a NXT</button></div></div>`;
     const sec=(d,lbl)=>`<div class="card"><div class="sh">${lbl}</div>${w[d].length?card(w[d][0],true)+(w[d].length>1?`<div class="m" style="margin:12px 0 0">Outros candidatos</div>`+w[d].slice(1).map(c=>card(c,false)).join(''):''):em('Nenhum candidato (campeões não entram na lista).')}</div>`;
     const mv=(S.moves||[]).filter(m=>m.kind==='down').slice(0,8);
     return `<div class="card"><div class="sh">DOWNGRADE PARA A NXT</div><div class="m">Sugere 1 homem e 1 mulher de Raw/SmackDown com o pior desempenho: poucas vitórias, estrelas baixas nas lutas e popularidade baixa (35% popularidade · 35% estrelas · 30% vitórias). Campeões atuais e lesionados não entram. Wrestlers sem lutas avaliadas contam como nota neutra (3,0).</div></div>${sec('Masculino','HOMEM SUGERIDO')}${sec('Feminino','MULHER SUGERIDA')}${mv.length?`<div class="card"><div class="sh">ÚLTIMOS DOWNGRADES</div>${mv.map(m=>`<div class="rw"><span class="t">${esc(m.name)}</span><span class="sp"></span><span class="m">${esc(m.from)} → ${esc(m.to)} · ${fmtBR(m.date)}</span></div>`).join('')}</div>`:''}`;
@@ -3103,19 +3288,37 @@ function ptile(r){return `<div class="rtile" onclick="openWrestler('${r.id}')">$
 function grpTile(name,ids,sub){const ms=ids.map(person).filter(Boolean).slice(0,4);return `<div class="gtile"><div class="gtp">${ms.map(m=>himg(m,'gtph')).join('')||'<div class="gtph">—</div>'}</div><div class="rtn" style="text-align:center">${esc(name)}</div>${sub?`<div class="m" style="text-align:center">${sub}</div>`:''}</div>`;}
 function feudHot(x,y){return ((y.hasTitle?30:0)+(y.progress||0))-((x.hasTitle?30:0)+(x.progress||0));}
 function feudSides(f){return feudGroups(f).filter(g=>g.length).slice(0,2);}
-function openFeudCard(id){FST[id]='open';saveFst();draw();scrollToSel('#feud-'+id);}
+function openFeudCard(id){const f=S.feuds.find(x=>x.id==id);if(f&&f.brand&&f.brand!=='Free Agency')B=f.brand;tab='feuds';STL.sel=id;STL.tab=f&&feudEnded(f)?'Encerradas':'Ativas';STL.mode='';STL.edit=false;draw();window.scrollTo(0,0);}
 function topFeuds(){
+  if(FEUDFORM)return '';
   const l=S.feuds.filter(f=>(!f.brand||f.brand===B)&&!feudEnded(f)).sort(feudHot),hf=l[0];
   const hero=hf?`<div class="fhero" style="--c:${HBC[B]||'#e11d2e'}"><div class="fhs">${feudSides(hf).map(g=>`<div class="hside">${himg(person(g[0]),'hbig')}</div>`).join('')}</div><div class="fhc"><div class="fhct">${feudLabel(hf).replace(' vs ',' <em>vs</em> ')}</div><div class="fhcq">${hf.notes?esc(hf.notes):'Sem gancho definido ainda.'}</div><button class="bdet static" onclick="openFeudCard('${hf.id}')">Ver Detalhes →</button></div></div>`:em('Nenhuma rivalidade ativa. Crie uma abaixo.');
   const oth=l.slice(1,6).map(f=>`<div class="orow" onclick="openFeudCard('${f.id}')"><div class="oav">${feudSides(f).map(g=>himg(person(g[0]),'hav sm')).join('')}</div><div style="flex:1;min-width:0"><div class="hrt">${feudLabel(f)}</div><div class="m clamp2">${f.notes?esc(f.notes):'—'}</div></div><span class="hbd ${f.hasTitle?'pu':(f.progress||0)>=60?'bl':'gy'}">${f.hasTitle?'Título':(f.progress||0)+'%'}</span></div>`).join('');
   return secHead('RIVALIDADES')+hero+(oth?`<div class="hsh" style="margin-top:14px">OUTRAS RIVALIDADES</div><div class="olist">${oth}</div>`:'')+secManage('GERENCIAR RIVALIDADES');
 }
-function titleDiv(t){return t.lv==='Tag Team'?'Tag Team':/women/i.test(t.name)?'Feminino':'Masculino';}
+function titleCat(t){return t.lv==='Tag Team'?'Títulos de Equipe':/women|feminin|mulher/i.test(t.name)?'Títulos Femininos':(t.lv==='Main Event'?'Títulos Principais':'Títulos Secundários');}
+function setNextDef(id,v){const t=S.titles.find(x=>x.id===id);if(!t)return;t.nextDefense=v;save();draw();}
+function selTitle(id){SEL[B]=id;draw();}
+function champFaces(t){const tm=t.champ&&S.teams.find(x=>x.id===t.champ);const ids=tm?(tm.members||[]):(t.champ?[t.champ]:[]);return ids.map(id=>himg(person(id),'hav')).join('');}
 function topTitles(){
-  const ts=S.titles.filter(t=>t.brand===B),cur=SECT.titles,list=ts.filter(t=>titleDiv(t)===cur);
-  const grid=list.length?list.map(t=>`<div class="ttile" onclick="SEL['${B}']='${t.id}';draw();toManage()"><div class="tbelt">${beltHtml(t,'tb')}</div><div class="rtn" style="text-align:center">${esc(t.name)}</div><div class="m" style="text-align:center">${t.champ?esc(nm(t.champ)):'Vago'}</div></div>`).join(''):em('Nenhum título nesta categoria.');
-  const rk=list.map((t,i)=>`<div class="hrow slim"><b class="hrn">${i+1}</b><div class="hrt" style="flex:1;min-width:0">${esc(t.name)}</div><span class="m">${t.champ?esc(nm(t.champ)):'Vago'}</span></div>`).join('');
-  return secHead('CAMPEONATOS')+secTabs('titles',['Masculino','Feminino','Tag Team'])+`<div class="tgrid">${grid}</div>${rk?`<div class="hsh" style="margin-top:14px">RANKINGS DE TÍTULOS</div><div class="hp"><div class="hpb">${rk}</div></div>`:''}`+secManage('GERENCIAR TÍTULOS');
+  const all=S.titles.filter(t=>t.brand===B),cats=['Títulos Principais','Títulos de Equipe','Títulos Femininos','Títulos Secundários'];
+  let cur=SECT.titles;if(!cats.includes(cur))cur=SECT.titles='Títulos Principais';
+  const list=all.filter(t=>titleCat(t)===cur);
+  const tabs=cats.map(k=>`<button class="${cur===k?'on':''}" onclick="setSect('titles','${k}')">${k}</button>`).join('');
+  let t=list.find(x=>x.id==SEL[B])||list[0];
+  const left=list.length?list.map(x=>`<div class="ttl ${t&&x.id===t.id?'on':''}" onclick="selTitle('${x.id}')"><div class="ttlb">${beltHtml(x,'sm')}</div><div class="ttln">${esc(x.name)}</div></div>`).join(''):em('Nenhum título nesta categoria.');
+  let center='',right='';
+  if(t){
+    const ud=universeDate(),h=(t.history||[]).slice().reverse(),cur_=h.find(x=>x.champion===t.champ&&!x.ended),since=(cur_&&cur_.startDate)||t.since||'',days=since?Math.max(0,dayDiff(ud,since)):0;
+    const rk=(t.rank||[]).slice(0,3);
+    center=`<div class="tcban"><div class="tcb">${t.photo?beltHtml(t,'tcb'):'<span style="font-size:80px">🏆</span>'}</div><div class="tcn">${esc(t.name)}</div></div>
+    <div class="hp"><div class="hph">CAMPEÃO ATUAL</div><div class="tcc">${t.champ?`<div class="tcf">${champFaces(t)}</div><div class="tcnm"><div class="tcname">${esc(nm(t.champ))}</div>${wordmark(B)}</div><div class="tcd"><div><span class="m">DESDE</span><b>${since?esc(fmtBR(since)):'—'}</b></div><div><span class="m">DIAS NO CARGO</span><b>${since?days:'—'}</b></div></div>`:'<div class="m" style="padding:14px">Título vago.</div>'}</div></div>
+    <div class="hp" style="margin-top:10px"><div class="hph">DESAFIANTES OFICIAIS</div><div class="tch">${rk.length?rk.map((id,i)=>`<div class="tcx" onclick="openWrestler('${id}')"><div class="tcxp">${himg(person(id),'hbig')}</div><div class="rtn">${esc(nm(id))}</div><div class="m">#${i+1} CONTENDER</div></div>`).join(''):'<div class="m" style="padding:14px">Sem desafiantes definidos. Use "Gerenciar desafiantes".</div>'}</div></div>`;
+    right=`<div class="hp"><div class="hph">DETALHES DO TÍTULO</div><div class="hpb tdet"><div class="tdb">${beltHtml(t,'tb')}</div><div><span class="m">TIPO</span><b>${t.lv==='Tag Team'?'Equipe':'Individual'}</b><span class="m" style="margin-top:8px">BRAND</span>${wordmark(B)}</div></div><div class="hpf" style="text-align:left">DESAFIANTES ATUAIS <b>${(t.rank||[]).length}</b></div></div>
+    <div class="hp" style="margin-top:10px"><div class="hph">PRÓXIMA DEFESA</div><div class="hpb row" style="gap:8px;align-items:center"><span style="flex:1">${t.nextDefense?esc(fmtBR(t.nextDefense)):'A definir'}</span><input type="date" value="${esc(t.nextDefense||'')}" onchange="setNextDef('${t.id}',this.value)" style="max-width:150px"></div></div>
+    <div class="hp" style="margin-top:10px"><div class="hph">HISTÓRICO DE CAMPEÕES</div><div class="hpb">${h.length?h.slice(0,6).map(x=>`<div class="hrow slim">${himg(person(x.champion),'hav sm')}<div style="min-width:0"><div class="hrt">${esc(nm(x.champion))}</div><div class="m">${esc(x.startDate?fmtBR(x.startDate):x.started||'')} – ${x.ended?esc(x.ended):'Atual'}</div></div></div>`).join(''):'<div class="m">Sem histórico ainda.</div>'}</div></div>`;
+  }
+  return secHead('CAMPEONATOS')+`<div class="htabs sect ttabs">${tabs}</div><div class="tmain"><div class="tleft">${left}</div><div class="tcenter">${center}</div><div class="tright">${right}</div></div><div class="tfoot"><button class="add" onclick="go('all')">‹ VOLTAR</button><button class="btn-gold sm" onclick="toManage()">🏆 GERENCIAR DESAFIANTES</button></div>`+secManage('GERENCIAR TÍTULOS');
 }
 function topRoster(){
   const cur=SECT.roster;let body;
@@ -3169,7 +3372,7 @@ function showBoard(s){
   const tabs=Object.keys(flt).map(k=>`<button class="${f===k?'on':''}" onclick="setShf('${s.id}','${k}')">${k}</button>`).join('');
   const rows=ms.map((m,i)=>({m,i})).filter(x=>flt[f](x.m)).map(({m,i})=>{
     const gs=m.groups&&m.groups.length?m.groups:(m.participants||[]).map(x=>[x]);
-    const side=g=>`<div class="bks"><div class="bka">${g.slice(0,2).map(id=>himg(person(id),'hav')).join('')}</div><div class="bkn">${esc(g.map(nm).join(' & '))}</div></div>`;
+    const wp=weeklyPushIds(s),side=g=>`<div class="bks"><div class="bka">${g.slice(0,2).map(id=>himg(person(id),'hav')).join('')}</div><div class="bkn">${g.some(id=>wp.has(id))?'⭐ ':''}${esc(g.map(nm).join(' & '))}</div></div>`;
     const many=gs.length>3;
     const mid=many?`<div class="bks"><div class="bka">${(m.participants||[]).slice(0,5).map(id=>himg(person(id),'hav sm')).join('')}</div><div class="bkn">${(m.participants||[]).length} lutadores</div></div>`:gs.map(side).join(`<span class="bkv">${m.matchType==='Promo'?'·':'VS'}</span>`);
     return `<div class="bkrow" style="--c:${bc}"><div class="bkl"><div class="bkt"><b>${i+1}.</b> ${esc((m.matchType||'Luta').toUpperCase())}</div><div class="m">${m.title?'🏆 '+esc(m.title):esc(m.division||'')}</div>${m.result?`<div class="m">🏁 ${esc(m.result)}</div>`:''}</div><div class="bkm">${mid}</div><div class="bkst">${typeof m.stars==='number'&&m.matchType!=='Promo'?esc(starTxt(m.stars)):'<span class="m">—</span>'}</div></div>`;}).join('');
@@ -3206,13 +3409,14 @@ function bldType(t){BLD.type=t;if(t==='Tag Team'){BLD.teams=2;BLD.per=2;}else BL
 function bldStep(k,d){const lim={n:BLD.type==='Promo'?[1,3]:[2,10],teams:[2,6],per:[1,4]}[k];BLD[k]=Math.max(lim[0],Math.min(lim[1],BLD[k]+d));bldResize();bldRefresh();}
 function bldT(){$('bldT').innerHTML=['Masculino','Feminino','Tag Teams','Todos'].map(x=>`<button class="${BLD.tab===x?'on':''}" onclick="BLD.tab='${x}';bldT();bldG()">${x}</button>`).join('');}
 function bldSearch(v){BLD.q=v;bldG();}
+function bldWp(){const sh=BLD&&S.shows.find(x=>x.id===BLD.sid);return weeklyPushIds(sh);}
 function bldPool(){const brs=bldBrands();return S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&r.status!=='Ausente'&&brs.includes(r.brand));}
 function bldG(){
   const q=norm(BLD.q||'');
   if(BLD.tab==='Tag Teams'){const l=S.teams.filter(t=>bldBrands().includes(t.brand)&&norm(t.name).includes(q));
     $('bldG').innerHTML=l.length?`<div class="bgrid">${l.map(t=>`<div class="bw" onclick="bldTeam('${t.id}')"><div class="bwp">${(t.members||[]).slice(0,2).map(id=>himg(person(id),'gtph')).join('')}</div><div class="bwn">${esc(t.name)}</div></div>`).join('')}</div>`:em('Nenhuma tag team nesta brand.');return;}
   const l=bldPool().filter(r=>(BLD.tab==='Todos'||(r.division||'Masculino')===BLD.tab)&&norm(r.name).includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
-  $('bldG').innerHTML=l.length?`<div class="bgrid">${l.map(r=>`<div class="bw ${BLD.slots.includes(r.id)?'on':''}" onclick="bldPick('${r.id}')">${himg(r,'bwp')}<div class="bwn">${esc(r.name)}</div>${BLD.slots.includes(r.id)?'<span class="bwc">✓</span>':''}</div>`).join('')}</div>`:em('Nenhum lutador encontrado.');
+  $('bldG').innerHTML=l.length?`<div class="bgrid">${l.map(r=>`<div class="bw ${BLD.slots.includes(r.id)?'on':''}" onclick="bldPick('${r.id}')">${himg(r,'bwp')}<div class="bwn">${bldWp().has(r.id)?'⭐ ':''}${esc(r.name)}</div>${BLD.slots.includes(r.id)?'<span class="bwc">✓</span>':''}</div>`).join('')}</div>`:em('Nenhum lutador encontrado.');
 }
 function bldPick(id){const i=BLD.slots.indexOf(id);if(i>=0)BLD.slots[i]='';else{const e=BLD.slots.indexOf('');if(e<0)return;BLD.slots[e]=id;}bldG();bldR();if(LANG==='en'){startTr();trAll();}}
 function bldTeam(tid){if(BLD.type!=='Tag Team'){BLD.type='Tag Team';BLD.teams=2;BLD.per=2;bldResize();}
@@ -3281,6 +3485,365 @@ function artEditor(b){
   const box=(k,lb,hint)=>`<div class="photo-box"><div class="tphoto art-${k}">${a[k]?`<img src="${esc(a[k])}" alt="" style="max-width:100%;max-height:100%;object-fit:${k==='banner'?'cover':'contain'}">`:'🖼'}</div><div class="fl"><span class="m">${lb}</span><input placeholder="Cole a URL da imagem" value="${a[k]&&String(a[k]).startsWith('data:')?'':esc(a[k]||'')}" onchange="setBrandArt('${b}','${k}',this.value)"><div class="photo-actions"><label class="add">📤 Enviar imagem<input type="file" accept="image/*" onchange="brandArtFile('${b}','${k}',this)"></label>${a[k]?`<button class="x" type="button" onclick="setBrandArt('${b}','${k}','')">Remover</button>`:''}</div><div class="m" style="margin-top:4px">${hint}</div></div></div>`;
   return `<div class="card" style="margin-top:10px"><div class="sh">🎨 PERSONALIZAR ${esc(b.toUpperCase())}</div>${box('logo','LOGO DA MARCA','PNG com fundo transparente fica melhor. Aparece no menu, nos títulos e nas listas.')}${box('banner','BANNER DA HOME DA BRAND','Imagem larga (ex.: 1400×600). Aparece atrás do texto "ESTÁ NO AR!".')}</div>`;
 }
+
+
+/* ===== v6.0: Downgrade (modal), Roster Global e Free Agency no formato do concept ===== */
+function closeModal(){const o=document.getElementById('dgm');if(o)o.remove();document.body.classList.remove('noscroll');}
+function modalShell(html){closeModal();const o=document.createElement('div');o.id='dgm';o.className='dgm';o.onclick=e=>{if(e.target===o)closeModal();};o.innerHTML=`<div class="dgbox">${html}</div>`;document.body.appendChild(o);document.body.classList.add('noscroll');if(LANG==='en'){startTr();trAll();}}
+function starVal(id){const i=starsInfo(id);return i.man!=null?i.adj:(i.n?i.avg:null);}
+function openDowngrade(id){
+  const r=S.roster.find(x=>x.id===id);if(!r)return;
+  const bk=ensureBooking(r),v=starVal(id);
+  modalShell(`<div class="dgh"><span>DOWNGRADE</span><button class="dgx" onclick="closeModal()">✕</button></div>
+  <div class="dgs">Envie um superastro do seu elenco principal para a NXT.</div>
+  <div class="dgc">${himg(r,'dgp')}<div class="dgi"><div class="dgn">${esc(r.name)}</div><div class="dgst">${v!=null?esc(starTxt(Math.round(v*2)/2)):'Sem notas'}</div>
+    <div class="dgr"><span>CATEGORIA</span><b>${esc(r.card||'—')}</b></div><div class="dgr"><span>RENOVAÇÃO</span><b>${bk&&bk.next?esc(fmtBR(bk.next)):'—'}</b></div><div class="dgr"><span>STATUS</span><b class="ok">${esc(r.status||'Ativo')}</b></div></div></div>
+  <div class="dga">⌄</div>
+  <div class="dgt"><div class="dgwm">${wordmark('NXT')}</div><div class="dgd"><em>Após o downgrade</em>, ${esc(r.name)} estará disponível para atuar na NXT.</div></div>
+  <button class="btn-gold" onclick="moveBrand('${id}','NXT','down',1);closeModal()">✔ CONFIRMAR DOWNGRADE</button><button class="btn-cancel" onclick="closeModal()">CANCELAR</button>`);
+}
+function openHire(id){
+  const r=S.roster.find(x=>x.id===id);if(!r)return;const v=starVal(id);
+  modalShell(`<div class="dgh"><span>CONTRATAR</span><button class="dgx" onclick="closeModal()">✕</button></div>
+  <div class="dgs">Escolha a brand que vai contratar este talento.</div>
+  <div class="dgc">${himg(r,'dgp')}<div class="dgi"><div class="dgn">${esc(r.name)}</div><div class="dgst">${v!=null?esc(starTxt(Math.round(v*2)/2)):'Sem notas'}</div><div class="dgr"><span>CATEGORIA</span><b>${esc(r.card||'—')}</b></div><div class="dgr"><span>FUNÇÃO</span><b>${esc(r.role||'Lutador')}</b></div></div></div>
+  <div class="hirebr">${['Raw','SmackDown','NXT'].map(b=>`<button class="hlogo" style="--c:${HBC[b]}" onclick="moveBrand('${id}','${b}','hire',1);closeModal()">${wordmark(b)}</button>`).join('')}</div><button class="btn-cancel" onclick="closeModal()">CANCELAR</button>`);
+}
+/* Roster Global */
+const GRS={b:'Todos',q:'',d:'',o:'pop'};
+function groList(){
+  const q=norm(GRS.q||'');
+  let l=S.roster.filter(r=>r.role==='Lutador'&&(GRS.b==='Todos'||r.brand===GRS.b)&&(!GRS.d||r.division===GRS.d)&&norm(r.name).includes(q));
+  l.sort((a,b)=>GRS.o==='az'?a.name.localeCompare(b.name):GRS.o==='star'?((starVal(b.id)||0)-(starVal(a.id)||0)):(popularity(b.id)-popularity(a.id))||a.name.localeCompare(b.name));
+  return l;
+}
+function groGrid(){const l=groList();return l.length?`<div class="grg">${l.map(r=>{const v=starVal(r.id);return `<div class="grt" onclick="openWrestler('${r.id}')">${himg(r,'grp')}<span class="grb">${wordmark(r.brand==='Free Agency'?'Free Agency':r.brand,1)}</span>${v!=null?`<span class="grs">★ ${v.toFixed(1).replace('.',',')}</span>`:''}<div class="grn">${esc(r.name)}</div></div>`;}).join('')}</div>`:em('Nenhum lutador encontrado.');}
+function groSearch(v){GRS.q=v;const e=document.getElementById('groGrid');if(e){e.innerHTML=groGrid();if(LANG==='en'){startTr();trAll();}}const c=document.getElementById('groCount');if(c)c.textContent=groList().length;}
+function topGlobalRoster(){
+  const total=S.roster.filter(r=>r.role==='Lutador').length;
+  const tabs=['Todos','Raw','SmackDown','NXT','Free Agency'].map(b=>`<button class="${GRS.b===b?'on':''}" onclick="GRS.b='${b}';draw()">${b==='Todos'?'👥 Todos':b==='Free Agency'?'★ Independentes':wordmark(b,1)}</button>`).join('');
+  return `<section class="bhd"><h2 class="sech">ROSTER GLOBAL</h2><div class="shr"><div class="hdt">🌐 Seu Roster · <b>${total}</b> lutadores</div></div></section>
+  <div class="htabs sect grt-tabs">${tabs}</div>
+  <div class="grbar"><input class="f" type="search" autocomplete="off" placeholder="Buscar lutador..." value="${esc(GRS.q)}" oninput="groSearch(this.value)"><select onchange="GRS.d=this.value;draw()"><option value="">Filtrar: todos</option><option ${GRS.d==='Masculino'?'selected':''}>Masculino</option><option ${GRS.d==='Feminino'?'selected':''}>Feminino</option></select><select onchange="GRS.o=this.value;draw()"><option value="pop" ${GRS.o==='pop'?'selected':''}>Popularidade</option><option value="star" ${GRS.o==='star'?'selected':''}>Estrelas</option><option value="az" ${GRS.o==='az'?'selected':''}>A–Z</option></select></div>
+  <div id="groGrid">${groGrid()}</div>
+  <div class="grfoot"><span>👥 <b id="groCount">${groList().length}</b> lutadores listados · ${total} no seu roster</span><button class="btn-gold sm" onclick="toManage()">⚙ GERENCIAR ROSTER</button></div>`+secManage('GERENCIAR ROSTER GLOBAL');
+}
+/* Free Agency */
+const FAS={tab:'Disponíveis'};
+function topFreeAgency(){
+  const fa=S.roster.filter(r=>r.brand==='Free Agency'),cur=FAS.tab;
+  let body;
+  if(cur==='Contratados'){const mv=(S.moves||[]).filter(m=>m.from==='Free Agency'&&m.to!=='Free Agency').slice(0,15);body=mv.length?mv.map(m=>`<div class="farow"><div class="fan"><div class="hrt">${esc(m.name)}</div><div class="m">→ ${esc(m.to)} · ${fmtBR(m.date)}</div></div>${wordmark(m.to,1)}</div>`).join(''):em('Nenhuma contratação registrada ainda.');}
+  else{const l=fa.filter(r=>(cur==='Managers')===(r.role==='Manager')).sort((a,b)=>popularity(b.id)-popularity(a.id)||a.name.localeCompare(b.name));
+    body=l.length?l.map(r=>{const v=starVal(r.id);return `<div class="farow"><div style="cursor:pointer" onclick="openWrestler('${r.id}')">${himg(r,'hav')}</div><div class="fan" style="cursor:pointer" onclick="openWrestler('${r.id}')"><div class="hrt">${esc(r.name)}</div><div class="m">${esc(r.role==='Manager'?'Manager':(r.card||'Lutador'))}${r.origin?' · '+esc(r.origin):''}</div></div>${v!=null?`<span class="fas">★ ${v.toFixed(1).replace('.',',')}</span>`:''}<button class="btn-gold sm" onclick="openHire('${r.id}')">CONTRATAR</button></div>`;}).join(''):em(cur==='Managers'?'Nenhum manager disponível.':'Nenhum lutador disponível na Free Agency.');}
+  return `<section class="bhd"><h2 class="sech">FREE AGENCY</h2><div class="shr"><div class="hdt">📅 <span>${esc(weekLabel(universeDate()))}</span></div></div></section>
+  <div class="fahero"><span class="faic">🤝</span><div>Contrate novos talentos, libere espaço no seu roster e fortaleça sua marca no seu Universo!</div></div>
+  ${secTabsG(FAS,'tab',['Disponíveis','Managers','Contratados'])}
+  <div class="hp"><div class="hpb">${body}</div></div>
+  <div class="grfoot"><span>👥 <b>${fa.filter(r=>r.role==='Lutador').length}</b> lutadores e <b>${fa.filter(r=>r.role==='Manager').length}</b> managers sem contrato</span><button class="btn-gold sm" onclick="go('globalRoster')">ROSTER GLOBAL →</button></div>`+secManage('GERENCIAR FREE AGENCY');
+}
+function secTabsG(st,key,list){return `<div class="htabs sect">${list.map(x=>`<button class="${st[key]===x?'on':''}" onclick="${st===FAS?'FAS':'GRS'}.${key}='${x}';draw()">${x}</button>`).join('')}</div>`;}
+(function(){const wrap=(k,top)=>{const o=V[k];V[k]=function(){return top()+o.apply(V,arguments);};};wrap('globalRoster',topGlobalRoster);wrap('freeAgency',topFreeAgency);})();
+
+
+/* ===== v6.1: Calendário por brand + Busca no formato do concept ===== */
+const DABR=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'],MABR=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const CAL={ym:'',wk:'',view:'Mês',ed:'',form:false,fd:'',day:''};
+function calYM(){return CAL.ym||(CAL.ym=universeDate().slice(0,7));}
+function calNav(d){const [y,m]=calYM().split('-').map(Number);const x=new Date(y,m-1+d,1);CAL.ym=x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0');CAL.day='';draw();}
+function calWkStart(){const x=new Date((CAL.wk||universeDate())+'T12:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return dstr(x);}
+function calWkNav(d){CAL.wk=addDays(calWkStart(),7*d);draw();}
+function calView(v){CAL.view=v;CAL.ed='';draw();}
+function calEd(id){CAL.ed=CAL.ed===id?'':id;draw();}
+function calDay(d){CAL.day=CAL.day===d?'':d;draw();}
+function calNew(d){CAL.form=true;CAL.fd=d||'';draw();setTimeout(()=>{const e=document.getElementById('calform');if(e)e.scrollIntoView({behavior:'smooth',block:'center'});},50);}
+function calSet(id,k,v){const sh=S.shows.find(x=>x.id===id);if(!sh)return;sh[k]=v;save();draw();}
+function calDel(id){if(!confirm('Remover este evento do calendário? (as lutas dele também serão apagadas)'))return;S.shows=S.shows.filter(x=>x.id!==id);CAL.ed='';save();draw();}
+function calEvents(){return S.shows.filter(x=>x.date&&!x.archived&&brandsFor(x).includes(B)).sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name));}
+function calRow(x){
+  const bs=brandsFor(x),d=new Date(x.date+'T12:00:00');
+  const ed=CAL.ed===x.id?`<div class="caled"><label>Data<input type="date" value="${esc(x.date||'')}" onchange="calSet('${x.id}','date',this.value)"></label><label>Nome<input value="${esc(x.name)}" onchange="calSet('${x.id}','name',this.value)"></label><label>Local<input value="${esc(x.place||'')}" placeholder="Ex.: Orlando, FL" onchange="calSet('${x.id}','place',this.value)"></label><button class="x" onclick="calDel('${x.id}')">🗑 Remover</button></div>`:'';
+  return `<div class="calr ${x.type==='PPV'?'ppv':''}" style="--c:${HBC[bs[0]]||'#e11d2e'}"><div class="calb">${bs.length>1?bs.map(b=>wordmark(b,1)).join(''):wordmark(bs[0])}</div><div class="cald"><small>${DABR[d.getDay()]}</small><b>${String(d.getDate()).padStart(2,'0')}</b><small>${MABR[d.getMonth()]}</small></div><div class="calm"><div class="hrt">${esc(x.name)}</div><div class="m">📍 ${esc(x.place||'Local não definido')}${x.type==='PPV'?' · PPV':''}${x.completed?' · ✔ Concluído':''} · ${(x.matches||[]).length} lutas</div></div><button class="calgo" onclick="openShow('${x.id}')">DETALHES</button><button class="calpen" title="Editar data e local" onclick="calEd('${x.id}')">✎</button></div>${ed}`;
+}
+function calForm(){
+  const d=CAL.fd||universeDate();
+  return `<div class="card" id="calform"><div class="sh">＋ AGENDAR EVENTO</div><div class="calfg"><label>Tipo<select id="cft" onchange="calFT()"><option>Show semanal</option><option>PPV</option></select></label><label>Nome<input id="cfn" placeholder="${esc(B)} / nome do PPV"></label><label>Data<input type="date" id="cfd" value="${esc(d)}"></label><label>Local<input id="cfp" placeholder="Ex.: Orlando, FL"></label></div><div id="cfb" class="row" style="gap:12px;display:none;margin-top:8px"><span class="m">Brands do PPV:</span>${['Raw','SmackDown','NXT'].map(b=>`<label class="row" style="gap:4px"><input type="checkbox" name="cfbr" value="${b}" ${b===B?'checked':''}> ${b}</label>`).join('')}</div><div class="row" style="gap:8px;margin-top:10px"><button class="btn-gold sm" onclick="calAdd()">AGENDAR</button><button class="add" onclick="CAL.form=false;draw()">Cancelar</button></div></div>`;
+}
+function calFT(){const t=$('cft').value;$('cfb').style.display=t==='PPV'?'flex':'none';}
+function calAdd(){
+  const type=$('cft').value,date=$('cfd').value;let name=$('cfn').value.trim();const place=$('cfp').value.trim();
+  if(!date){alert('Escolha a data.');return;}
+  if(!name){if(type==='Show semanal')name=B;else{alert('Dê um nome ao PPV.');return;}}
+  const brands=type==='PPV'?Array.from(document.querySelectorAll('[name="cfbr"]:checked')).map(x=>x.value):[B];
+  if(!brands.length){alert('Selecione pelo menos uma brand.');return;}
+  S.shows.push({id:uid(),name,type,brand:brands[0],brands,date,place,matches:[],notes:'',completed:false});
+  CAL.form=false;CAL.ym=date.slice(0,7);save();draw();
+}
+function calendarHtml(){
+  const ev=calEvents(),ud=universeDate(),view=CAL.view;
+  const tabs=['Mês','Semana','Lista'].map(v=>`<button class="${view===v?'on':''}" onclick="calView('${v}')">${v}</button>`).join('');
+  let body='';
+  if(view==='Mês'){
+    const ym=calYM(),[y,m]=ym.split('-').map(Number),first=new Date(y,m-1,1),off=(first.getDay()+6)%7,dim=new Date(y,m,0).getDate();
+    const inM=ev.filter(x=>x.date.slice(0,7)===ym),byD={};inM.forEach(x=>(byD[x.date]=byD[x.date]||[]).push(x));
+    let cells=['SEG','TER','QUA','QUI','SEX','SÁB','DOM'].map(h=>`<div class="cgh">${h}</div>`).join('');
+    for(let i=0;i<off;i++)cells+='<div class="cgc empty"></div>';
+    for(let d=1;d<=dim;d++){const ds=ym+'-'+String(d).padStart(2,'0'),l=byD[ds]||[];cells+=`<div class="cgc ${l.length?'has':''} ${ds===ud?'today':''} ${CAL.day===ds?'sel':''}" ${l.length?`onclick="calDay('${ds}')"`:`onclick="calNew('${ds}')" title="Agendar neste dia"`}><span>${d}</span><div class="cgd">${l.slice(0,3).map(x=>`<i style="background:${x.type==='PPV'?'#f2c230':(HBC[brandsFor(x)[0]]||'#888')}"></i>`).join('')}</div></div>`;}
+    const shown=CAL.day?inM.filter(x=>x.date===CAL.day):inM;
+    body=`<div class="calnav"><button onclick="calNav(-1)">‹</button><b>${MESES[m-1].toUpperCase()} ${y}</b><button onclick="calNav(1)">›</button></div><div class="cgrid">${cells}</div>${CAL.day?`<div class="m" style="margin:8px 0">Mostrando ${esc(fmtBR(CAL.day))} · <a class="lk" onclick="calDay('${CAL.day}')">ver o mês inteiro</a></div>`:''}<div class="callist">${shown.length?shown.map(calRow).join(''):em('Nenhum evento neste mês. Use "＋ Agendar evento".')}</div>`;
+  }else if(view==='Semana'){
+    const st=calWkStart(),days=Array.from({length:7},(_,i)=>addDays(st,i));
+    body=`<div class="calnav"><button onclick="calWkNav(-1)">‹</button><b>${esc(fmtBR(days[0]).slice(0,5))} – ${esc(fmtBR(days[6]))}</b><button onclick="calWkNav(1)">›</button></div><div class="callist">`+days.map(d=>{const l=ev.filter(x=>x.date===d),dd=new Date(d+'T12:00:00');return `<div class="calwd ${d===ud?'today':''}"><div class="calwh"><b>${WDAY[dd.getDay()]}</b> <span class="m">${esc(fmtBR(d).slice(0,5))}</span><span class="sp"></span><button class="add" onclick="calNew('${d}')">＋</button></div>${l.length?l.map(calRow).join(''):'<div class="m" style="padding:4px 2px">Sem eventos</div>'}</div>`;}).join('')+`</div>`;
+  }else{
+    const up=ev.filter(x=>x.date>=ud),past=ev.filter(x=>x.date<ud).slice(-5).reverse();
+    body=`<div class="hsh">PRÓXIMOS</div><div class="callist">${up.length?up.slice(0,40).map(calRow).join(''):em('Nenhum evento futuro agendado.')}</div>${past.length?`<div class="hsh" style="margin-top:16px">ANTERIORES</div><div class="callist">${past.map(calRow).join('')}</div>`:''}`;
+  }
+  const big=ev.filter(x=>x.type==='PPV'&&x.date>=ud&&!x.completed)[0];
+  const bigH=big?`<div class="calbig" style="--c:${HBC[brandsFor(big)[0]]||'#f2c230'}"><div><div class="calbt">🏆 PRÓXIMO GRANDE EVENTO</div><div class="calbn">${esc(big.name)}</div><div class="m">${esc(wdayLabel(big.date))} · ${esc(big.place||'Local não definido')}</div></div><button class="calgo big" onclick="openShow('${big.id}')">DETALHES</button></div>`:'';
+  return `<section class="bhd"><div><h2 class="sech">🗓 CALENDÁRIO</h2><div class="m">Acompanhe os próximos shows e eventos da sua empresa!</div></div><div class="shr">${wordmark(B)}<div class="htabs sect" style="margin:0">${tabs}</div></div></section>${body}${bigH}<div style="margin:14px 0"><button class="btn-gold sm" onclick="calNew('')">＋ AGENDAR EVENTO</button></div>${CAL.form?calForm():''}`;
+}
+V.calendar=calendarHtml;
+
+/* ---- Busca ---- */
+const SRC={tab:'Lutadores',q:'',brand:'',gender:'',nat:'',cls:'',st:''};
+function srTab(t){SRC.tab=t;draw();}
+function srSet(k,v){SRC[k]=v;if(k==='q')GQ=v;srRefresh();}
+function srClear(){Object.assign(SRC,{q:'',brand:'',gender:'',nat:'',cls:'',st:''});GQ='';draw();}
+function srRefresh(){const e=document.getElementById('srres');if(e){e.innerHTML=srResults();if(LANG==='en'){startTr();trAll();}}}
+function srResults(){
+  const q=norm(SRC.q||''),t=SRC.tab;
+  if(t==='Lutadores'){
+    const l=S.roster.filter(r=>r.role==='Lutador'&&(!SRC.brand||r.brand===SRC.brand)&&(!SRC.gender||r.division===SRC.gender)&&(!SRC.nat||r.origin===SRC.nat)&&(!SRC.cls||r.card===SRC.cls)&&(!SRC.st||(r.status||'Ativo')===SRC.st)&&norm(r.name+' '+(r.origin||'')).includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+    return l.length?`<div class="grg">${l.map(r=>`<div class="grt" style="--c:${HBC[r.brand]||'#666'}" onclick="openWrestler('${r.id}')">${himg(r,'grp')}<span class="grb">${wordmark(r.brand,1)}</span><div class="grn">${esc(r.name)}</div></div>`).join('')}</div>`:em('Nenhum lutador encontrado.');}
+  if(t==='Equipes'){
+    const tm=S.teams.filter(x=>(!SRC.brand||x.brand===SRC.brand)&&norm(x.name+' '+(x.members||[]).map(nm).join(' ')).includes(q)).map(x=>`<div class="gtile" style="cursor:pointer" onclick="openTab('${x.brand||B}','teams','${esc(x.name).replace(/'/g,"\\'")}')"><div class="gtp">${(x.members||[]).slice(0,3).map(id=>himg(person(id),'gtph')).join('')}</div><div class="rtn" style="text-align:center">🤝 ${esc(x.name)}</div><div class="m" style="text-align:center">${esc(x.brand||'')}</div></div>`);
+    const fc=S.factions.filter(x=>(!SRC.brand||x.brand===SRC.brand)&&norm(x.name+' '+S.roster.filter(r=>r.faction===x.id).map(r=>r.name).join(' ')).includes(q)).map(x=>`<div class="gtile" style="cursor:pointer" onclick="openTab('${x.brand||B}','teams','${esc(x.name).replace(/'/g,"\\'")}')"><div class="gtp">${S.roster.filter(r=>r.faction===x.id).slice(0,3).map(r=>himg(r,'gtph')).join('')}</div><div class="rtn" style="text-align:center">🏴 ${esc(x.name)}</div><div class="m" style="text-align:center">${esc(x.brand||'')}</div></div>`);
+    const all=tm.concat(fc);return all.length?`<div class="tmgrid">${all.join('')}</div>`:em('Nenhuma equipe encontrada.');}
+  if(t==='Eventos'){
+    const l=S.shows.filter(x=>(!SRC.brand||brandsFor(x).includes(SRC.brand))&&norm([x.name,x.date,x.date&&fmtBR(x.date),x.place,x.type].join(' ')).includes(q)).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,60);
+    return l.length?`<div class="callist">${l.map(x=>{const bs=brandsFor(x),d=x.date?new Date(x.date+'T12:00:00'):null;return `<div class="calr ${x.type==='PPV'?'ppv':''}" style="--c:${HBC[bs[0]]||'#e11d2e'}"><div class="calb">${wordmark(bs[0])}</div><div class="cald">${d?`<small>${DABR[d.getDay()]}</small><b>${String(d.getDate()).padStart(2,'0')}</b><small>${MABR[d.getMonth()]}</small>`:'<small>—</small>'}</div><div class="calm"><div class="hrt">${esc(x.name)}</div><div class="m">📍 ${esc(x.place||'Local não definido')}${x.completed?' · ✔ Concluído':''}</div></div><button class="calgo" onclick="openShow('${x.id}')">DETALHES</button></div>`;}).join('')}</div>`:em('Nenhum evento encontrado.');}
+  return gResults(SRC.q);
+}
+function searchHtml(){
+  const tabs=[['Lutadores','👤'],['Equipes','👥'],['Eventos','📅'],['Outros','⋯']].map(([k,i])=>`<button class="${SRC.tab===k?'on':''}" onclick="srTab('${k}')">${i} ${k}</button>`).join('');
+  const ph={Lutadores:'Digite o nome do lutador...',Equipes:'Digite o nome da equipe...',Eventos:'Digite o nome do evento...',Outros:'Digite para buscar em tudo...'}[SRC.tab];
+  const nats=[...new Set(S.roster.map(r=>r.origin).filter(x=>x&&x!=='Não definido'))].sort(),sts=[...new Set(S.roster.map(r=>r.status||'Ativo'))].sort();
+  const sel=(k,lb,ic,opts,all)=>`<div class="srf"><span>${ic} ${lb}</span><select onchange="srSet('${k}',this.value)"><option value="">${all}</option>${opts.map(o=>`<option value="${esc(o)}" ${SRC[k]===o?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
+  const adv=SRC.tab==='Lutadores'?sel('brand','Brand','🗂',['Raw','SmackDown','NXT','Free Agency'],'Todos os Brands')+sel('gender','Gênero','⚥',['Masculino','Feminino'],'Todos')+sel('nat','Nacionalidade','🌐',nats,'Todas')+sel('cls','Classificação','★',CARD,'Qualquer')+sel('st','Status','👤',sts,'Qualquer'):(SRC.tab==='Outros'?'':sel('brand','Brand','🗂',['Raw','SmackDown','NXT','Free Agency'],'Todos os Brands'));
+  return `<section class="bhd"><div><h2 class="sech">🔍 BUSCAR</h2><div class="m">Encontre lutadores, equipes, eventos e muito mais!</div></div></section>
+  <div class="htabs sect srtabs">${tabs}</div>
+  <div class="srbox"><span>🔍</span><input id="gq" type="search" autocomplete="off" placeholder="${ph}" value="${esc(SRC.q)}" oninput="srSet('q',this.value)"><button onclick="srSet('q','');document.getElementById('gq').value=''" title="Limpar">✕</button></div>
+  ${adv?`<div class="hsh" style="margin-top:12px">FILTROS AVANÇADOS</div><div class="srfs">${adv}</div><div class="srbtns"><button class="add" onclick="srClear()">⟳ LIMPAR FILTROS</button><button class="btn-gold sm" onclick="srRefresh()">🔍 BUSCAR</button></div>`:''}
+  <div class="hsh" style="margin-top:16px">RESULTADOS DA BUSCA</div><div id="srres">${srResults()}</div>`;
+}
+V.search=searchHtml;
+
+
+/* ===== v6.2: Push (roster + recomendações) ===== */
+function ensurePB(){const pb=S.pushBoard=S.pushBoard||{suggestions:{men:[],women:[],tagMen:[],tagWomen:[]},selected:{singles:[],tags:[]},activeBonus:{singles:[],tags:[]},lastPpvId:'',pending:false};pb.selected=pb.selected||{singles:[],tags:[]};pb.selected.singles=pb.selected.singles||[];pb.activeBonus=pb.activeBonus||{singles:[],tags:[]};return pb;}
+function momentumOf(id){
+  const sh=S.shows.filter(x=>x.completed).sort((a,b)=>(b.date||'').localeCompare(a.date||'')),res=[];
+  for(const x of sh){for(const m of (x.matches||[]).slice().reverse()){if(m.matchType==='Promo'||!(m.participants||[]).includes(id))continue;const o=(m.outcomes||{})[id];if(o==='Vitoria'||o==='Derrota')res.push({w:o==='Vitoria',st:typeof m.stars==='number'?m.stars:null});if(res.length>=5)break;}if(res.length>=5)break;}
+  if(!res.length)return {v:null,t:0};
+  const w=res.filter(x=>x.w).length,l=res.length-w,sts=res.filter(x=>x.st!=null).map(x=>x.st),av=sts.length?sts.reduce((a,b)=>a+b,0)/sts.length:3;
+  return {v:Math.max(5,Math.min(99,Math.round(50+(w-l)*10+(av-3)*8))),t:w>l?1:w<l?-1:0};
+}
+/* push da semana: por brand, vale só para o próximo show semanal, rotativo */
+function nextWeeklyShow(b){return S.shows.filter(x=>x.type==='Show semanal'&&brandsFor(x).includes(b)&&!x.completed&&!x.archived&&x.date).sort((x,y)=>x.date.localeCompare(y.date))[0]||null;}
+function wpState(b){S.weeklyPush=S.weeklyPush||{};const sh=nextWeeklyShow(b),key=sh?sh.id:'none';let w=S.weeklyPush[b];
+  if(!w)w=S.weeklyPush[b]={key,singles:[],tags:[],prev:[],prevTags:[]};
+  if(w.key!==key){w.prev=(w.singles||[]).slice();w.prevTags=(w.tags||[]).slice();w.key=key;w.singles=[];w.tags=[];}
+  w.singles=w.singles||[];w.tags=w.tags||[];w.prev=w.prev||[];w.prevTags=w.prevTags||[];return w;}
+function weeklyPushIds(sh){const out=new Set();if(!sh||sh.completed)return out;brandsFor(sh).forEach(b=>{const w=(S.weeklyPush||{})[b];if(w&&w.key===sh.id){(w.singles||[]).forEach(i=>out.add(i));(w.tags||[]).forEach(t=>{const tm=S.teams.find(x=>x.id===t);if(tm)(tm.members||[]).forEach(i=>out.add(i));});}});return out;}
+function teamDivOf(t){const ms=(t.members||[]).map(person).filter(Boolean);return ms.length&&ms.every(m=>m.division==='Feminino')?'F':'M';}
+function wpMark(id){const w=wpState(B),r=person(id);const sh=nextWeeklyShow(B);S.wpLast=S.wpLast||{};S.wpLast[id]=(sh&&sh.date)||universeDate();}
+function pushToggle(id){const w=wpState(B),i=w.singles.indexOf(id);
+  if(i>=0)w.singles.splice(i,1);else{if(w.singles.length>=4){alert('Máximo de 4 lutadores no push da semana.');return;}w.singles.push(id);wpMark(id);}
+  save();draw();}
+function pushToggleTag(id){const w=wpState(B),i=w.tags.indexOf(id);
+  if(i>=0){w.tags.splice(i,1);save();draw();return;}
+  const t=S.teams.find(x=>x.id===id);if(!t)return;const d=teamDivOf(t);
+  if(w.tags.some(x=>{const o=S.teams.find(z=>z.id===x);return o&&teamDivOf(o)===d;})){alert(d==='F'?'Já há uma tag feminina no push da semana.':'Já há uma tag masculina no push da semana.');return;}
+  w.tags.push(id);S.wpLast=S.wpLast||{};S.wpLast[id]=universeDate();save();draw();}
+function pushClearWeek(){const w=wpState(B);w.singles=[];w.tags=[];save();draw();}
+function wpRank(list,key){S.wpLast=S.wpLast||{};return list.slice().sort((a,b)=>((S.wpLast[a.id]||'')).localeCompare(S.wpLast[b.id]||'')||hashN(a.id+key)-hashN(b.id+key));}
+function topPush(){
+  const w=wpState(B),sh=nextWeeklyShow(B),key=w.key;
+  const ros=S.roster.filter(r=>r.role==='Lutador'&&r.status==='Ativo'&&r.brand===B).sort((a,b)=>popularity(b.id)-popularity(a.id)||a.name.localeCompare(b.name));
+  const tms=S.teams.filter(t=>t.brand===B);
+  const rows=ros.length?ros.map(r=>{const pop=Math.round(popularity(r.id)),mo=momentumOf(r.id),on=w.singles.includes(r.id);
+    return `<div class="pshr ${on?'on':''}"><div class="psh1" onclick="openWrestler('${r.id}')">${himg(r,'hav')}</div><div class="pshn"><div class="hrt">${esc(r.name)}</div>${wordmark(r.brand,1)}${w.prev.includes(r.id)?'<span class="m" style="margin-left:6px">(push semana passada)</span>':''}</div><div class="pshb"><div class="m">Popularidade: <b>${pop}</b></div><div class="pbar"><i style="width:${pop}%"></i></div><div class="m">Momento: <b>${mo.v==null?'—':mo.v}</b></div><div class="pbar"><i style="width:${mo.v||0}%"></i></div></div><button class="ptg ${on?'on':''}" onclick="pushToggle('${r.id}')"><i></i><span>Push?</span></button><span class="ptr ${mo.t>0?'up':mo.t<0?'dn':''}">${mo.t>0?'▲':mo.t<0?'▼':'='}</span></div>`;}).join(''):em('Nenhum lutador ativo nesta brand.');
+  const tRows=tms.length?tms.map(t=>{const on=w.tags.includes(t.id),d=teamDivOf(t);return `<div class="pshr tg ${on?'on':''}"><div class="psh1">${(t.members||[]).slice(0,2).map(id=>himg(person(id),'hav sm')).join('')}</div><div class="pshn"><div class="hrt">${esc(t.name)}</div><span class="m">Tag ${d==='F'?'feminina':'masculina'}</span>${w.prevTags.includes(t.id)?'<span class="m" style="margin-left:6px">(semana passada)</span>':''}</div><div></div><button class="ptg ${on?'on':''}" onclick="pushToggleTag('${t.id}')"><i></i><span>Push?</span></button><span></span></div>`;}).join(''):em('Nenhuma tag team nesta brand.');
+  const elig=ros.filter(r=>!w.singles.includes(r.id)&&!w.prev.includes(r.id));
+  const recS=wpRank(elig,key).slice(0,4);
+  const tElig=tms.filter(t=>!w.tags.includes(t.id)&&!w.prevTags.includes(t.id)&&!w.tags.some(x=>{const o=S.teams.find(z=>z.id===x);return o&&teamDivOf(o)===teamDivOf(t);}));
+  const recT=['M','F'].map(d=>wpRank(tElig.filter(t=>teamDivOf(t)===d),key)[0]).filter(Boolean);
+  const recH=recS.map(r=>`<div class="prec">${himg(r,'hav')}<div style="flex:1;min-width:0"><div class="hrt">${esc(r.name)}</div>${wordmark(r.brand,1)}<div class="pwhy">Rodízio: ${S.wpLast&&S.wpLast[r.id]?'último push em '+esc(fmtBR(S.wpLast[r.id])):'ainda não teve push'}</div></div><button class="calgo" onclick="pushToggle('${r.id}')">ADICIONAR</button></div>`).join('')+recT.map(t=>`<div class="prec"><div class="psh1">${(t.members||[]).slice(0,2).map(id=>himg(person(id),'hav sm')).join('')}</div><div style="flex:1;min-width:0"><div class="hrt">${esc(t.name)}</div><div class="pwhy">Tag ${teamDivOf(t)==='F'?'feminina':'masculina'} · rodízio</div></div><button class="calgo" onclick="pushToggleTag('${t.id}')">ADICIONAR</button></div>`).join('');
+  const nM=w.tags.filter(x=>{const o=S.teams.find(z=>z.id===x);return o&&teamDivOf(o)==='M';}).length,nF=w.tags.length-nM;
+  return `<section class="bhd"><div><h2 class="sech">📈 PUSH DA SEMANA · ${esc(B.toUpperCase())}</h2><div class="m">${sh?`Vale só para <b>${esc(sh.name)}</b> (${esc(wdayLabel(sh.date))}). A cada semana a lista zera e rotaciona.`:'Nenhum show semanal agendado para esta brand — agende um no Calendário para o push valer para ele.'}</div></div><div class="shr">${wordmark(B)}</div></section>
+  <div class="pgrid"><div class="hp"><div class="hph">SEU ROSTER · ${esc(B.toUpperCase())}<span class="sp"></span><span class="m" style="font-weight:600">Lutadores: ${w.singles.length}/4 · Tag M: ${nM}/1 · Tag F: ${nF}/1</span></div><div class="hpb pscroll">${rows}<div class="hsh" style="margin:12px 0 8px">TAG TEAMS</div>${tRows}</div><div class="hpf" style="text-align:left;display:flex;gap:8px;justify-content:space-between;align-items:center"><span class="m">Até 4 lutadores + 1 tag masculina + 1 tag feminina.</span>${w.singles.length||w.tags.length?`<button class="add" onclick="pushClearWeek()">Limpar semana</button>`:''}</div></div>
+  <div class="hp"><div class="hph">⭐ RECOMENDAÇÕES DA SEMANA</div><div class="hpb"><div class="m" style="margin-bottom:8px">Rodízio simples: quem está há mais tempo sem push (ou nunca teve) aparece primeiro. Quem recebeu push na semana passada fica de fora.</div>${recH||em('Sem recomendações — todos já estão selecionados ou receberam push na semana passada.')}</div></div></div>
+  ${secManage('PUSH PÓS-PPV · VALE ATÉ O PRÓXIMO PPV (ÍNDICE ×1.5)')}`;
+}
+(function(){const o=V.push;V.push=function(){return topPush()+o.apply(V,arguments);};})();
+
+
+/* ===== v6.4: Histórias no formato do concept (histórias + recomendações) ===== */
+const STL={tab:'Ativas',mode:'',edit:false,br:'',sel:'',form:false,d:null,det:false};
+const STEPS=[['start','Início da Rivalidade'],['first','Primeiro Confronto'],['promo','Grande Promo'],['match','Combate Decisivo'],['end','Conclusão']];
+const SL_BR=['Raw','SmackDown','NXT','Multi-Brand'];
+function slList(){return S.storylines=S.storylines||[];}
+function slProg(x){const st=x.steps||{};return Math.round(STEPS.filter(([k])=>st[k]).length/STEPS.length*100);}
+function slById(id){return slList().find(x=>x.id===id);}
+function slTab(t){STL.tab=t;STL.form=false;STL.mode='';STL.edit=false;draw();}
+function slSel(id){STL.sel=id;STL.form=false;STL.det=false;STL.edit=false;draw();}
+function slStepOld(id,k){const x=slById(id);if(!x)return;x.steps=x.steps||{};x.steps[k]=!x.steps[k];const pr=slProg(x);x.status=pr>=100?'Concluída':pr>0?'Em andamento':(x.status==='Concluída'?'Em andamento':x.status);save();draw();}
+function slDel(id){if(!confirm('Excluir esta história?'))return;S.storylines=slList().filter(x=>x.id!==id);if(STL.sel===id)STL.sel='';save();draw();}
+function slNew(){STL.form=true;STL.tab='Ativas';STL.d={id:'',title:'',brand:B&&B!=='Free Agency'?B:'Raw',status:'Planejada',text:'',start:universeDate(),ids:[]};draw();}
+function slEditF(id){const x=slById(id);if(!x)return;STL.form=true;STL.d=JSON.parse(JSON.stringify(x));draw();}
+function slF(k,v){if(STL.d)STL.d[k]=v;}
+function slAddW(){const e=document.getElementById('sl_w');if(!e||!e.value||!STL.d)return;if(!STL.d.ids.includes(e.value)){if(STL.d.ids.length>=8){alert('Máximo de 8 envolvidos.');return;}STL.d.ids.push(e.value);}draw();}
+function slRmW(id){STL.d.ids=STL.d.ids.filter(x=>x!==id);draw();}
+function slSave(){const d=STL.d;if(!d||!d.title.trim()){alert('Dê um título à história.');return;}
+  if(d.id){const x=slById(d.id);if(x)Object.assign(x,d,{title:d.title.trim()});}
+  else{d.id=uid();d.title=d.title.trim();d.steps={};slList().push(d);STL.sel=d.id;}
+  STL.form=false;STL.d=null;save();draw();}
+function slImport(){const t=$('sl_imp');if(!t)return;let n=0;
+  t.value.split('\n').forEach(l=>{l=l.trim();if(!l)return;const i=l.indexOf('|');const title=(i>0?l.slice(0,i):l.slice(0,60)).trim(),text=(i>0?l.slice(i+1):l).trim();if(!title)return;slList().push({id:uid(),title,brand:'Multi-Brand',status:'Planejada',text,start:universeDate(),ids:[],steps:{}});n++;});
+  if(!n){alert('Nada para importar. Escreva uma história por linha: Título | descrição');return;}t.value='';save();STL.tab='Ativas';draw();alert(n+' história(s) importada(s).');}
+/* recomendações: banco do app + modelos importados/escritos pelo usuário + próximos passos das suas histórias */
+let SLR=[];
+function slRecs(){
+  const ud=universeDate(),seed=ud.slice(0,7)+Math.ceil(+ud.slice(8,10)/7),en=LANG==='en';
+  const ros=S.roster.filter(r=>r.role==='Lutador'&&r.status!=='Lesionado'&&r.brand&&r.brand!=='Free Agency');
+  const used=new Set();S.feuds.filter(f=>!feudEnded(f)).forEach(f=>used.add(feudIds(f).slice().sort().join('|')));
+  slList().forEach(x=>{if(x.status!=='Concluída'&&x.ids.length>=2)used.add(x.ids.slice(0,2).sort().join('|'));});
+  const tpl=[];STORY_BANK.forEach((x,i)=>tpl.push({src:'app',c:x.c,text:en?x.en:x.pt,k:'b'+i}));
+  (S.stories||[]).filter(x=>x.on!==false).forEach(x=>tpl.push({src:'mine',c:x.align==='Face'?'face':x.align==='Heel'?'heel':x.align==='Tweener'?'tween':'any',text:x.text,brand:x.brand,k:'m'+x.id}));
+  const al=r=>r.alignment||'Tweener';
+  const out=[];const seen=new Set();
+  tpl.sort((a,b)=>(a.src==='mine'?0:1)-(b.src==='mine'?0:1)||hashN(seed+a.k)-hashN(seed+b.k)).forEach(t=>{
+    if(out.length>=16)return;
+    const needT=/\{T\}/i.test(t.text),pool=ros.filter(r=>!t.brand||t.brand==='Todas'||r.brand===t.brand);
+    let cands=[];
+    pool.slice().sort((a,b)=>hashN(seed+t.k+a.id)-hashN(seed+t.k+b.id)).forEach(A=>{
+      if(cands.length)return;
+      const want=t.c==='face'?al(A)==='Face':t.c==='heel'?al(A)==='Heel':t.c==='tween'?al(A)==='Tweener':true;if(!want)return;
+      const Bs=pool.filter(B=>B.id!==A.id&&B.brand===A.brand&&B.division===A.division&&(t.c==='face'?al(B)==='Heel':t.c==='heel'?al(B)==='Face':true)).sort((a,b)=>hashN(seed+t.k+A.id+a.id)-hashN(seed+t.k+A.id+b.id));
+      for(const B of Bs){const sig=[A.id,B.id].sort().join('|');if(used.has(sig)||seen.has(sig))continue;
+        let T=null;if(needT){T=S.titles.find(z=>z.brand===A.brand&&(z.champ===B.id||z.champ===A.id));if(!T)continue;}
+        cands=[{A,B,T,sig}];break;}
+    });
+    if(!cands.length)return;const {A,B,T,sig}=cands[0];seen.add(sig);
+    out.push({src:t.src,A,B,brand:A.brand,title:A.name+' vs '+B.name,text:fillStory(t.text,A.name,B.name,T?T.name:(en?'title':'título')),kind:'new'});
+  });
+  /* alterna fontes: app e modelos do usuário */
+  const mine=out.filter(x=>x.src==='mine'),app=out.filter(x=>x.src==='app'),mix=[];
+  while(mine.length||app.length){if(mine.length)mix.push(mine.shift());if(app.length)mix.push(app.shift());}
+  /* próximos passos das rivalidades e histórias em andamento */
+  const next=slItems('').filter(i=>!i.ended&&i.pr<100).sort((x,y)=>(y.t==='riv'?(y.o.hasTitle?30:0):0)-(x.t==='riv'?(x.o.hasTitle?30:0):0)).map(i=>{const nx=STEPS.find(([k])=>!i.steps[k]);return nx?{kind:'next',src:'next',it:i,step:nx,brand:i.brand,title:i.title,text:'Próximo passo: '+nx[1]}:null;}).filter(Boolean);
+  return next.slice(0,3).concat(mix);
+}
+function slFormHtml(){
+  const d=STL.d,ros=S.roster.filter(r=>r.role==='Lutador'&&r.brand!=='Free Agency'&&(d.brand==='Multi-Brand'||r.brand===d.brand)&&!d.ids.includes(r.id)).sort((a,b)=>a.name.localeCompare(b.name));
+  return `<div class="card"><div class="sh">${d.id?'EDITAR HISTÓRIA':'NOVA HISTÓRIA'}</div>
+  <div class="calfg"><label>Título<input value="${esc(d.title)}" oninput="slF('title',this.value)" placeholder="Ex.: A Era de Roman Reigns"></label><label>Brand<select onchange="slF('brand',this.value);draw()">${SL_BR.map(b=>`<option ${d.brand===b?'selected':''}>${b}</option>`).join('')}</select></label><label>Status<select onchange="slF('status',this.value)">${['Planejada','Em andamento','Concluída'].map(b=>`<option ${d.status===b?'selected':''}>${b}</option>`).join('')}</select></label><label>Início<input type="date" value="${esc(d.start||'')}" onchange="slF('start',this.value)"></label></div>
+  <label class="m" style="display:block;margin-top:10px">Descrição</label><textarea class="f" rows="4" style="width:100%" oninput="slF('text',this.value)" placeholder="Conte a história…">${esc(d.text)}</textarea>
+  <div class="m" style="margin-top:10px">ENVOLVIDOS (${d.ids.length}/8)</div>
+  <div class="row" style="gap:6px;flex-wrap:wrap;margin:6px 0">${d.ids.map(id=>`<span class="chip">${esc(nm(id))} <a onclick="slRmW('${id}')" style="cursor:pointer">✕</a></span>`).join('')||'<span class="m">Ninguém ainda.</span>'}</div>
+  <div class="row" style="gap:8px"><select id="sl_w" style="flex:1"><option value="">Escolha um lutador…</option>${ros.map(r=>`<option value="${r.id}">${esc(r.name)} (${esc(r.brand)})</option>`).join('')}</select><button class="add" onclick="slAddW()">+ Adicionar</button></div>
+  <div class="row" style="gap:8px;margin-top:12px"><button class="btn-gold sm" onclick="slSave()">SALVAR HISTÓRIA</button><button class="add" onclick="STL.form=false;STL.d=null;draw()">Cancelar</button></div></div>`;
+}
+
+/* ===== v6.5: Rivalidades + Histórias numa tela só ===== */
+let FEUDFORM=false;
+const _addFeud0=addFeud;
+addFeud=function(){const n=S.feuds.length;_addFeud0();if(S.feuds.length>n){STL.mode='';STL.sel=S.feuds[S.feuds.length-1].id;STL.tab='Ativas';draw();}};
+function slStepsOf(o){if(o.steps)return o.steps;const pr=o.progress||0,st={};STEPS.forEach(([k],i)=>{st[k]=pr>=(i+1)*20;});return st;}
+function slItems(br){
+  const L=[];
+  S.feuds.forEach(f=>{if(br&&f.brand&&f.brand!==br)return;const ended=feudEnded(f),st=slStepsOf(f);
+    L.push({t:'riv',id:f.id,o:f,titleH:feudLabel(f),brand:f.brand||'Raw',status:ended?'Encerrada':(f.status||'Ativa'),ended,text:f.notes||'',ids:feudIds(f),pr:f.progress||0,start:(f.timeline||[]).map(x=>x.date).filter(Boolean).sort()[0]||'',steps:st});});
+  slList().forEach(x=>{if(br&&x.brand!=='Multi-Brand'&&x.brand!==br)return;
+    L.push({t:'his',id:x.id,o:x,titleH:esc(x.title),brand:x.brand,status:x.status||'Planejada',ended:x.status==='Concluída',text:x.text||'',ids:x.ids||[],pr:slProg(x),start:x.start||'',steps:x.steps||{}});});
+  return L;
+}
+function slStepAny(t,id,k){
+  if(t==='his'){slStepOld(id,k);return;}
+  const f=S.feuds.find(x=>x.id===id);if(!f)return;
+  f.steps=Object.assign({},slStepsOf(f));f.steps[k]=!f.steps[k];
+  f.progress=Math.round(STEPS.filter(([z])=>f.steps[z]).length/STEPS.length*100);feudTouch(f);
+  if(f.steps[k])(f.timeline=f.timeline||[]).push({id:uid(),date:universeDate(),text:'Etapa: '+STEPS.find(([z])=>z===k)[1]});
+  save();draw();
+}
+function slBr(b){STL.br=b;STL.sel='';draw();}
+function slMode(m){STL.mode=m;STL.edit=false;if(m==='riv'){OP.add('newfeud');if(!B||B==='Free Agency')B='Raw';}draw();}
+function slEditAny(t,id){if(t==='his'){slEditF(id);return;}STL.edit=!STL.edit;if(STL.edit)FST[id]='open';draw();}
+function slDelAny(t,id){if(t==='his'){slDel(id);return;}if(!confirm('Excluir esta rivalidade?'))return;S.feuds=S.feuds.filter(x=>x.id!==id);if(STL.sel===id)STL.sel='';STL.edit=false;save();draw();}
+function slToFeud(id){const x=slById(id);if(!x||x.ids.length<2){alert('Adicione pelo menos 2 envolvidos.');return;}
+  const a=person(x.ids[0]),b=person(x.ids[1]);if(!a||!b)return;
+  const sig=[a.id,b.id].sort().join('|');
+  if(S.feuds.some(f=>!feudEnded(f)&&feudIds(f).slice().sort().join('|')===sig)){alert('Já existe uma rivalidade ativa entre eles.');return;}
+  if(!confirm('Transformar esta história na rivalidade '+a.name+' vs '+b.name+'?'))return;
+  const f={id:uid(),brand:a.brand,kind:'lutador',division:a.division||'Masculino',hasTitle:false,titleId:'',sideA:[a.id],sideB:[b.id],participants:[],a:a.id,b:b.id,status:'Ativa',notes:x.text||x.title,goal:'',story:'',resolved:false,groups:{},progress:slProg(x),steps:Object.assign({},x.steps||{}),touched:universeDate(),timeline:[{id:uid(),date:universeDate(),text:'História: '+x.title}]};
+  S.feuds.push(f);S.storylines=slList().filter(z=>z.id!==id);STL.sel=f.id;STL.tab='Ativas';STL.det=false;save();draw();}
+function slAddRec(i){const rc=SLR[i];if(!rc||rc.kind==='next')return;
+  const f={id:uid(),brand:rc.A.brand,kind:'lutador',division:rc.A.division||'Masculino',hasTitle:!!rc.T,titleId:rc.T?rc.T.id:'',sideA:[rc.A.id],sideB:[rc.B.id],participants:[],a:rc.A.id,b:rc.B.id,status:'Ativa',notes:rc.text,goal:'',story:'',resolved:false,groups:{},progress:0,touched:universeDate(),timeline:[]};
+  S.feuds.push(f);STL.sel=f.id;STL.tab='Ativas';STL.mode='';STL.form=false;save();draw();cloudToast('🔥 Rivalidade criada em Ativas.');}
+function slRecCard(rc,i){
+  const src=rc.kind==='next'?'<span class="hbd gr">PRÓXIMO PASSO</span>':rc.src==='mine'?'<span class="hbd pu">MINHA</span>':'<span class="hbd bl">APP</span>';
+  const act=rc.kind==='next'?`slStepAny('${rc.it.t}','${rc.it.id}','${rc.step[0]}')`:`slAddRec(${i})`;
+  return `<div class="slrec">${wordmark(rc.brand==='Multi-Brand'?'Raw':rc.brand,1)}<div style="flex:1;min-width:0"><div class="hrt">${rc.kind==='next'?rc.it.titleH:esc(rc.title)} ${src}</div><div class="m clamp2">${esc(rc.text)}</div></div><button class="calgo" onclick="${act}">${rc.kind==='next'?'MARCAR':'ADICIONAR'}</button></div>`;
+}
+function storiesDash(){
+  const inBr=tab==='feuds'&&B&&B!=='Free Agency',br=inBr?B:(STL.br||'');
+  const TB=['Ativas','Encerradas','Importar','Recomendações'];
+  if(!TB.includes(STL.tab))STL.tab='Ativas';
+  const all=slItems(br),act=all.filter(i=>!i.ended),end=all.filter(i=>i.ended);
+  const cnt={Ativas:act.length,Encerradas:end.length};
+  const tabs=TB.map(k=>`<button class="${STL.tab===k?'on':''}" onclick="slTab('${k}')">${k}${cnt[k]!==undefined?' ('+cnt[k]+')':''}</button>`).join('');
+  SLR=slRecs();
+  if(br)SLR=SLR.filter(z=>z.kind==='next'?(z.brand===br||z.brand==='Multi-Brand'):(z.brand===br));
+  const chips=inBr?'':`<div class="row" style="gap:6px;flex-wrap:wrap;margin:10px 0 0">${['','Raw','SmackDown','NXT'].map(b=>`<button class="fm-chip ${br===b?'on':''}" onclick="slBr('${b}')">${b||'Todas as brands'}</button>`).join('')}</div>`;
+  const head=`<section class="bhd"><div class="slhd"><span class="slbook">📖</span><div><h2 class="sech">RIVALIDADES & HISTÓRIAS${br?' · '+br.toUpperCase():''}</h2><div class="m">Crie, importe e gerencie rivalidades e sagas do seu universo!</div></div></div><div class="slinfo">ⓘ Histórias tornam seu show mais emocionante, aumentam o engajamento e criam rivalidades inesquecíveis!</div></section>${chips}<div class="htabs sect srtabs">${tabs}</div>`;
+  if(STL.mode==='riv'){
+    FEUDFORM=true;let fh='';try{fh=V.feudsRaw();}finally{FEUDFORM=false;}
+    const bsel=inBr?'':`<div class="row" style="gap:8px;margin-bottom:8px"><span class="m">Brand da rivalidade:</span><select onchange="B=this.value;draw()">${['Raw','SmackDown','NXT'].map(b=>`<option ${B===b?'selected':''}>${b}</option>`).join('')}</select></div>`;
+    return head+`<div style="margin-top:12px"><button class="add" onclick="slMode('')">← Voltar</button></div>`+`<div style="margin-top:10px">${bsel}${fh}</div>`;
+  }
+  if(STL.tab==='Importar'){
+    return head+`<div class="card"><div class="sh">IMPORTAR HISTÓRIAS PRONTAS</div><div class="m" style="margin:6px 0 8px">Uma história por linha, no formato <b>Título | descrição</b>. Elas entram como Planejadas.</div><textarea class="f" id="sl_imp" rows="5" style="width:100%" placeholder="A Era de Roman Reigns | Roman começa uma nova fase…&#10;Guerra de Brands | Raw contra SmackDown…"></textarea><div class="row" style="margin-top:8px"><button class="btn-gold sm" onclick="slImport()">IMPORTAR</button></div></div>
+    <div class="hsh" style="margin-top:18px">MODELOS PARA SUGESTÕES (usam {A}, {B} e {T}) · alimentam o booking e as recomendações</div>`+storyTemplatesHtml();
+  }
+  if(STL.tab==='Recomendações'){
+    return head+`<div class="m" style="margin:4px 0 10px">Recomendações geradas a partir do banco de histórias do app (${STORY_BANK.length}), dos modelos que você escreveu ou importou (${(S.stories||[]).filter(x=>x.on!==false).length}) e dos próximos passos das suas rivalidades e histórias. Os nomes vêm do seu elenco e o rodízio muda a cada semana. ADICIONAR cria uma rivalidade em Ativas.</div><div class="callist">${SLR.length?SLR.map(slRecCard).join(''):em('Cadastre lutadores com alinhamento (Face/Heel) para gerar recomendações.')}</div>`;
+  }
+  if(STL.form&&STL.d)return head+slFormHtml();
+  const list=STL.tab==='Encerradas'?end:act;
+  let x=list.find(y=>y.id===STL.sel);if(!x){x=list[0];STL.sel=x?x.id:'';}
+  const ico=y=>y.t==='riv'?'🔥':'📖';
+  const left=list.map(y=>`<div class="sli ${x&&y.id===x.id?'on':''}" onclick="slSel('${y.id}')">${wordmark(y.brand==='Multi-Brand'?'Raw':y.brand,1)}<div style="flex:1;min-width:0"><div class="hrt">${ico(y)} ${y.titleH}</div><div class="m">${esc(y.brand)} • ${esc(y.status)}</div></div><span>›</span></div>`).join('')
+    +`<div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="add" style="flex:1" onclick="slMode('riv')">⊕ NOVA RIVALIDADE</button><button class="add" style="flex:1" onclick="slNew()">⊕ CRIAR NOVA HISTÓRIA</button></div>`;
+  let center='',right='';
+  if(x){
+    const o=x.o,riv=x.t==='riv',ids=x.ids,art=artOf(x.brand==='Multi-Brand'?'Raw':x.brand);
+    const ph=riv?feudSides(o).map(g=>g[0]):ids.slice(0,2);
+    const tt=riv&&o.hasTitle&&o.titleId?(S.titles.find(z=>z.id===o.titleId)||{}).name:'';
+    center=`<div class="slban" style="--c:${HBC[x.brand]||'#e11d2e'}">${art.banner?`<img class="bbanner" src="${esc(art.banner)}" alt="">`:''}<div class="slbps">${ph.map(id=>`<div class="slbp">${himg(person(id),'hbig')}</div>`).join('')}</div><div class="slbw">${x.brand==='Multi-Brand'?'<span class="wm" style="--c:#fff">MULTI-BRAND</span>':wordmark(x.brand)}</div></div>
+    <div class="sltt">${x.titleH}</div><div class="row" style="gap:6px;flex-wrap:wrap;margin:4px 0">${tag(riv?'🔥 Rivalidade':'📖 História',riv?'':'face')}${tt?tag('🏆 '+tt,'face'):''}${riv?tag(o.division||'Masculino'):''}</div>
+    <div class="sltx">${esc(x.text||'Sem descrição.')}</div>${riv&&o.goal?`<div class="m" style="margin-top:4px">🎯 ${esc(o.goal)}</div>`:''}
+    <div class="slinfs"><div><span class="m">BRAND</span><b>${esc(x.brand)}</b></div><div><span class="m">STATUS</span><b style="color:${x.ended?'#8a93a6':x.status==='Pausada'?'#f4c95d':x.status==='Planejada'?'#f4c95d':'#3ddc84'}">${esc(x.status)}</b></div><div><span class="m">INÍCIO</span><b>${x.start?esc(fmtBR(x.start)):'—'}</b></div></div>
+    <div class="hsh" style="margin-top:12px">ENVOLVIDOS</div><div class="slenv">${ids.length?ids.slice(0,8).map(id=>`<div class="tcx" onclick="openWrestler('${id}')"><div class="tcxp">${himg(person(id),'hbig')}</div><div class="rtn" style="padding:0 2px">${esc(nm(id))}</div></div>`).join(''):'<div class="m">Nenhum envolvido. Use "Editar história".</div>'}</div>
+    ${STL.det?`<div class="card" style="margin-top:10px"><div class="sh">DETALHES</div>${riv?(()=>{const tl=(o.timeline||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));return (o.story?`<div class="m" style="margin-bottom:8px">${esc(o.story)}</div>`:'')+(tl.length?`<div class="tl">${tl.map(e=>`<div class="te"><span class="m">${e.date?fmtBR(e.date):'sem data'}</span><div>${esc(e.text)}</div></div>`).join('')}</div>`:'<div class="m">Nenhum momento registrado ainda.</div>');})():(ids.length>=2?`<button class="add" onclick="slToFeud('${x.id}')">🔥 Transformar em rivalidade</button><div class="m" style="margin-top:6px">A história vira uma rivalidade entre os dois primeiros envolvidos, mantendo o progresso.</div>`:'<div class="m">Adicione 2 ou mais envolvidos para transformar em rivalidade.</div>')}</div>`:''}
+    ${riv&&STL.edit?`<div style="margin-top:10px">${feudCard(o)}</div>`:''}`;
+    right=`<div class="hp"><div class="hph">PROGRESSO DA HISTÓRIA</div><div class="hpb slprg"><div class="slring" style="--p:${x.pr}"><span>${x.pr}%</span></div><div class="slsteps">${STEPS.map(([k,l])=>{const on=x.steps[k];return `<div class="slst ${on?'on':''}" onclick="slStepAny('${x.t}','${x.id}','${k}')"><i>${on?'✓':''}</i>${l}</div>`;}).join('')}</div></div></div>
+    <div class="hp" style="margin-top:10px"><div class="hph">AÇÕES DISPONÍVEIS</div><div class="hpb slact"><button class="btn-gold sm" style="width:100%" onclick="slEditAny('${x.t}','${x.id}')">✎ EDITAR HISTÓRIA</button><button onclick="STL.det=!STL.det;draw()">🔍 VER DETALHES</button><button onclick="slTab('Importar')">⬇ IMPORTAR HISTÓRIA</button><button onclick="slDelAny('${x.t}','${x.id}')">🗑 EXCLUIR HISTÓRIA</button></div></div>`;
+  }else{center=em(STL.tab==='Encerradas'?'Nenhuma rivalidade ou história encerrada.':'Nada ativo'+(br?' em '+br:'')+'. Crie uma rivalidade, uma história ou adicione uma recomendação abaixo.');}
+  const bottom=SLR.filter(z=>z.kind!=='next').slice(0,2);
+  const recs=`<div class="hsh" style="margin-top:16px">⭐ HISTÓRIAS RECOMENDADAS</div><div class="slrecs">${bottom.length?bottom.map(z=>slRecCard(z,SLR.indexOf(z))).join(''):em('Sem recomendações no momento.')}</div><div style="text-align:right;margin-top:6px"><a class="lk" onclick="slTab('Recomendações')">Ver todas as recomendações →</a></div>`;
+  return head+`<div class="slg"><div class="slleft">${left}</div><div>${center}</div><div>${right}</div></div>`+recs;
+}
+V.feudsRaw=V.feuds;V.feuds=storiesDash;V.stories=storiesDash;
 
 function draw() {
   const y=window.scrollY;
@@ -3623,6 +4186,107 @@ body.noscroll{overflow:hidden}
 .bhero.hasb .bwm,.bhero.hasb .bcap,.bhero.hasb .bdet{z-index:2}
 .bwimg{max-width:min(70%,520px);max-height:190px;object-fit:contain;filter:drop-shadow(0 0 18px var(--c))}
 .tphoto.art-banner{width:160px}
+/* v6.0 downgrade / roster global / free agency */
+.dgm{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:14px;overflow-y:auto}
+.dgbox{width:min(520px,100%);background:linear-gradient(180deg,#14110a,#0a0a0d);border:2px solid #d9a81e;border-radius:10px;padding:0 0 18px;box-shadow:0 0 40px rgba(217,168,30,.25)}
+.dgh{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:2px solid #d9a81e;font-size:26px;font-weight:900;font-style:italic;letter-spacing:.03em}
+.dgx{background:#8b1621;border:2px solid #e44;color:#fff;border-radius:8px;width:38px;height:38px;font-size:18px;font-weight:900;cursor:pointer}
+.dgs{text-align:center;padding:14px 22px;font-size:17px;color:#e8edf7}
+.dgc{display:flex;gap:14px;margin:0 16px;border:1px solid #d9a81e;border-radius:8px;overflow:hidden;background:linear-gradient(120deg,#3b2f0a,#0b0b0e 55%)}
+.dgp{position:relative;width:130px;min-height:150px;flex:0 0 130px;display:grid;place-items:center;font-size:36px;font-weight:900;color:rgba(255,255,255,.3);overflow:hidden}.dgp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.dgi{flex:1;padding:12px 12px 12px 0;min-width:0}.dgn{font-size:21px;font-weight:900;text-transform:uppercase;line-height:1.1}.dgst{color:#f4c95d;font-weight:800;margin:4px 0 8px}
+.dgr{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid rgba(255,255,255,.08);font-size:13px}.dgr span{color:var(--mu);letter-spacing:.04em}.dgr b.ok{color:#4ade80}
+.dga{text-align:center;color:#d9a81e;font-size:34px;line-height:.8;margin:6px 0}
+.dgt{margin:0 16px;border:1px solid #3a3a44;border-radius:8px;padding:14px;text-align:center;background:#0d0d11}.dgwm .wm{font-size:54px}.dgwm .wmimg{height:70px;max-width:60%}
+.dgd{margin-top:8px;font-size:14px;color:#e8edf7}.dgd em{font-style:normal;color:#f4c95d;font-weight:700}
+.btn-gold{display:block;width:calc(100% - 32px);margin:16px 16px 8px;padding:15px;border-radius:8px;border:2px solid #f2c230;background:linear-gradient(180deg,#f7cf45,#c8940f);color:#111;font-size:17px;font-weight:900;font-style:italic;cursor:pointer;letter-spacing:.02em}
+.btn-gold.sm{width:auto;margin:0;padding:9px 16px;font-size:13px;font-style:normal;flex:0 0 auto}
+.btn-cancel{display:block;width:calc(100% - 140px);margin:0 auto;padding:11px;border-radius:8px;border:1px solid #888;background:#14141a;color:#fff;font-weight:800;cursor:pointer}
+.hirebr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px}.hirebr .hlogo{height:64px}
+.grt-tabs{flex-wrap:wrap}.grt-tabs button{display:inline-flex;align-items:center;justify-content:center;min-width:92px}
+.grbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.grbar input{flex:1;min-width:180px}.grbar select{max-width:170px}
+.grg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.grt{position:relative;border:1px solid var(--bd);border-radius:6px;overflow:hidden;cursor:pointer;background:#0d1017}.grt:hover{border-color:#e8b820}
+.grp{position:relative;width:100%;aspect-ratio:4/5;display:grid;place-items:center;background:linear-gradient(160deg,#1c212d,#0b0d13);font-size:34px;font-weight:900;color:rgba(255,255,255,.22);overflow:hidden}.grp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.grb{position:absolute;top:5px;left:6px}.grs{position:absolute;top:5px;right:6px;font-size:11px;font-weight:800;color:#f4c95d;background:rgba(0,0,0,.6);padding:1px 5px;border-radius:4px}
+.grn{position:absolute;left:0;right:0;bottom:0;padding:16px 4px 5px;text-align:center;font-weight:900;font-size:12px;text-transform:uppercase;background:linear-gradient(0deg,rgba(0,0,0,.92),transparent)}
+.grfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;border:1px solid var(--bd);border-radius:8px;background:#0c0f16;font-size:13px}
+.fahero{display:flex;align-items:center;gap:14px;padding:12px 16px;margin-bottom:10px;border:1px solid var(--bd);border-radius:8px;background:linear-gradient(90deg,rgba(217,168,30,.18),transparent);font-size:14px}.faic{font-size:34px}
+.farow{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,.07)}.farow:last-child{border:0}.fan{flex:1;min-width:0}
+.fas{color:#f4c95d;font-weight:800;font-size:13px}
+@media(max-width:700px){.grg{grid-template-columns:repeat(2,minmax(0,1fr))}.dgp{width:100px;flex-basis:100px}}
+.calnav{display:flex;align-items:center;justify-content:center;gap:22px;margin:6px 0 12px}.calnav b{font-size:18px;letter-spacing:.04em}.calnav button{background:transparent;border:0;color:#fff;font-size:26px;cursor:pointer;padding:0 10px}
+.cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:12px}
+.cgh{text-align:center;font-size:10px;font-weight:800;color:var(--mu);padding:4px 0}
+.cgc{min-height:54px;border:1px solid var(--bd);border-radius:6px;padding:4px 6px;background:#0c0f16;cursor:pointer;font-size:12px;display:flex;flex-direction:column;justify-content:space-between}
+.cgc.empty{background:transparent;border:0;cursor:default}.cgc.has{border-color:color-mix(in srgb,var(--ac) 55%,#222);background:#11151f}.cgc.today{box-shadow:inset 0 0 0 2px #f2c230}.cgc.sel{background:color-mix(in srgb,var(--ac) 25%,#0c0f16)}
+.cgc:hover{border-color:var(--ac)}.cgd{display:flex;gap:3px}.cgd i{width:9px;height:9px;border-radius:50%;display:block}
+.callist{display:flex;flex-direction:column;gap:8px}
+.calr{display:grid;grid-template-columns:130px 54px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--c) 60%,#222);border-radius:8px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 28%,#0b0d13),#0b0d13 70%)}
+.calr.ppv{border-color:#f2c230}
+.calb{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.calb .wm{font-size:20px}.calb .wmimg{height:30px}
+.cald{text-align:center;line-height:1.05}.cald small{display:block;font-size:10px;font-weight:800;color:var(--mu)}.cald b{font-size:20px}
+.calm{min-width:0}
+.calgo{background:linear-gradient(180deg,#f6cf3b,#c8940f);color:#15110a;border:0;border-radius:6px;padding:9px 14px;font-weight:900;font-size:12px;cursor:pointer}.calgo.big{padding:14px 22px;font-size:14px}
+.calpen{background:#1a1d26;border:1px solid var(--bd);color:#fff;border-radius:6px;width:34px;height:34px;cursor:pointer}
+.caled{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:10px 14px;margin:-4px 0 4px;border:1px dashed var(--bd);border-radius:8px;background:#0d1017}.caled label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mu)}
+.calbig{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding:14px 16px;border:1px solid #f2c230;border-radius:8px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 30%,#0b0d13),#0b0d13)}
+.calbt{font-size:11px;font-weight:900;letter-spacing:.1em;color:#f2c230}.calbn{font-size:24px;font-weight:900;margin:2px 0}
+.calwd{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;background:#0c0f16}.calwd.today{border-color:#f2c230}.calwh{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.calfg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.calfg label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mu)}
+.srtabs button{flex:1}
+.srbox{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:8px;background:#0b0d13;padding:0 12px}.srbox input{flex:1;border:0!important;background:transparent!important;padding:13px 4px;font-size:15px}.srbox button{background:transparent;border:0;color:var(--mu);font-size:18px;cursor:pointer}
+.srfs{display:flex;flex-direction:column;gap:6px}.srf{display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:center}.srf>span{background:#10131b;border:1px solid var(--bd);border-radius:6px;padding:10px 12px;font-size:13px;color:#d4d9e4}
+.srbtns .add{background:#14161d!important;border:1px solid var(--bd)!important;color:#fff!important}
+.srbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.srbtns .btn-gold{width:auto;margin:0}
+@media(max-width:800px){.calr{grid-template-columns:1fr auto auto;grid-template-areas:'b d d' 'm m g'}.calb{grid-area:b}.cald{grid-area:d}.calm{grid-area:m}.calgo{grid-area:g}.calpen{display:none}.calfg{grid-template-columns:1fr 1fr}.srf{grid-template-columns:1fr}}
+.ttabs button{flex:1}
+.tmain{display:grid;grid-template-columns:230px minmax(0,1fr) 290px;gap:12px;align-items:start}
+.tleft{display:flex;flex-direction:column;gap:8px}
+.ttl{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--bd);border-radius:8px;background:#0d1017;cursor:pointer}
+.ttl.on{border-color:#f2c230;box-shadow:0 0 12px rgba(242,194,48,.35)}.ttl:hover{border-color:var(--ac)}
+.ttlb{width:62px;height:40px;display:grid;place-items:center;font-size:26px;flex:0 0 auto}.ttlb .beltimg{width:62px;height:40px}.ttln{font-weight:900;font-size:12px;text-transform:uppercase;font-style:italic;line-height:1.2}
+.tcban{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:10px;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--ac) 30%,#0b0d13),#07080c 75%);min-height:200px}
+.tcb .beltimg{width:min(360px,80vw);height:150px}.tcn{font-size:clamp(20px,3vw,32px);font-weight:900;font-style:italic;text-transform:uppercase;text-align:center}
+.tcc{display:flex;align-items:center;gap:14px;padding:12px 14px;flex-wrap:wrap}.tcf{display:flex}.tcf .hav{width:64px;height:64px}.tcf .hav+.hav{margin-left:-14px}
+.tcnm{flex:1;min-width:140px}.tcname{font-size:20px;font-weight:900;text-transform:uppercase;margin-bottom:4px}
+.tcd{display:flex;gap:22px}.tcd div{display:flex;flex-direction:column}.tcd b{font-size:15px}
+.tch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px}
+.tcx{cursor:pointer;text-align:center;border:1px solid var(--bd);border-radius:6px;overflow:hidden;background:#0d1017;padding-bottom:6px}.tcx:hover{border-color:var(--ac)}.tcxp{position:relative;aspect-ratio:4/3}
+.tdet{display:flex;gap:12px;align-items:center}.tdb{flex:1}.tdb .beltimg{width:100%;height:80px}.tdet>div:last-child{display:flex;flex-direction:column}.tdet b{font-size:14px}
+.tfoot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.pgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:start}
+.pscroll{max-height:640px;overflow-y:auto;padding:6px 8px}
+.pshr{display:grid;grid-template-columns:48px minmax(0,1.1fr) minmax(0,1.3fr) 96px 22px;gap:10px;align-items:center;padding:8px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;background:#0c0f16}
+.pshr.on{border-color:#f2c230;background:#17150c}
+.pshn{min-width:0}.pshb .pbar{height:6px;margin:2px 0 4px}
+.ptg{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:20px;background:#14161d;color:#fff;padding:4px 10px 4px 4px;cursor:pointer;font-size:12px;font-weight:700}
+.ptg i{width:24px;height:24px;border-radius:50%;background:#555;display:block}.ptg.on{background:linear-gradient(180deg,#f6cf3b,#c8940f);color:#15110a}.ptg.on i{background:#15110a;margin-left:auto;order:2}.ptg.on span{order:1}
+.ptr{font-weight:900;color:var(--mu);text-align:center}.ptr.up{color:#3ddc84}.ptr.dn{color:#ff6b6b}
+.prec{display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;background:#0c0f16}
+.pwhy{margin:4px 0 0;padding-left:16px;font-size:11px;color:var(--mu)}.psc{color:#f4c95d;font-weight:900;font-size:17px;white-space:nowrap}
+@media(max-width:1000px){.tmain{grid-template-columns:1fr}.tleft{flex-direction:row;flex-wrap:wrap}.ttl{flex:1 1 200px}.pgrid{grid-template-columns:1fr}.pshr{grid-template-columns:44px minmax(0,1fr) 90px 20px}.pshb{display:none}.tch{grid-template-columns:1fr 1fr 1fr}}
+.slhd{display:flex;gap:14px;align-items:center}.slbook{font-size:40px}
+.slinfo{max-width:360px;font-size:12px;color:#d4d9e4;border:1px solid var(--bd);border-radius:8px;padding:10px 14px;background:#0d1017}
+.slg{display:grid;grid-template-columns:300px minmax(0,1fr) 290px;gap:12px;align-items:start;margin-top:12px}
+.slleft{display:flex;flex-direction:column;gap:8px}
+.sli{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:#0d1017;cursor:pointer}.sli .wm{min-width:50px}
+.sli.on{border-color:#f2c230;box-shadow:0 0 12px rgba(242,194,48,.35)}.sli:hover{border-color:var(--ac)}
+.slban{position:relative;height:210px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:radial-gradient(circle at 70% 40%,color-mix(in srgb,var(--c) 45%,#07080c),#07080c 75%);display:flex}
+.slbp{position:relative;width:45%}.slbw{flex:1;display:grid;place-items:center}.slbw .wm{font-size:clamp(34px,5vw,60px)}.slbw .wmimg{height:90px;max-width:90%}
+.sltt{font-size:clamp(20px,2.4vw,28px);font-weight:900;margin:10px 0 4px}.sltx{font-size:13px;line-height:1.5;color:#d4d9e4}
+.slinfs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.slinfs div{border:1px solid var(--bd);border-radius:6px;padding:8px 12px;background:#0d1017;display:flex;flex-direction:column}
+.slenv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.slprg{display:flex;gap:14px;align-items:center}
+.slring{--p:0;width:96px;height:96px;border-radius:50%;background:conic-gradient(#3ddc84 calc(var(--p)*1%),#2a2f3b 0);display:grid;place-items:center;flex:0 0 auto;position:relative}
+.slring::before{content:'';position:absolute;inset:9px;background:#0b0d13;border-radius:50%}.slring span{position:relative;font-size:22px;font-weight:900}
+.slsteps{display:flex;flex-direction:column;gap:7px;font-size:12px}.slst{display:flex;gap:8px;align-items:center;cursor:pointer}.slst i{width:18px;height:18px;border-radius:50%;border:2px solid #f4c95d;display:grid;place-items:center;font-size:11px;font-style:normal;color:#0b0d13}.slst.on i{background:#3ddc84;border-color:#3ddc84}
+.slact{display:flex;flex-direction:column;gap:8px}.slact button:not(.btn-gold){background:#14161d;border:1px solid var(--bd);color:#fff;border-radius:8px;padding:12px;font-weight:800;cursor:pointer;text-align:left}
+.slrecs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.slrec{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--bd);border-radius:8px;background:#0d1017}
+.chip{background:#1c212d;border:1px solid var(--bd);border-radius:14px;padding:3px 10px;font-size:12px}
+@media(max-width:1000px){.slg{grid-template-columns:1fr}.slrecs{grid-template-columns:1fr}.slenv{grid-template-columns:repeat(2,1fr)}}
+.slbps{position:relative;width:52%;display:flex}.slbps .slbp{width:50%;flex:1}
 /* home da brand */
 .bhd{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 0 12px;border-bottom:1px solid var(--bd);margin-bottom:12px}
 .bhd .wm{font-size:clamp(26px,3vw,40px)}
