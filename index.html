@@ -2652,7 +2652,7 @@ function brandSide(){
   ${it('ranking','📊','Ranking')}
   <hr>${it('push','📈','Push pós-PPV')}${it('summary','📋','Resumo')}${B==='NXT'?it('nxtcut','✂','Revisão da NXT'):it('downgrade','⬇','Downgrade → NXT')}
   <hr><button class="si" onclick="go('landing')"><span class="sic">↩</span><span>Todas as brands</span></button><button class="si" onclick="go('search')"><span class="sic">🔍</span><span>Busca</span></button><button class="si ${tab==='account'?'on':''}" onclick="go('account')"><span class="sic">⚙</span><span>Configurações</span></button>
-  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v6.5</small></div></div>`;
+  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v6.7</small></div></div>`;
 }
 function sideHtml(){
   if(B!=='Free Agency'&&BRTAB.includes(tab))return brandSide();
@@ -2664,7 +2664,7 @@ function sideHtml(){
   <hr>${br('Raw','RAW')}${br('SmackDown','SMACK')}${br('NXT','NXT')}
   <hr>${it(tab==='year',`openTab(B==='Free Agency'?'Raw':B,'year')`,'🕓','Histórico')}${it(tab==='search',"go('search')",'🔍','Busca')}${it(tab==='stories',"go('stories')",'📖','Rivalidades & Histórias')}${it(tab==='bk',"go('bk')",'💾','Backup')}${it(tab==='account',"go('account')",'⚙','Configurações')}
   <button class="si" onclick="setLang('${LANG==='en'?'pt':'en'}')"><span class="sic">🌐</span><span>${LANG==='en'?'Português':'English'}</span></button>
-  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v6.5</small></div></div>`;
+  <div class="sfoot"><div class="brand-mark">U<span>W</span></div><div>UNIVERSE DESK<br><small>v6.7</small></div></div>`;
 }
 function homePanel(title,icon,body,foot,cls){return `<section class="hp ${cls||''}"><div class="hph"><span class="hic">${icon}</span>${title}</div><div class="hpb">${body}</div>${foot?`<div class="hpf">${foot}</div>`:''}</section>`;}
 function himg(r,cls){const n=r?r.name:'';return `<div class="${cls||'hav'}">${esc(initials(n))}${r&&r.photo?`<img src="${esc(r.photo)}" alt="" onerror="this.style.display='none'">`:''}</div>`;}
@@ -3795,6 +3795,32 @@ function slRecCard(rc,i){
   const act=rc.kind==='next'?`slStepAny('${rc.it.t}','${rc.it.id}','${rc.step[0]}')`:`slAddRec(${i})`;
   return `<div class="slrec">${wordmark(rc.brand==='Multi-Brand'?'Raw':rc.brand,1)}<div style="flex:1;min-width:0"><div class="hrt">${rc.kind==='next'?rc.it.titleH:esc(rc.title)} ${src}</div><div class="m clamp2">${esc(rc.text)}</div></div><button class="calgo" onclick="${act}">${rc.kind==='next'?'MARCAR':'ADICIONAR'}</button></div>`;
 }
+
+/* v6.6: banner no estilo do concept (logo no topo + quadro por tipo de luta) */
+function slFrameInfo(x){
+  const o=x.o;let gs;
+  if(x.t==='riv')gs=feudGroups(o).filter(g=>g.length);else gs=x.ids.length?[x.ids]:[];
+  let label,vs=false;
+  if(x.t==='his'){label=x.ids.length?'HISTÓRIA · '+x.ids.length+' ENVOLVIDO'+(x.ids.length>1?'S':''):'HISTÓRIA';}
+  else if(gs.length===2){const n=gs[0].length,m=gs[1].length;vs=true;label=(o.kind==='tag'&&n===2&&m===2)?'TAG TEAM':o.kind==='faction'?'FACÇÃO VS FACÇÃO':n+' VS '+m;}
+  else if(gs.length>=3){label=gs.every(g=>g.length===1)?gs.length+' SUPERSTARS':gs.length+' TAG TEAMS';}
+  else label='RIVALIDADE';
+  return {gs,label,vs};
+}
+function slFace(id,small){return `<div class="slfc ${small?'sm':''}" onclick="openWrestler('${id}')" title="${esc(nm(id))}"><div class="slfp">${himg(person(id),'hbig')}</div><div class="slfn">${esc(nm(id))}</div></div>`;}
+function slHero(x){
+  const art=artOf(x.brand==='Multi-Brand'?'Raw':x.brand),fi=slFrameInfo(x),c=HBC[x.brand]||'#9b5de5';
+  const top=`<div class="slbn" style="--c:${c}">${art.banner?`<img class="bbanner" src="${esc(art.banner)}" alt="" onerror="this.style.display='none'">`:''}<div class="slbnw">${art.banner?'':(x.brand==='Multi-Brand'?'<span class="wm" style="--c:#fff">MULTI-BRAND</span>':wordmark(x.brand))}</div></div>`;
+  const cap=Math.max(1,fi.gs.length?Math.max(...fi.gs.map(g=>g.length)):1),sm=cap>3||fi.gs.length>2||(fi.gs[0]&&fi.gs[0].length>4);
+  const grp=g=>`<div class="slgrp">${g.slice(0,4).map(id=>slFace(id,sm)).join('')}${g.length>4?`<div class="slmore">+${g.length-4}</div>`:''}</div>`;
+  let inner;
+  if(!fi.gs.length)inner='<div class="m" style="padding:26px;text-align:center">Nenhum envolvido. Use "Editar".</div>';
+  else if(fi.vs)inner=`<div class="slfr">${grp(fi.gs[0])}<div class="slvs">VS</div>${grp(fi.gs[1])}</div>`;
+  else if(x.t==='riv')inner=`<div class="slfr">${fi.gs.map(grp).join('')}</div>`;
+  else inner=`<div class="slfr">${grp(fi.gs[0])}</div>`;
+  return top+`<div class="slframe" style="--c:${c}"><div class="slflab">${fi.label}</div>${inner}</div>`;
+}
+
 function storiesDash(){
   const inBr=tab==='feuds'&&B&&B!=='Free Agency',br=inBr?B:(STL.br||'');
   const TB=['Ativas','Encerradas','Importar','Recomendações'];
@@ -3829,11 +3855,11 @@ function storiesDash(){
     const o=x.o,riv=x.t==='riv',ids=x.ids,art=artOf(x.brand==='Multi-Brand'?'Raw':x.brand);
     const ph=riv?feudSides(o).map(g=>g[0]):ids.slice(0,2);
     const tt=riv&&o.hasTitle&&o.titleId?(S.titles.find(z=>z.id===o.titleId)||{}).name:'';
-    center=`<div class="slban" style="--c:${HBC[x.brand]||'#e11d2e'}">${art.banner?`<img class="bbanner" src="${esc(art.banner)}" alt="">`:''}<div class="slbps">${ph.map(id=>`<div class="slbp">${himg(person(id),'hbig')}</div>`).join('')}</div><div class="slbw">${x.brand==='Multi-Brand'?'<span class="wm" style="--c:#fff">MULTI-BRAND</span>':wordmark(x.brand)}</div></div>
+    center=slHero(x);
+    center+=`
     <div class="sltt">${x.titleH}</div><div class="row" style="gap:6px;flex-wrap:wrap;margin:4px 0">${tag(riv?'🔥 Rivalidade':'📖 História',riv?'':'face')}${tt?tag('🏆 '+tt,'face'):''}${riv?tag(o.division||'Masculino'):''}</div>
     <div class="sltx">${esc(x.text||'Sem descrição.')}</div>${riv&&o.goal?`<div class="m" style="margin-top:4px">🎯 ${esc(o.goal)}</div>`:''}
     <div class="slinfs"><div><span class="m">BRAND</span><b>${esc(x.brand)}</b></div><div><span class="m">STATUS</span><b style="color:${x.ended?'#8a93a6':x.status==='Pausada'?'#f4c95d':x.status==='Planejada'?'#f4c95d':'#3ddc84'}">${esc(x.status)}</b></div><div><span class="m">INÍCIO</span><b>${x.start?esc(fmtBR(x.start)):'—'}</b></div></div>
-    <div class="hsh" style="margin-top:12px">ENVOLVIDOS</div><div class="slenv">${ids.length?ids.slice(0,8).map(id=>`<div class="tcx" onclick="openWrestler('${id}')"><div class="tcxp">${himg(person(id),'hbig')}</div><div class="rtn" style="padding:0 2px">${esc(nm(id))}</div></div>`).join(''):'<div class="m">Nenhum envolvido. Use "Editar história".</div>'}</div>
     ${STL.det?`<div class="card" style="margin-top:10px"><div class="sh">DETALHES</div>${riv?(()=>{const tl=(o.timeline||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));return (o.story?`<div class="m" style="margin-bottom:8px">${esc(o.story)}</div>`:'')+(tl.length?`<div class="tl">${tl.map(e=>`<div class="te"><span class="m">${e.date?fmtBR(e.date):'sem data'}</span><div>${esc(e.text)}</div></div>`).join('')}</div>`:'<div class="m">Nenhum momento registrado ainda.</div>');})():(ids.length>=2?`<button class="add" onclick="slToFeud('${x.id}')">🔥 Transformar em rivalidade</button><div class="m" style="margin-top:6px">A história vira uma rivalidade entre os dois primeiros envolvidos, mantendo o progresso.</div>`:'<div class="m">Adicione 2 ou mais envolvidos para transformar em rivalidade.</div>')}</div>`:''}
     ${riv&&STL.edit?`<div style="margin-top:10px">${feudCard(o)}</div>`:''}`;
     right=`<div class="hp"><div class="hph">PROGRESSO DA HISTÓRIA</div><div class="hpb slprg"><div class="slring" style="--p:${x.pr}"><span>${x.pr}%</span></div><div class="slsteps">${STEPS.map(([k,l])=>{const on=x.steps[k];return `<div class="slst ${on?'on':''}" onclick="slStepAny('${x.t}','${x.id}','${k}')"><i>${on?'✓':''}</i>${l}</div>`;}).join('')}</div></div></div>
@@ -4287,6 +4313,16 @@ body.noscroll{overflow:hidden}
 .chip{background:#1c212d;border:1px solid var(--bd);border-radius:14px;padding:3px 10px;font-size:12px}
 @media(max-width:1000px){.slg{grid-template-columns:1fr}.slrecs{grid-template-columns:1fr}.slenv{grid-template-columns:repeat(2,1fr)}}
 .slbps{position:relative;width:52%;display:flex}.slbps .slbp{width:50%;flex:1}
+.slbn{position:relative;height:130px;border:1px solid var(--bd);border-radius:8px 8px 0 0;overflow:hidden;background:radial-gradient(ellipse at 50% 0,color-mix(in srgb,var(--c) 55%,#07080c),#07080c 80%);display:grid;place-items:center}
+.slbn .bbanner{opacity:.9;object-fit:cover}.slbnw{position:relative;z-index:1}.slbnw .wm{font-size:clamp(30px,4vw,52px)}.slbnw .wmimg{height:84px;max-width:80%}
+.slframe{position:relative;margin-top:-1px;padding:26px 14px 12px;border:2px solid #9aa3b5;border-radius:0 0 8px 8px;background:linear-gradient(180deg,#0b0f1a,#06080f);box-shadow:0 0 18px color-mix(in srgb,var(--c) 40%,transparent) inset}
+.slflab{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:#05070c;border:1px solid #9aa3b5;border-top:0;border-radius:0 0 8px 8px;padding:3px 26px;font-weight:900;letter-spacing:.06em;font-style:italic;font-size:15px;white-space:nowrap}
+.slfr{display:flex;align-items:flex-end;justify-content:center;gap:10px;flex-wrap:nowrap}
+.slgrp{display:flex;gap:5px;align-items:flex-end;justify-content:center;flex:1 1 0;min-width:0}.slmore{align-self:center;font-weight:900;color:#aab}
+.slvs{flex:0 0 auto;font-size:clamp(20px,2.6vw,32px);font-weight:900;font-style:italic;color:#cfd6e4;text-shadow:0 0 10px var(--c);align-self:center;padding:0 6px}
+.slfc{flex:1 1 0;min-width:0;max-width:130px;cursor:pointer;text-align:center}.slfc.sm{max-width:96px}
+.slfp{position:relative;aspect-ratio:3/4;border-radius:6px 6px 0 0;overflow:hidden;background:linear-gradient(180deg,#141a2a,#080b13);border:1px solid color-mix(in srgb,var(--c) 60%,#334)}
+.slfn{font-size:11px;font-weight:800;background:#05070c;padding:3px 2px;border:1px solid color-mix(in srgb,var(--c) 60%,#334);border-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* home da brand */
 .bhd{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 0 12px;border-bottom:1px solid var(--bd);margin-bottom:12px}
 .bhd .wm{font-size:clamp(26px,3vw,40px)}
